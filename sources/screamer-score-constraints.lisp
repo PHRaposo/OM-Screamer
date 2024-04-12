@@ -198,22 +198,6 @@
   collect y)))
  (posn-match voice-domain posn)))
 
- #|
- ;;; ===> THIS IS FOR IMPLEMENTING PERCENTAGE CONSTRAINT IN CAR-CDR OR GROWING-LIST MODES
-
-(defun split-domain-list2 (apply-length voice-domain);==> CARD-CDR ((0 (1 2 3 4 5)) (1 (2 3 4 5)) (2 (3 4 5)) ...)
- (let* ((posn (loop for x from 0 to (1- apply-length)
-          for y = (list x (arithm-ser (1+ x) apply-length 1))
- collect y)))
- (posn-match voice-domain posn)))
-
-(defun split-domain-list3 (list-length voice-domain);==> GROWING LIST ((0) (0 1) (0 1 2) ...)
- (let* ((posn (loop for x from 0 to (1- list-length)
-          for y = (arithm-ser 0 x 1)
- collect y)))
- (posn-match voice-domain posn)))
-|#
-
 ;;; *********************************************************************************************  ;;;
 ;;; ***********************   APPLY-SCREAMER-SCORE-CONSTRAINT   *********************************  ;;;
 ;;; *********************************************************************************************  ;;;

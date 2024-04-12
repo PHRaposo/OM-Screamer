@@ -504,6 +504,13 @@ x))
                             collect y)))
  (posn-match vars posn)))
 
+(defun mk-car-cdr (vars);==> CARD-CDR ((0 (1 2 3 4 5)) (1 (2 3 4 5)) (2 (3 4 5)) ...)
+ (let* ((apply-length (1- (length vars)))
+	    (posn (loop for x from 0 to (1- apply-length)
+          for y = (list x (arithm-ser (1+ x) apply-length 1))
+ collect y)))
+ (posn-match vars (reverse posn))))
+
 ; APPLY-CONTV
 
 (om::defmethod! apply-contv ((cs function) (mode string) (recursive? string) (vars t))
@@ -516,25 +523,26 @@ x))
 :icon 487
 
 (cond ((equal mode "atom")
-        (om?::assert!-deep-mapcar cs cs vars))
-		;(om?::deep-mapcar cs cs vars))
+         (let ((apply-cs (deep-mapcar cs cs vars)))
+		  (s::assert! (apply #'s::andv apply-cs))))
 
           ((equal mode "list")
            (cond
 
            ((equal recursive? "n-inputs")
            (om?::assert!-apply-rec cs vars))
-           ;(om?::-apply-rec cs vars))
 
            ((equal recursive? "car-cdr")
-           (om?::assert!-funcallv-rec-car-cdr cs vars))
-           ;(om?::-funcallv-rec-car-cdr cs vars))
+		   (let ((apply-cs (mapcar #'(lambda (x)
+		                    (funcall cs (first x) (second x)))
+							 (mk-car-cdr vars))))
+			(s::assert! (apply #'s::andv apply-cs))))
 
            ((equal recursive? "growing")
-            (om?::assert!-less-deep-mapcar cs (mk-growing vars)))
+            (s::assert! (apply #'s::andv (mapcar cs (mk-growing vars)))))
 
-           (t (om?::assert!-less-deep-mapcar cs vars))
-		   ;(om?::less-deep-mapcar cs vars))
+           (t (let ((apply-cs (less-deep-mapcar cs vars)))
+		       (s::assert! (apply #'s::andv apply-cs))))
           ))
 
          (t (progn (om-message-dialog "ERROR!") (om-abort)))))
