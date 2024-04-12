@@ -1,0 +1,41 @@
+OM-SCREAMER
+
+LIBRARY STRUCTURE
+
+| sources |
+
+***********   CLOSER-MOP  ******************************
+
+|    -    |   closer-mop  | closer-mop-packages.lisp
+|    -    |        -      | closer-mop-shared.lisp
+|    -    |        -      | closer-lispworks.lisp
+
+***********   SCREAMER-PLUS  ***************************
+
+|    -    | screamer-plus | screamer-plus.lisp
+
+***********   OM-SCREAMER  *****************************
+
+|    -    | package.lisp
+|    -    | om-screamerfuns.lisp
+|    -    | screamer-additions.lisp
+
+***********   PC-SET-THEORY  ****************************
+
+|    -    | pc-set-theory | SCs-data.lisp
+|    -    |       -       | normal-order-data.lisp
+|    -    |       -       | all-SCs.lisp
+|    -    |       -       | pc-set-theory.lisp
+|    -    |       -       | normal-order.lisp (new)
+
+***********   OM-SCREAMER  *****************************
+
+|    -    | screamer-solver.lisp
+|    -    | screamer-score-classes.lisp
+|    -    | screamer-score-domains.lisp
+|    -    | screamer-score-constraints.lisp
+|    -    | screamer-score.lisp
+|    -    | constraint-utils.lisp
+|    -    | analysis-tools.lisp
+
+********************************************************

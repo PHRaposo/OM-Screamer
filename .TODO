@@ -1,0 +1,60 @@
+TODO 
+
+;===============================================================;
+;=> PC-SET-THEORY
+;===============================================================;
+
+
+
+;===============================================================;
+;===============================================================;
+;=> SCREAMER-SOLVER
+;===============================================================;
+
+- FOR-EFFECTS? 
+- FAIL-FORM? 
+ 
+;===============================================================;   
+;=> SCREAMER-SCORE
+;===============================================================;
+
+
+- CONSTRAINT-HARMONY DOMAIN OPTIONS (PITCH - PITCH/DUR - PITCH/ONSET - PITCH-DUR-ONSET)
+
+- HEURISTICS?
+
+- BACKTRACK-CONSTRAINTS
+  - SCORE-APPLY-CONT
+  - NEW KEY FOR CONSTRAINTS (&key backtrack? -> t or nil)
+  - MODIFICATIONS IN SCREAMER-SCORE (score-apply-cont inside for-effects)
+  - APPLY-CONT-BACKTRACK
+
+=> RECURSIVE FUNCTIONS WITH (SCREAMER::FAIL) <=
+ - appc-rec
+ - funcall-rec-car-cdr
+ - appc-rec-growing
+
+- PROFILE-CONSTRAINT-BACKTRACK
+
+- PERCENTAGE-CONSTRAINT-BACKTRACK
+
+- DEBUG-TOOLS (NEW-FILE?)
+
+- TEST BACKTRACK IN SCREAMER-SCORE
+- TEST NEW-PATCHES
+- RHYTHMIC FUNCTIONS
+
+- TUTORIALS (EXPLANATIONS ABOUT SCREAMER, VARIABLES, SCREAMER-SOLVER,
+SCREAMER SCORE (MAIN FUNCTION, HOW TO BUILD CONSTRAINTS (ONE-VOICE, HARMONY, PROFILE, PERCENTAGE), ADD AN EXPLANATORY TEXT FOR EACH EXAMPLE PATCH. 
+
+
+
+
+
+
+
+
+
+
+
+
