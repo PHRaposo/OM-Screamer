@@ -29,6 +29,6 @@ SCREAMER-SCORE SCREENSHOT:
 
 ![alt text](https://github.com/PHRaposo/OM-Screamer/blob/main/screenshot3.png?raw=true)
 
-# [Download]()
+# [Download](https://github.com/PHRaposo/OM-Screamer/archive/refs/heads/main.zip)
 
 
