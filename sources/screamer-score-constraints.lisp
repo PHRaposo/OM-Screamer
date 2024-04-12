@@ -41,7 +41,8 @@
                           )
                         )
                     (4 (("off" "off") ("exactly" "exactly") ("less-than" "less-than") ("greater-than" "greater-than")("between" "between")))
-					(5 (("propagation" "propagation") ("backtrack" "backtrack" )
+					(5 (("propagation" "propagation")
+						;("backtrack" "backtrack" )
 						;("heuristic" "heuristic")
 					   ))
                      )
@@ -53,14 +54,15 @@
     :initvals '(nil "list" "all-voices" (0) "pitch" "all" "off" 0 "propagation")
     :indoc '( "<lambda-patch>"  "string" "string" "list" "string" "string" "string" "integer" "string")
     :doc "Constraint for one-voice"
-    :menuins '((1 (("list" "list") ("n-inputs" "n-inputs") ("car-cdr" "car-cdr") ("growing" "growing")))
+    :menuins '((1 (("list" "list") ("n-inputs" "n-inputs")("car-cdr" "car-cdr") ("growing" "growing")))
                (2 (("all-voices" "all-voices") ("voices-list" "voices-list")))
                (4 (("pitch" "pitch")
 			       ;("pitch-dur" "pitch-dur")("pitch-dur-onset" "pitch-dur-onset") ;==> NOT IMPLEMENTED
 			       ))
                (5 (("all" "all") ("on-beat" "on-beat") ("off-beat" "off-beat") ("1st-beat" "1st-beat")))
                (6 (("off" "off") ("exactly" "exactly") ("less-than" "less-than") ("greater-than" "greater-than")("between" "between")))
-			   (8 (("propagation" "propagation")("backtrack" "backtrack")
+			   (8 (("propagation" "propagation")
+			   ;("backtrack" "backtrack")
 			        ;("heuristic" "heuristic") ;==> NOT IMPLEMENTED
 			       ))
 				)
@@ -247,29 +249,33 @@
           (apply-percentage-constraint score-constraint chords-domain))
 
 	  (t (let ((cs-input (get-input score-constraint))
-		    (voice-select (get-v-sel score-constraint))
-		    (cs-fn (constraint score-constraint)))
-	   (cond ((equal voice-select "all-voices");<== ALL-VOICES
-		      (if (equal cs-input "list")
-			      (s::assert! (apply cs-fn (list chords-domain)))
-		          (apply-contv cs-fn "list" cs-input chords-domain)))
-		     (t (let ((voice-numbers (get-voices score-constraint)))
-			     (if (list-of-listp voice-numbers);<== LIST OF LISTS OF VOICES
-			         (let ((voices-chords (loop for positions in voice-numbers
-			                                    collect (mapcar #'(lambda (chord-domain)
-					 								               (posn-match chord-domain positions))
-					 									 chords-domain))))
-				     (mapcar #'(lambda (vars)
-			                    (if (equal cs-input "list");<== INPUT: "LIST"
-			                        (s::assert! (apply cs-fn (list vars)))
-									(apply-contv cs-fn "list" cs-input vars)));<== INPUT: "N-INPUTS", "CAR-CDR, GROWING"
-			           voices-chords))
-					(let ((voice-chords (mapcar #'(lambda (chord-domain);<== LIST OF VOICES
-												   (posn-match chord-domain voice-numbers))
-									     chords-domain)))
-			         (if (equal cs-input "list");<== INPUT: "LIST"
-					     (s::assert! (apply cs-fn (list voice-chords)))
-						 (apply-contv cs-fn "list" cs-input voice-chords))))))))))));<== INPUT: "N-INPUTS", "CAR-CDR, GROWING"
+		       (voice-select (get-v-sel score-constraint))
+		       (cs-fn (constraint score-constraint)))
+		   (cond ((equal voice-select "all-voices");<== ALL-VOICES
+			      (if (equal cs-input "list")
+				  (s::assert! (apply cs-fn (list chords-domain)))
+			          (apply-contv cs-fn "list" cs-input chords-domain)))
+			     (t (let* ((voice-numbers (get-voices score-constraint))
+				 	       (voices (if (and (atom (car voice-numbers));<== ONLY ONE-VOICE (IN CASE OF DOMAIN-TYPE = "CHORDS")
+						                    (= 1 (length voice-numbers)))
+						               (car voice-numbers);<== TO AVOID A LIST WITH A SINGLE POSITION
+									    voice-numbers)))
+				     (if (list-of-listp voice-numbers);<== LIST OF LISTS OF VOICES
+				         (let ((voices-chords (loop for positions in voices
+				                                    collect (mapcar #'(lambda (chord-domain)
+						 								               (posn-match chord-domain positions))
+						 									 chords-domain))))
+					     (mapcar #'(lambda (vars)
+				                    (if (equal cs-input "list");<== INPUT: "LIST"
+				                        (s::assert! (apply cs-fn (list vars)))
+										(apply-contv cs-fn "list" cs-input vars)));<== INPUT: "N-INPUTS", "CAR-CDR, GROWING"
+				           voices-chords))
+						(let ((voice-chords (mapcar #'(lambda (chord-domain);<== LIST OF VOICES
+													   (posn-match chord-domain voices))
+										     chords-domain)))
+				         (if (equal cs-input "list");<== INPUT: "LIST"
+						     (s::assert! (apply cs-fn (list voice-chords)))
+							 (apply-contv cs-fn "list" cs-input voice-chords))))))))))));<== INPUT: "N-INPUTS", "CAR-CDR, GROWING"
 
 (defmethod apply-screamer-score-constraint ((score-constraint cs-profile) (domain screamer-score-domain))
  (cond ((equal (get-cs-mode score-constraint) "backtrack")

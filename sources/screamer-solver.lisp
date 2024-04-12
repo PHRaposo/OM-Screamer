@@ -52,6 +52,7 @@
   <FORCE-FUNCTION> a string or should be connected to force-function.
   <MAP-SOLUTIONS> lambda patch or list of lambda patches => constraints to solutions. Will backtrack if fails.
   <OUTPUT> List of positions (for variables only) or list of lists of positions (for variables and propagation variables).
+   For all-values and n-values returns all variables.
  <COUNT-FAILURES?> string -> on or off.
  <OBJECTIVE-FORM>and<FORM2>: lambda patches with one input (variables only) or two inputs (variables and propagation variables) -> best-value forms."
 
@@ -445,13 +446,13 @@
 (deftype list-of-lists () '(satisfies list-of-listp))
 
 (defun select-solution (out solution &optional valuation p-variables?)
-(if valuation 
+(if valuation
     (cond ((or (= valuation 1) (= valuation 3)) ;<== all-values or n-values
                (cond ((null out) (if p-variables? (first (mat-trans solution)) solution))
 			   	      ((and (not (null out)) (listp out))
 					  (progn (om-message-dialog "List of positions as <OUTPUT> is not supported in ALL-VALUES or N-VALUES.")
 					         (om-abort)))
-              (t solution)))							 
+              (t solution)))
 
 	      ((equal valuation 5) ;<== best-value
                 (x-append (select-solution out (first solution) nil p-variables?)
@@ -461,7 +462,7 @@
        (cond ((null out) (if p-variables? (first solution) solution))
                   ((and (symbolp out) (equal out :all)) solution)
                   ((and (not (null out))  (listp out) p-variables?)
-                   (let ((variables 
+                   (let ((variables
                            (cond ((null (first out)) nil)
                                        ((atom (first solution)) (first solution))
                                         ((equal (first out) :all) (first solution))

@@ -434,22 +434,22 @@ x))
   		  	                              (nth n x)) list-inputs)))
                       (app-rec (cdr x))))))
    (app-rec list))))
-   
+
 (defun assert!-funcallv-rec (fn list)
- (labels ((funcall-rec (x)
+ (labels ((funcall-rec (f x)
             (if (null x)
-		     nil
-            (progn (assert! (funcallv fn x))
-                   (funcall-rec (cdr x))))))
- (funcall-rec list)))
-	
+		 nil
+            (progn (assert! (funcallv f x)) (funcall-rec f (cdr x))))))
+ (funcall-rec fn list)))
+
 (defun funcallv-rec-car-cdr (fn list)
-(labels ((funcall-car-cdr (x xs)
-             (if (null xs)
-			 nil
-              (progn (funcallv fn x xs)
-                        (funcall-car-cdr (car xs) (cdr xs))))))
- (funcall-car-cdr (car list) (cdr list))))
+ (labels ((funcall-car-cdr (f x xs)
+           (if (null xs)
+		        nil
+               (progn (funcall f x xs)
+                      (funcall-car-cdr f (car xs) (cdr xs))))))
+  (funcall-car-cdr fn (car list) (cdr list))))
+
 ;(labels ((funcall-car-cdr (x xs)
 ;             (ifv (null xs)
 ;              t
@@ -458,41 +458,39 @@ x))
 ; (funcall-car-cdr (carv list) (cdrv list))))
 
 (defun assert!-funcallv-rec-car-cdr (fn list)
-(labels ((funcall-car-cdr (x xs)
-             (if (null xs)
-			 nil
-              (progn (assert! (funcallv fn x xs))
-                     (funcall-car-cdr (car xs) (cdr xs))))))
- (funcall-car-cdr (car list) (cdr list))))
-
- (defun assert!-all-differentv (list)
-    (labels ((all-different (x xs)
+    (labels ((funcall-car-cdr (f x xs)
                (if (null xs)
- 			    nil
+			        nil
+               (progn (assert! (funcall f x xs))
+                      (funcall-car-cdr f (car xs) (cdr xs))))))
+      (funcall-car-cdr fn (car list) (cdr list))))
+
+(defun assert!-all-differentv (list)
+    (labels ((all-different (x xs)
+               (if (null xs) nil
                (progn (assert! (notv (memberv x xs)))
-                      (all-different (car xs) (cdr xs))))))
+                   (all-different (car xs) (cdr xs))))))
       (all-different (car list) (cdr list))))
-	  
+
 (defun assert!-deep-mapcar (fun fun1 list? &rest args)
 "Mapcars <fun> or applies <fun1> to <list?> <args> whether <list?> is a list or not."
 (cond
   ((null list?) ())
   ((not (consp list?)) (assert! (apply fun1 list? args)))
-  (t (progn (apply #'deep-mapcar fun fun1 (car list?) args)
-     (apply #'deep-mapcar fun fun1 (cdr list?) args)))))
+  (t (progn (apply #'assert!-deep-mapcar fun fun1 (car list?) args)
+     (apply #'assert!-deep-mapcar fun fun1 (cdr list?) args)))))
 
 (defun assert!-less-deep-mapcar (fun  list? &rest args)
  "Applies <fun> to <list?> <args> if <list?> is a one-level list .
   Mapcars <fun> to <list?> <args> if <list?> is a multi-level list. "
-  (print list?)
  (cond
    ((null list?) nil)
    ((atom (car list?)) (assert! (apply fun (list list?) args)))
    ((atom (car (car list?)))
-    (progn (assert! (apply fun (car list?) args)) (apply #'less-deep-mapcar fun (cdr list?) args)))
-   (t (progn (apply #'less-deep-mapcar fun  (car list?) args)
-            (apply #'less-deep-mapcar fun  (cdr list?) args)))))
-					
+    (progn (assert! (apply fun (car list?) args)) (apply #'assert!-less-deep-mapcar fun (cdr list?) args)))
+   (t (progn (apply #'assert!-less-deep-mapcar fun  (car list?) args)
+            (apply #'assert!-less-deep-mapcar fun  (cdr list?) args)))))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; OM METHODS
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -527,14 +525,13 @@ x))
            ((equal recursive? "n-inputs")
            (om?::assert!-apply-rec cs vars))
            ;(om?::-apply-rec cs vars))
-		   
+
            ((equal recursive? "car-cdr")
            (om?::assert!-funcallv-rec-car-cdr cs vars))
            ;(om?::-funcallv-rec-car-cdr cs vars))
-		   
+
            ((equal recursive? "growing")
-           (assert!-funcallv-rec cs (mk-growing vars)))
-		   ;(mapcar cs (mk-growing vars)))
+            (om?::assert!-less-deep-mapcar cs (mk-growing vars)))
 
            (t (om?::assert!-less-deep-mapcar cs vars))
 		   ;(om?::less-deep-mapcar cs vars))
