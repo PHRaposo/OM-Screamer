@@ -63,27 +63,11 @@
 (defun fnv (vars)
 (firstv (s::funcallgv #'gethash (?::make-mcsetv vars) *all-possible-chroma-subsets-hash*)))
 
-#|
-(let ((forte-nv (firstv (s::funcallgv #'gethash (?::make-mcsetv vars) *all-possible-chroma-subsets-hash*)))
-      (old-p-variables om::*p-variables*)
-	  )
- (setf om::*p-variables* (om::x-append old-p-variables (list vars) forte-nv))
- forte-nv))
-|#
-
 (defun member-of-setclassv (vars list)
  (memberv (fnv vars) list))
 
 (defun fnv-pcs (vars)
 (firstv (s::funcallgv #'gethash (?::make-setv vars) *all-possible-chroma-subsets-hash*)))
-
-#|
-(let ((forte-nv (firstv (s::funcallgv #'gethash (?::make-setv vars) *all-possible-chroma-subsets-hash*)))
-      (old-p-variables om::*p-variables*)
-	  )
- (setf om::*p-variables* (om::x-append old-p-variables (list vars) forte-nv))
- forte-nv))
-|#
 
 (defun member-of-setclassv-pcs (vars list)
  (memberv (fnv-pcs vars) list))
@@ -112,37 +96,6 @@ z))
 (defun prime (fn)
 (get (om-symb->om? fn) :prime))
 
-; =============================================================== ;
-; CHORDS INTERVALS
-; =============================================================== ;
-
-(defun listv-memberv-of-lists (lst lists)
- (when lists
-  (ifv (equalv lst (carv lists))
-   t
-  (listv-memberv-of-lists lst (cdrv lists)))))
-
-(defun repeat-pcs (pcs voices-length card)
- (let ((length-dif (- voices-length card)))
- (om::flat-once 
-  (mapcar #'(lambda (pc)
-   (om::permutations 
-    (om::x-append (om::repeat-n pc length-dif) pcs)))
-  pcs))))
-
-(defun fn-to-chords-intervals (fn voices-length)
- (let* ((prime (get fn :prime))
-       (card (get-card (string fn)))
- 	   (perms (repeat-pcs prime voices-length card))
- 	   (intervals (mapcar #'om::x->dxv perms)))
- (remove-duplicates (om::om* 100 (om::mod12v intervals)) :test 'equal)))
-
-(defun get-all-chords-intervals (fn-list voices-length)
- (let ((all-chords-intervals (om::flat-once (mapcar #'(lambda (fn) (fn-to-chords-intervals fn voices-length)) (om-symb->om? fn-list)))))
-  all-chords-intervals))
- 
-; =============================================================== ;
- 
 (defun fn (sc) 
 (om?-symb->om (car (gethash (sort  (remove-duplicates sc) #'<) *all-possible-chroma-subsets-hash*))))
 
@@ -229,73 +182,6 @@ z))
     (om::while l (push (/ (mod (pop l) 1200) 100) lst))
     (sort (delete-duplicates  lst) #'<)))
 
-
-; =============================================================== ;  
-;DEPRECATED FUNCTIONS
-#|
-(defun midics->fn (list) 
- (let ((pcs (mapcar #'(lambda (x) (/v (modv x 1200) 100)) list)))
- (fnv pcs)))
- 
-(defun pcpv? (list prime-form)
- (let ((pc-sets-list (pc-set-transpositions prime-form)))
-(pcpv?-internal list pc-sets-list)))
-
-(defun pcpv?-internal (list pc-sets-list)
- (when pc-sets-list 
-  (ifv (andv (all-membersv-alt list (carv pc-sets-list))                  
-                  (=v (lengthv (intersectionv (carv pc-sets-list) list))
-                        (lengthv (carv pc-sets-list))))
-             t
-            (pcpv?-internal list (cdrv pc-sets-list)))))
-
-(defun a-transposition-ofv (pcset)
-(let ((listv (a-listv)))
-  (make-equal listv 
-   (mapcar #'(lambda (x) (modv x 12))
-    (om::om+v (an-integer-betweenv 0 11) pcset)))
-(value-of listv)))
-                                        
-(defun subsetpv? (list prime-form card)
- (let ((pc-sets-list (pc-set-transpositions prime-form)))
-  (subsetpv?-internal list pc-sets-list card)))
-
-(defun subsetpv?-internal (list pc-sets-list card)
- (when pc-sets-list 
-  (ifv (andv (all-membersv list (carv pc-sets-list))
-                      (>=v (lengthv (intersectionv (carv pc-sets-list) list))
-                               card))
-            t
-           (subsetpv?-internal list (cdrv pc-sets-list) card))))
-
-(defun member-of-setclassv (vars list)
-(let ((transpositions (om::flat-once (mapcar #'pc-set-transpositions (mapcar #'(lambda (fn) (get fn :prime)) list))))
-      (pcs (om::mc->pcv vars)))
- (pcpv?-internal pcs (om::permut-random transpositions))))
-
-(defun member-of-setclassv-pcs (vars list)
-(let ((transpositions (om::flat-once (mapcar #'pc-set-transpositions (mapcar #'(lambda (fn) (get fn :prime)) fns)))))
-(pcpv?-internal vars (om::permut-random transpositions))))
-
-(defun equal-pc-setv? (x pcset)
- (pcpv?-internal x pcset))
- 
- (defun gen-all-members-of-scsv (vars list) 
-  (let ((fnv (fnv vars)) 
- 	   (scs list))
-	   
-   (assert! (memberv fnv scs))
- 
-   (mapcar #'first 
-    (all-values 
-     (solution (list vars fnv)
-      (reorder 
-       #'domain-size
-       #'(lambda (x) (declare (ignore x)) nil)
-       #'<
-       #'linear-force))))))
- 
-|#
 ;===============================================
 ;;; OM METHODS 
 ;===============================================
