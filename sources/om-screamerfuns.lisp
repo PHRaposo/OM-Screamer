@@ -1,7 +1,7 @@
 (IN-PACKAGE :om-screamer)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;; FUNCTION FROM T2L-SCREAMER
+;;; FUNCTIONS FROM T2L-SCREAMER
 ;;; Copyright (c) 2007, Kilian Sprotte. All rights reserved.
 
 (defun absv (k)
@@ -52,6 +52,7 @@ x))
  (assert! (<v d 1))
  (assert! (=v d (-v xR yR)))
  y))
+ 
 (defun ceilingv (x)
 (let* ((y (an-integerv))
       (d (-v x y)))
@@ -92,30 +93,30 @@ x))
       (mapcar #'(lambda (a b) (=v a b))
               list1
               list2)))
-
+			  
 (defun a-permutation-of (list)
-(if (null list)
-   nil
- (let ((i (an-integer-between 0 (1- (length list)))))
-   (append (list (elt list i))
-           (a-permutation-of
-            (append (subseq list 0 i)
-                    (subseq list (1+ i) (length list))))))))
+ (if (null list)
+    nil
+  (let ((i (an-integer-between 0 (1- (length list)))))
+    (append (list (elt list i))
+            (a-permutation-of
+             (append (subseq list 0 i)
+                     (subseq list (1+ i) (length list))))))))
 
 (defun a-permutation-ofv (list) ;&key symbol-mode)
-(let ((vars (list-of-members-ofv (length list) list))
-           ;(mapcar #'(lambda (x)
-            ;           (let ((v (an-integerv)))
-            ;             (assert! (memberv v list))
-            ;             v))
-            ;       list))
-     (perms (all-values (a-permutation-of list))))
- (assert! (reduce-chunks
-           #'orv
-           (mapcar #'(lambda (p) (lists=v p vars))
-                   perms)))
- vars))
-
+ (let ((vars (list-of-members-ofv (length list) list))
+            ;(mapcar #'(lambda (x)
+             ;           (let ((v (an-integerv)))
+             ;             (assert! (memberv v list))
+             ;             v))
+             ;       list))
+      (perms (all-values (a-permutation-of list))))
+  (assert! (reduce-chunks
+            #'orv
+            (mapcar #'(lambda (p) (lists=v p vars))
+                    perms)))
+  vars))
+			  
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; DEEP-MAPCAR - FROM PATCHWORK, OM AND ESQUISSE
 
@@ -274,52 +275,15 @@ x))
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; NEW-VARIABLES
 
-;;;RANDOM TEST
-(defun random-domain (domain)
- (let* ((d domain)
-        (random-elem (om::nth-random d))
-		(random-first (om::x-append random-elem
-			                       (remove-if #'(lambda (x) (= x random-elem)) d)))
-		)
-  random-first))
-
 (defun a-random-member-ofv (values &optional (name nil name?))
   (let ((v (if name? (make-variable name) (make-variable))))
     (assert! (memberv v (om::permut-random values)))
    (value-of v)))
 
-(defun a-real-multiple-ofv (n m-max)
- (let ((v (a-realv))
-        (all-multiples (reverse (all-values (*v (an-integer-between 1 m-max) n)))))
-(assert! (memberv v all-multiples))
-(value-of v)))
-
-(defun a-multiple-of (n1 n2)
-(integerpv (/v n1 n2)))
-
-(defun an-integer-roundv (n) ;&optional (d 1))
-  (let ((x (an-integer-betweenv (-v (-v n 0.5) 1e-6) (-v (+v n 0.5) 1e-6)))) ;(an-integer-betweenv (-v (-v (/v n d) 0.5) 1e-6) (-v (+v (/v n d) 0.5) 1e-6)))
-         ;(rem-x (a-realv))) ;;;FIX-ME ===> REMAINDER (NEGATIVE-NUMBERS)
-  (value-of x)))
-  ;(assert! (=v rem-x (-v (absv n) (*v x d))))
-  ; (values (value-of x) (value-of rem-x))))
-
-; N = (* D X + REM-X)
-; REM-X = N - (* D X)
-
-(defun first-nv (list n)
-  (ifv (<v (lengthv list) n) list)
-   (funcallv #'butlast list (-v (lengthv list) n)))
-
-(defun last-nv (list n)
-  (funcallv #'last list n))
-
 ;;; MIDICENTSV
 
 (defvar *max-midic* 12700)
 (defvar *min-midic* 0)
-(defvar *midics-range* (om::arithm-ser 0 12700 100))
-(defvar *midics-approx* 100)
 
 (defun a-mcv (approx)
  (let ((v (an-integerv))
@@ -341,8 +305,7 @@ x))
 
 (defun a-random-mc-member-ofv (approx domain)
  (let ((v (a-mcv approx)))
- (assert! (memberv v ;(random-domain domain)))
-                    (om::permut-random domain)))
+ (assert! (memberv v (om::permut-random domain)))
 (value-of v)))
 
 (defun list-of-mc-members-ofv (n approx dom)
@@ -410,8 +373,18 @@ x))
                     (=v mcv (-v note (om::list-min intervals)))))
 (one-value (solution mcv (static-ordering #'linear-force))))))
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;; RECURSIVE FUNCTIONS FOR CONSTRAINTS
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; RECURSIVE FUNCTIONS FOR APPLY-CONTV
+
+(defun assert!-all (x)
+(if (null x) nil
+	(if (atom x) (assert! x)
+		(if (and (listp x) (every #'atom x))
+		    (progn (assert! (car x))
+		           (assert!-all (cdr x)))
+			(if (and (listp x) (every #'listp x))
+			    (progn (assert!-all (car (car x)))
+				       (assert!-all (cdr x))))))))
 
 (defun apply-rec (fn list) (apply-rec-internal fn list nil))
 
@@ -491,6 +464,26 @@ x))
    (t (progn (apply #'assert!-less-deep-mapcar fun  (car list?) args)
             (apply #'assert!-less-deep-mapcar fun  (cdr list?) args)))))
 
+(defun any-fn (f x)
+;; note: Experimental function.
+"This function returns a boolean variable which is the result of
+the constraint function f applied to each variable in X as soon
+as X is ground.
+The constraint function f can be any LISP function (including
+those that normally are not supported by SCREAMER) and will be
+applied to bound values, not variables."
+ (let ((z (make-variable))
+       (b (a-booleanv))
+ 	    valf valx) 		       
+  (screamer::attach-noticer!
+    #'(lambda()
+       (when (screamer::ground? x) 
+        (setq valx (screamer::apply-substitution x))
+		(setq valf (apply f (list (screamer::value-of valx))))
+        (assert! (eqv b valf))))
+        x)		
+  b))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; OM METHODS
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -523,8 +516,7 @@ x))
 :icon 487
 
 (cond ((equal mode "atom")
-         (let ((apply-cs (deep-mapcar cs cs vars)))
-		  (s::assert! (apply #'s::andv apply-cs))))
+	   (om?::assert!-deep-mapcar cs cs vars))
 
           ((equal mode "list")
            (cond
@@ -533,16 +525,14 @@ x))
            (om?::assert!-apply-rec cs vars))
 
            ((equal recursive? "car-cdr")
-		   (let ((apply-cs (mapcar #'(lambda (x)
-		                    (funcall cs (first x) (second x)))
-							 (mk-car-cdr vars))))
-			(s::assert! (apply #'s::andv apply-cs))))
+			(om?::assert!-all (mapcar #'(lambda (x)
+		                       (funcall cs (first x) (second x)))
+							    (mk-car-cdr vars))))
 
            ((equal recursive? "growing")
-            (s::assert! (apply #'s::andv (mapcar cs (mk-growing vars)))))
+            (om?::assert!-less-deep-mapcar cs (mk-growing vars)))
 
-           (t (let ((apply-cs (less-deep-mapcar cs vars)))
-		       (s::assert! (apply #'s::andv apply-cs))))
+           (t (om?::assert!-less-deep-mapcar cs vars))
           ))
 
          (t (progn (om-message-dialog "ERROR!") (om-abort)))))
@@ -576,6 +566,13 @@ x))
 
           (t (progn (om-message-dialog "ERROR!") (om-abort)))))
 |#
+
+(om::defmethod! om-assert! ((bool t))
+:initvals '( ( ) ) 
+:indoc '("boolean variable or list")
+:doc "OM equivalent to SCREAMER::ASSERT!. Accepts one boolean variable or a list of boolean variables."
+:icon 487
+(om?::assert!-all bool))
 
  (om::defmethod! x->dxv ((list list))
  :initvals '((1 2 3 4 5)) :indoc '("variable or list of variables")
@@ -726,45 +723,12 @@ x))
 (apply 's::/=v list)
 (s::applyv 's::/=v list)))
 
-(om::defmethod! sort-listv ((list t) (direction string))
-:initvals '(nil "<") :indoc '("list" "string")
-:menuins '((1 (("<" "<") (">" ">"))))
-:icon 474
-(if (not (s::variable? list))
-    (if  (not (some #'s::variable? list))
-         (sort list (if (equal direction "<") #'< #'>))
- (if (equal direction "<")
-     (s::funcallv #'sort list #'s::<v)
-     (s::funcallv #'sort list #'s::>v)))))
-
-(om::defmethod! quadratic-bezier ((p0 number) (p1 number) (p2 number) (steps integer))
- :initvals '(6000 4800 7400 20)
- :indoc '("number" "number" "number" "integer")
-:doc "Solve a quadratic Bezier curve with three points in a given number of steps."
- :icon 473
- (let* ((t-var (interpolation 0 1 steps 0.0))
-        (q0 (mapcar #'(lambda (z)
-                                (+ (* (expt (- 1 z) 2) p0)
-                                    (* (- 1 z) (* 2  z) p1)
-                                    (* (expt z 2) p2)))
-                t-var)))
-(simple-bpf-from-list (om* t-var 1000)
-                                  q0)))
-
-(om::defmethod! cubic-bezier ((p0 number) (p1 number) (p2 number) (p3 number) (steps integer))
- :initvals '(3600 2100 8400 6000 20)
- :indoc '("number" "number" "number" "number" "integer")
-:doc "Solve a cubic Bezier curve with four points in a given number of steps."
- :icon 473
- (let* ((t-var (interpolation 0 1 steps 0.0))
-        (c0 (mapcar #'(lambda (z)
-                                (+ (* (expt (- 1 z) 3) p0)
-                                    (* 3 (expt (- 1 z) 2) z p1)
-                                    (* 3 (- 1 z) (expt z 2) p2)
-                                    (* (expt z 3) p3)))
-                t-var)))
-(simple-bpf-from-list (om* t-var 1000)
-                                  c0)))
+(om::defmethod! sumv ((list t))
+:initvals '(nil) :indoc '("list")
+:icon 480
+(if (listp list)
+(om?::sumv list)
+(s::applyv 'om?::sumv (list list))))
 
 ; -----------------------------------------
 
@@ -839,78 +803,39 @@ x))
   (x-append (list 'om*v 'om-v 'om+v 'om/v) defaults)))
 
 ; -----------------------------------------
+;; OM UTILS
 
-; UTILS
+; BEZIER CURVES
 
-;;;RHYTHMIC CONSTRUCTOR
+(om::defmethod! quadratic-bezier ((p0 number) (p1 number) (p2 number) (steps integer))
+ :initvals '(6000 4800 7400 20)
+ :indoc '("number" "number" "number" "integer")
+:doc "Solve a quadratic Bezier curve with three points in a given number of steps."
+ :icon 473
+ (let* ((t-var (interpolation 0 1 steps 0.0))
+        (q0 (mapcar #'(lambda (z)
+                                (+ (* (expt (- 1 z) 2) p0)
+                                    (* (- 1 z) (* 2  z) p1)
+                                    (* (expt z 2) p2)))
+                t-var)))
+(simple-bpf-from-list (om* t-var 1000)
+                                  q0)))
 
-(defun group-ratios (timesig puls ratios)
- (let* ((tree (mktree ratios timesig))
-        (tree-groups (mapcar #'second (second tree))))
-  (mapcar #'(lambda (groups pulses)
-	        (group-list groups pulses 'linear))
-	tree-groups puls)
-  )
- )
-
-(defmethod! cons-tree ((timesig list) (puls list) (subdiv list) (mode string))
-   :initvals '( ( (5 8) (6 8) (6 8)) ((2 3) (2 2 2) (1)) (((1 1) (1 1 1)) ((1 1) (1 1) (1 1)) ((1.0))) "tree")
-   :indoc '( "list" "list" "list" "string")
-   :menuins '((3 (("tree" "tree") ("ratio" "ratio"))))
-   :doc
-"Constructs a rhythmic tree from three arguments:
-(1) A list of time signatures;
-(2) A list of lists of pulses subdivisions;
-(3) A list of lists of beats subdivisions or a list of ratios.
-"
-   :icon 254
- (cond ((equal mode "tree")
-        (list '?
-              (mapcar #'(lambda (tim p s)
-                         (list tim
-                              (mapcar #'list p s)))
-               timesig puls subdiv)))
-
-		((equal mode "ratio")
-	     (let ((ratio-subdiv (group-ratios timesig puls subdiv)))
-         (list '?
-               (mapcar #'(lambda (tim p s)
-                          (list tim
-                               (mapcar #'list p s)))
-                timesig puls ratio-subdiv))))
-
-	    (t nil)
-  )
- )
-
-(defun tree-rotations (tree)
- (let* ((ratios (tree2ratio tree))
-        (timesig (get-time-sig tree))
-        (rot-positions (om?::all-rotations (arithm-ser 0 (1- (length ratios)) 1)))
-        (rotations (mapcar #'(lambda (pos)
-                         (posn-match ratios pos)) rot-positions)))
- (mapcar #'(lambda (ratios-list)
-                (mktree ratios-list timesig))
-  rotations)))
-
-(defmethod! cons-subdiv ((subdiv list) &optional rest-pos tie-pos)
-   :initvals '( (4 3 4 6) () ())
-   :indoc '( "list" "list" "list")
-   :doc
-"Constructs the subdivisions of a measure.
-"
-   :icon 254
- (let ((beats (mapcar #'(lambda (x) (repeat-n 1 x)) subdiv))
-        (rests (if (null rest-pos) (repeat-n nil (length subdiv)) rest-pos))
-        (ties (if (null tie-pos) (repeat-n nil (length subdiv)) tie-pos)))
-(mapcar #'(lambda (beat rests ties)
- (loop for n in beat
-          for x from 0 to (1- (length beat))
-          collect (cond ((member x rests) (* -1 n))
-                               ((member x ties) (float n))
-                               (t n))))
-beats rests ties)))
-
+(om::defmethod! cubic-bezier ((p0 number) (p1 number) (p2 number) (p3 number) (steps integer))
+ :initvals '(3600 2100 8400 6000 20)
+ :indoc '("number" "number" "number" "number" "integer")
+:doc "Solve a cubic Bezier curve with four points in a given number of steps."
+ :icon 473
+ (let* ((t-var (interpolation 0 1 steps 0.0))
+        (c0 (mapcar #'(lambda (z)
+                                (+ (* (expt (- 1 z) 3) p0)
+                                    (* 3 (expt (- 1 z) 2) z p1)
+                                    (* 3 (- 1 z) (expt z 2) p2)
+                                    (* (expt z 3) p3)))
+                t-var)))
+(simple-bpf-from-list (om* t-var 1000)
+                                  c0)))
+								  
 ; VOICE-MERGER
 
 (defun voice-merger-internal (list accumul)
@@ -946,5 +871,3 @@ beats rests ties)))
    (simple-bpf-from-list (butlast (dx->x 0 (om* tempo-ms (om-abs (tree2ratio (tree voice))))))
                                     (flat (mapcar #'lmidic (chords voice))))))
    (voices poly-obj))))
-
-

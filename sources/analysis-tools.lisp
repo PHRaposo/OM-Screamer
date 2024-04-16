@@ -46,7 +46,7 @@
 
 (defmethod segment-data-tostring ((self interval-analysis) segment)
   (if (segment-data segment)
-      (format nil "~A" (car (puntos (segment-data segment))))
+      (format nil "~A" (puntos (segment-data segment)))
     ""))
 
 (defmethod draw-segment-data ((self interval-analysis) segment view)

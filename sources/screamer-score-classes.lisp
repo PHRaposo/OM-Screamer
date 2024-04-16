@@ -161,7 +161,7 @@
 (defmethod screamer-score-domain-p ((self screamer-score-domain)) t)
 (defmethod screamer-score-domain-p ((self t)) nil)
 
-(defclass score-domain (screamer-score-domain) ;should change get-domain-parameters for domain, type,
+(defclass score-domain (screamer-score-domain)
  ((domain :initform nil :initarg nil :reader domain :writer set-domain :documentation "list of numbers")
   (domain-type :initform nil :initarg nil :reader domain-type :writer set-domain-type :documentation "string")
   (n-notes :initform nil :initarg nil :reader n-notes :writer set-n-notes :documentation "number or list"))
@@ -382,12 +382,15 @@ A description of each slot is presented below:
 (defmethod OMchord-to-Schord ((OMchord chord))
  (make-screamer-chord (lmidic omchord)))
 
+ (defmethod Schord-to-OMchord ((self screamer-chord))
+  (make-instance 'om::chord :lmidic (lmidic self)))
+
 (defclass screamer-voice (screamer-music-object)
   ((chords :initform nil :initarg nil :reader chords :writer set-chords :documentation "screamer-chord objects")
    (tree :initform nil :initarg nil :reader tree :writer set-tree :documentation "list")
    (ratios :initform nil :initarg nil :reader ratios :writer set-ratios :documentation "list")
    (sv-time-sig :initform nil :initarg nil :reader get-sv-time-sig :writer set-sv-time-sig :documentation "list")
-   (tempo :initform nil :initarg nil :reader tempo :writer set-tempo :documentation "list")
+   (tempo :initform nil :initarg nil :reader tempo :writer set-tempo :documentation "list") ;<== NEEDS WORKS (TEMPO CHANGES - OM FUNCTIONS -UTILS.LISP)
    (locked? :initform nil :initarg nil :reader locked? :writer set-lock :documentation "list"))
   (:documentation "A simple container for screamer-voice.
 A description of each slot is presented below:
@@ -402,20 +405,34 @@ A description of each slot is presented below:
 (defmethod screamer-voice-p ((self t )) nil)
 (defmethod screamer-music-object-p ((self screamer-voice)) t)
 
-(defmethod make-screamer-voice ((chords list) (tree list) (ratios list) (time-sig list) (tempo number) (locked? t))
-  (let ((instance (make-instance 'screamer-voice)))
-   (set-chords chords instance)
-   (set-tree tree instance)
-   (set-ratios ratios instance)
-   (set-sv-time-sig time-sig instance)
-   (set-tempo tempo instance)
-   (set-lock locked? instance)
-  instance))
+(defun make-chords-for-svoice (chords tree)
+(if chords
+	(mapcar #'make-screamer-chord chords)
+    (let ((n-chords (apply #'+ (get-number-of-chords-per-measure tree))))
+     (loop for x from 1 to n-chords collect (make-screamer-chord '(6000))))))
 
+(defmethod make-screamer-voice ((chords t) (tree t) (ratios t) (time-sig t) (tempo t) (locked? t))
+ (let ((instance (make-instance 'screamer-voice)))
+  (set-tree (if tree tree (mktree ratios time-sig)) instance)
+  (set-chords (make-chords-for-svoice chords (tree instance)) instance) 
+  (set-ratios (if ratios ratios (tree2ratio tree)) instance)
+  (set-sv-time-sig (if time-sig 
+	                   (if (and (listp time-sig) (every #'atom time-sig))
+					       (list time-sig)
+						   time-sig) 
+	               (loop for mes in (cadr tree) collect (car mes))) instance)
+  (set-tempo (if tempo tempo 60) instance)  
+  (set-lock (if chords t nil) instance)
+ instance))
+			 
 (defmethod get-time-sig ((self screamer-voice) &optional mode)
  (declare (ignore mode))
  (get-sv-time-sig self))
-
+ 
+(defmethod get-rest-places ((self screamer-voice))
+ (let ((tree (tree self)))
+  (get-rest-places tree)))
+	 
 (defmethod locked-voice? ((self voice))
  (let ((voice-chords (remove-duplicates (flat (mapcar #'lmidic (chords self))))))
   (not (and (= 6000 (first voice-chords))
@@ -432,6 +449,12 @@ A description of each slot is presented below:
 					  (tempo self)
 					  (locked-voice? self)))
 
+(defmethod Svoice-to-OMvoice ((self screamer-voice))
+(make-instance 'om::voice 
+	           :tree (tree self)
+			   :chords (mapcar #'Schord-to-OMchord (chords self))
+			   :tempo (tempo self)))
+										  
 (defclass screamer-poly (screamer-music-object)
 ((voices :initform nil :initarg nil :reader voices :writer set-voices :documentation "list of screamer-voice objects"))
  (:documentation "A simple container for screamer-voices."))
@@ -447,6 +470,9 @@ A description of each slot is presented below:
 
 (defmethod OMpoly-to-Spoly ((OMpoly poly))
  (make-screamer-poly (mapcar #'OMvoice-to-Svoice (voices OMpoly))))
+ 
+(defmethod Spoly-to-OMpoly ((Spoly screamer-poly))
+ (make-instance 'om::poly :voices (mapcar #'Svoice-to-OMvoice (voices Spoly))))
 
 (defclass screamer-measure (screamer-music-object)
  ((chords :initform nil :initarg nil :reader chords :writer set-chords :documentation "screamer-chord objects")

@@ -35,7 +35,17 @@
  (if (null solution)
      (progn (om-message-dialog "UNABLE TO FIND A SOLUTION." ) (om-beep) (om-abort))
   (make-instance 'poly :voices (mapcar #'update-pitches voices solution))))
+  
+(defun test-solution-2 (solution voices)
+(if (null solution)
+    (error "UNABLE TO FIND A SOLUTION.")
 
+   (list (loop for pitches in solution
+	   	       for voice in voices
+		       collect (list pitches (ratios voice)))
+		 (get-time-sig (car voices))
+		 (tempo (car voices)))))
+	
 (defmethod! screamer-score ((poly-object poly)(domains t)(score-constraints t)
                              &key (force-function '("reorder" "score-position" "(declare (ignore x))" "<" "linear-force")) (random? t) (mcs-approx 2))
   :initvals '(nil nil nil ("reorder" "score-position" "(declare (ignore x))" "<" "linear-force") t 2)
@@ -110,6 +120,33 @@
   ;(if solution solution (progn (om-message-dialog "UNABLE TO FIND A SOLUTION." ) (om-beep) (om-abort))) <== FOR PRINT-VALUES
  )))
 
+
+(defmethod screamer-score-2 ((pitch-dur list) (time-sig list) (tempo number) (domains t) (score-constraints t)
+                              &key (force-function '("reorder" "score-position" "(declare (ignore x))" "<" "linear-force")) (random? t) (mcs-approx 2))
+							   
+  (setf s::*all-screamer-score-variables* nil)
+  ;(setf *screamer-score-backtrack* nil)
+
+ (let* ((screamer-poly (make-screamer-poly (mapcar #'(lambda (p-d) (make-screamer-voice (first p-d) nil (second p-d) time-sig tempo nil)) pitch-dur)))
+ 	   (all-domains (build-all-domains screamer-poly domains mcs-approx random?))
+ 	   )
+
+  (setf s::*all-screamer-score-variables* (flat (chords (var-domain all-domains))))
+
+     (if (screamer-score-constraint-p score-constraints)
+        (apply-screamer-score-constraint score-constraints all-domains)
+        (mapcar #'(lambda (constraint)
+                   (apply-screamer-score-constraint constraint all-domains))
+          (remove nil (flat score-constraints)))
+     )
+
+  (let ((solution (screamer-score-solution all-domains force-function)))
+
+   (setf s::*all-screamer-score-variables* nil)
+   ;(setf *screamer-score-backtrack* nil)
+   (test-solution-2 solution (voices screamer-poly))
+  )))
+  
 (defun screamer-score-solution (all-domains force)
  (let ((variables-domain (var-domain all-domains))
    	   ;(measures-domain (mes-domain all-domains))  <=== FOR [ BACKTRACK CONSTRAINTS ]
@@ -206,4 +243,5 @@
                        ((equal (fifth force-function) "random-force") #'s::random-force)
                        (t #'s::linear-force))))))
       ))))))
-|#
+
+ |#

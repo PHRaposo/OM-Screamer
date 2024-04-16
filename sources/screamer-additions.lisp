@@ -2,11 +2,11 @@
 
 (defvar *all-screamer-score-variables* nil
  "A global variable storing the order which variables (and non-variables) will appear in the musical score representation 
-of screamer-score (Openmusic). This is used for score-order (new cost-function).") ;<== phraposo
+of screamer-score (Openmusic). This is used for score-order (new cost-function).")
 	
 (defmacro-compile-time n-values (n
 	 		    &body forms)				
-"FROM T2L-SCREAMER:
+"FROM T2L-SCREAMER AND SMC(PWGL):
  Copyright (c) 2007, Kilian Sprotte. All rights reserved."
  (let ((values (gensym "VALUES-"))
        (last-value-cons  (gensym "LAST-VALUE-CONS-"))
