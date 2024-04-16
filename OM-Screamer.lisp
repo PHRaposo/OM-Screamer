@@ -1,13 +1,13 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
 ;;; OM-SCREAMER LIBRARY
-;;; Copyright 2024 Paulo Henrique Raposo 
+;;; Copyright 2024 Paulo Henrique Raposo
 ;;;
-;;;   Includes: 
+;;;   Includes:
 ;;;
-;;; * PC-SET-THEORY from PW-CONSTRAINTS and OMCS 
-;;;   by Mikael Laurson (1995) - Ported to OpenMusic by Orjan Sandred (1999) 
-;;;   Adapted to OM-Screamer by Paulo Henrique Raposo 
+;;; * PC-SET-THEORY from PW-CONSTRAINTS and OMCS
+;;;   by Mikael Laurson (1995) - Ported to OpenMusic by Orjan Sandred (1999)
+;;;   Adapted to OM-Screamer by Paulo Henrique Raposo
 ;;;
 ;;; * SCREAMER-CONSTRAINT-SOLVER and SCREAMER-SCORE by Paulo Raposo
 ;;;
@@ -28,59 +28,66 @@
 (require-library "OM-Backtrack")
 
 ;--------------------------------------------------
-;Variable definiton with files to load 
+;Variable definiton with files to load
 ;--------------------------------------------------
 
 (defvar *screamer-files* nil)
-(setf  *screamer-files* (list					 						 
+(setf  *screamer-files* (list
                          (om::om-relative-path '("sources" "closer-mop") "closer-mop-packages")
-                         (om::om-relative-path '("sources" "closer-mop") "closer-mop-shared")						 					 
-                         (om::om-relative-path '("sources" "closer-mop") "closer-lispworks") 		  
-                         (om::om-relative-path '("sources" "screamer-plus") "screamer-plus")				 					  	 					 
-			             (om::om-relative-path '("sources") "package")						 						 
+                         (om::om-relative-path '("sources" "closer-mop") "closer-mop-shared")
+                         (om::om-relative-path '("sources" "closer-mop") "closer-lispworks")
+                         (om::om-relative-path '("sources" "screamer-plus") "screamer-plus")
+                         (om::om-relative-path '("sources" "screamer-plus") "screamer-plus-additions")
+			             (om::om-relative-path '("sources") "package")
 			             (om::om-relative-path '("sources") "om-screamerfuns")
-						 (om::om-relative-path '("sources") "screamer-additions")	
+						 (om::om-relative-path '("sources") "screamer-additions")
                          (om::om-relative-path '("sources" "pc-set-theory") "SCs-data")
-                         (om::om-relative-path '("sources" "pc-set-theory") "normal-order-data") 						 
+                         (om::om-relative-path '("sources" "pc-set-theory") "normal-order-data")
                          (om::om-relative-path '("sources" "pc-set-theory") "all-SCs")
-                         (om::om-relative-path '("sources" "pc-set-theory") "pc-set-theory") 
-                         (om::om-relative-path '("sources" "pc-set-theory") "normal-order") 							  						 	 
+                         (om::om-relative-path '("sources" "pc-set-theory") "pc-set-theory")
+                         (om::om-relative-path '("sources" "pc-set-theory") "normal-order")
 			             (om::om-relative-path '("sources") "screamer-solver")
 			             (om::om-relative-path '("sources") "screamer-score-classes")
 			             (om::om-relative-path '("sources") "screamer-score-domains")
 			             (om::om-relative-path '("sources") "screamer-score-constraints")
-			             (om::om-relative-path '("sources") "screamer-score")						 						 					 
-			             (om::om-relative-path '("sources") "constraint-utils")	
-			            ; (om::om-relative-path '("sources") "analysis-tools")		 							 
+			             (om::om-relative-path '("sources") "screamer-score")
+			             (om::om-relative-path '("sources") "constraint-utils")
+			             (om::om-relative-path '("sources") "analysis-tools")
                           ))
-						 
+
 ;--------------------------------------------------
-;Loading files 
+;Loading files
 ;--------------------------------------------------
 (mapc #'compile&load *screamer-files*)
 
 ;--------------------------------------------------
-;Fill library 
+;Fill library
 ;--------------------------------------------------
 
 
-(fill-library '(("Pc-set-theory" 
+(fill-library '(("Pc-set-theory"
 				   (("SCs" nil nil (om?::SC-name om?::SC+off om?::SCs-card om?::SC-info om?::sub/supersets om?::SC-subsets om?::normal-order) nil)
 				    ("constraints" nil nil (om?::set-classpv? om?::sub-setpv? om?::member-of-scv? om?::normal-orderv) nil)
-				   ) Nil Nil Nil)				   
- 		       ("SCS"
- 		          (("solver" nil nil (screamer-solver force-function screamer-doc) nil)
-				   ("om-methods" nil nil (om+v om-v om*v om/v mc->pcv modv mod12v om-absv x->dxv x->dx-absv dx->xv all-membersv not-intersectionv all-diffv) nil)
+				   ) Nil Nil Nil)
+ 		       ("Screamer-Solver"
+ 		          (("main" nil nil (screamer-solver force-function om-asert! screamer-doc) nil)
+				   ("om-methods" nil nil (om+v om-v om*v om/v mc->pcv modv mod12v om-absv sumv x->dxv x->dx-absv dx->xv all-membersv not-intersectionv all-diffv) nil)
 				   ("variables" nil nil (screamer-variable list-ofvs list-of-lists-ofv list-of-chords-inv) nil)
-				   ("functions" nil nil (apply-contv om?::assert!-apply-rec om?::apply-rec om?::funcallv-rec om?::funcallv-rec-car-cdr) nil)  				 
-  				   ("constraints" 					   
-					    (("general" nil nil (om?::assert!-all-differentv) nil)) nil nil nil)					 
-				   ("utils" nil nil (om?::smat-trans om?::all-rotations om?::sumv) nil)
+				   ("functions" nil nil (apply-contv) nil)
+  				   ("constraints"
+					(("general" nil nil (om?::assert!-all-differentv) nil)) nil nil nil)
+				   ("utils" nil nil (om?::all-rotations) nil)
  					 ) Nil Nil Nil)
 	   		       ("Screamer-Score"
-	   		        (("main-functions" nil nil (screamer-score screamer-score-domain constraint-one-voice constraint-harmony constraint-profile constraint-measure) nil)
-	  				 ("utils" nil nil (quadratic-bezier cubic-bezier) nil)				   
-	   			     ) Nil Nil Nil)									   
+	   		        (("main" nil nil (screamer-score screamer-score-domain constraint-one-voice constraint-harmony constraint-profile constraint-measure) nil)
+					 ("constraints"
+					  (("utils" nil nil (flat-chords contain-rests? variables-in pcset-equalv) nil)
+					  ("built-in" nil nil (constraint-scale chords-alldiff no-crossing not-parallels-fifths-octaves chord-at-measure chord-at-times
+						                   symmetrical-chords? mel-line-intervals) nil)
+					  ("counterpoint" nil nil (parallel? direct? contrary? oblique? stepwise? any-step? step-upper-voice? tied?) nil))
+						 nil nil nil)
+	  				 ("om-utils" nil nil (quadratic-bezier cubic-bezier voice-merger bpf-lib-from-poly) nil)
+	   			     ) Nil Nil Nil)
 		       ("Screamer"
 		           (("primitives" nil nil (s::an-integer-between s::a-member-of s::fail) nil)
 				    ("variables" nil nil (s::a-member-ofv s::an-integerv s::an-integer-abovev s::an-integer-belowv s::an-integer-betweenv
@@ -95,50 +102,48 @@
 		            ("numeric" nil nil (s::<v s::<=v s::>v s::>=v s::=v s::/=v s::+v s::-v s::*v s::/v s::minv s::maxv s::=v2 s::<=v2 s::<v2 s::/=v2 ) nil)
 		            ("expression" nil nil (s::equalv) nil)
 		            ("functions" nil nil (s::funcallv s::applyv) nil) ) Nil Nil Nil)
-					
+
 	 		       ("Screamer-Plus"
 	 		           (("primitives" nil nil (screamer+::a-subset-of screamer+::a-partition-of screamer+::members-ofv) nil)
-					    ("variables" nil nil (screamer+::a-listv screamer+::a-consv screamer+::a-symbolv screamer+::a-stringv 
+					    ("variables" nil nil (screamer+::a-listv screamer+::a-consv screamer+::a-symbolv screamer+::a-stringv
 						                      screamer+::a-typed-varv) nil)
 	 				    ("type-restrictions" nil nil (screamer+::listpv screamer+::conspv screamer+::symbolpv screamer+::stringpv screamer+::typepv) nil)
 	 		            ("boolean" nil nil (screamer+::impliesv) nil)
 	 		            ("expression" nil nil (screamer+::ifv screamer+::make-equal) nil)
 						("lists" nil nil (screamer+::carv screamer+::cdrv screamer+::consv screamer+::firstv screamer+::secondv screamer+::thirdv
 							screamer+::fourthv screamer+::nthv screamer+::subseqv screamer+::lengthv screamer+::appendv screamer+::make-listv screamer+::all-differentv) nil)
-	 		            ("sets-and-bags" nil nil (screamer+::set-equalv screamer+::subsetpv screamer+::intersectionv screamer+::unionv screamer+::bag-equalv) nil)							
+	 		            ("sets-and-bags" nil nil (screamer+::set-equalv screamer+::subsetpv screamer+::intersectionv screamer+::unionv screamer+::bag-equalv) nil)
 	 		            ("arrays" nil nil (screamer+::make-arrayv screamer+::arefv) nil)
 						;("objects" nil nil (screamer+::make-instancev screamer+::classpv screamer+::slot-valuev screamer+::class-ofv screamer+::class-namev
 							;screamer+::slot-exists-pv screamer+::reconcile) nil)
 						("high-order-fns" nil nil (screamer+::funcallinv screamer+::mapcarv screamer+::maplistv screamer+::everyv screamer+::somev
 							screamer+::noteveryv screamer+::notanyv screamer+::at-leastv screamer+::at-mostv screamer+::exactlyv screamer+::constraint-fn) nil)
-						;("stream-output" nil nil (screamer+::formatv) nil)		
+						;("stream-output" nil nil (screamer+::formatv) nil)
 						("functions" nil nil (s::funcallgv) nil)
-						("additions" nil nil (?::list-elements-ofv ?::make-mcsetv ?::make-setv ?::make-all-equal ?::interval-memberv ?::interval-notv-memberv
-							?::abs-interval-memberv ?::abs-interval-notv-memberv ?::hard-memberv ?::mod-interval-memberv ?::mod-interval-notv-memberv) nil)
 	 					) Nil Nil Nil)
 
                 ;("FOLDER" Nil Nil (package::FUNCTION) Nil)
 
                  ))
- 				
+
 (print (format nil "
 OM-SCREAMER LIBRARY
 Includes:
 
-* PC-SET-THEORY from PW-CONSTRAINTS and OMCS 
-  by Mikael Laurson (1995) - Ported to OpenMusic by Orjan Sandred (1999) 
+* PC-SET-THEORY from PW-CONSTRAINTS and OMCS
+  by Mikael Laurson (1995) - Ported to OpenMusic by Orjan Sandred (1999)
   Adapted to OM-Screamer by Paulo Henrique Raposo
 
 * SCREAMER-CONSTRAINT-SOLVER and SCREAMER-SCORE
   Copyright 2024 Paulo Henrique Raposo
-   
+
   LISP LIBRARIES:
 
 * SCREAMER-PLUS ~A by Simon White
-  Copyright 1998-2000 University of Aberdeen 
-  
-* CLOSER-MOP by Pascal Costanza 
+  Copyright 1998-2000 University of Aberdeen
+
+* CLOSER-MOP by Pascal Costanza
   Copyright (c) 2005 - 2016 Pascal Costanza
-  
-* Code excerpts from t2l-screamer by Killian Sprotte" 
+
+* Code excerpts from t2l-screamer by Killian Sprotte"
  ?::*screamer+-version*))
