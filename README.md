@@ -25,9 +25,6 @@ Includes:
 * Code excerpts from t2l-screamer by Killian Sprotte
 
 
-* New changes in Screamer by Swapneils Singh
-
-
 #### OM-Screamer is an adaptation of the propagation part of SCREAMER to the paradigm of visual programming language of Openmusic.
 
 SCREAMER is an extension of Common Lisp that adds support for nondeterministic
@@ -47,6 +44,11 @@ logic programming languages such as CHiP and CLP(R). Furthermore, Screamer is
 ##### Changes in Screamer: (in-progress)
 
 
+###This library requires OM-Backtrack.
+
+
+# [Download OM-Backtrack](https://github.com/PHRaposo/OM-Backtrack/archive/refs/heads/main.zip)
+
 
 SCREAMER-SOLVER SCREENSHOT:
 
@@ -60,6 +62,6 @@ SCREAMER-SCORE SCREENSHOT:
 ![alt text](https://github.com/PHRaposo/OM-Screamer/blob/main/screenshot3.png?raw=true)
 
 
-# [Download](https://github.com/PHRaposo/OM-Screamer/archive/refs/heads/main.zip)
+# [Download OM-Screamer](https://github.com/PHRaposo/OM-Screamer/archive/refs/heads/main.zip)
 
 
