@@ -193,10 +193,10 @@ the function will return t, otherwise returns nil."
     :icon 487
 
 (if (equal mode "pcs")
-    (let ((constraint (eval `#'(lambda (x) (?::hard-memberv (flat x) ,(reclist-vars (mc->pcv scale)))))))
+    (let ((constraint (eval `#'(lambda (x) (?::hard-memberv (if (atom x) x (flat-chords x)) ,(reclist-vars (mc->pcv scale)))))))
      (constraint-one-voice constraint  "n-inputs" voices-list "pitch"))
 
-    (let ((constraint  (eval `#'(lambda (x) (?::hard-memberv (mc->pcv (flat x)) ,(reclist-vars (mc->pcv scale)))))))
+    (let ((constraint  (eval `#'(lambda (x) (?::hard-memberv (mc->pcv (if (atom x) x (flat-chords x))) ,(reclist-vars (mc->pcv scale)))))))
      (constraint-one-voice constraint  "n-inputs" voices-list "pitch"))))
 
 (defmethod! chords-alldiff ((mode string) (input-mode string) &optional voices-list)
@@ -210,8 +210,8 @@ the function will return t, otherwise returns nil."
                                  (eval ` #'(lambda (x) (apply 's::/=v (remove nil (flat x)))))
                                  (eval `#'(lambda (x) (apply 's::/=v  (mc->pcv (remove nil (flat x)))))))))
     (if (equal input-mode "all-voices")
-       (constraint-harmony constraint  "n-inputs" "all-voices" "all")
-       (constraint-harmony constraint  "n-inputs" "voices-list" "all" voices-list))))
+       (constraint-harmony constraint  "n-inputs" "all-voices")
+       (constraint-harmony constraint  "n-inputs" "voices-list" :voices voices-list))))
 
 (defmethod! no-crossing ((input-mode string) (unison? string) &optional voices-list)
     :initvals '("all-voices" "no" nil)
@@ -221,12 +221,12 @@ the function will return t, otherwise returns nil."
                          (1 (("no" "no") ("yes" "yes"))))
     :icon 487
     (let ((constraint (if (equal unison? "no")
-                                 (eval `#'(lambda (x) (om?::apply-rec #'(lambda (y z) (s::>v y z)) (remove nil (flat-chords x)))))
-                                 (eval `#'(lambda (x) (om?::apply-rec #'(lambda (y z) (s::>=v y z)) (remove nil (flat-chords x))))))))
+                                 (eval `#'(lambda (x) (apply #'s::>v (remove nil (flat-chords x)))))
+                                 (eval `#'(lambda (x) (apply #'s::>=v (remove nil (flat-chords x))))))))
 
     (if (equal input-mode "all-voices")
-       (constraint-harmony constraint  "n-inputs" "all-voices" "all")
-       (constraint-harmony constraint  "n-inputs" "voices-list" "all" voices-list))))
+       (constraint-harmony constraint  "n-inputs" "all-voices")
+       (constraint-harmony constraint  "n-inputs" "voices-list" :voices voices-list))))
 
 (defmethod! not-parallel-fifths-octaves ((voices-list list))
     :initvals '( ((0 1) (0 2)) )
@@ -237,6 +237,9 @@ the function will return t, otherwise returns nil."
              (eval `#'(lambda (x y)
              (if (or (some #'null x) (some #'null y))
                   t
+                  (if (or (some #'listp x) (some #'listp y))
+                      (progn (om-message-dialog "The not-parallel-fifths-octaves constraint does not work with voices that contains chords.")
+                                  (om-abort))
                (let ((interval1  (s::funcallv #'mod (om?::absv (s::-v (first x) (second x))) 1200))
                      (interval2 (s::funcallv #'mod (om?::absv (s::-v (first y) (second y))) 1200)))
 
@@ -244,9 +247,9 @@ the function will return t, otherwise returns nil."
                    (s::orv (s::notv (s::memberv interval1 '(0 700)))
                                         (s::notv (s::memberv interval2 '(0 700))))
 
-               t)))))))
+               t))))))))
 
-   (constraint-harmony constraint  "n-inputs" "voices-list" "all" voices-list)))
+   (constraint-harmony constraint  "n-inputs" "voices-list" :voices voices-list)))
 
 (defmethod! chord-at-measure ((measures list) (chords list) (voices list))
   :initvals '( nil nil nil)

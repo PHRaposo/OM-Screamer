@@ -484,6 +484,22 @@ applied to bound values, not variables."
         x)		
   b))
 
+(defun any-fn-return-variables (f x)
+;; note: Experimental function.
+"This function is similar to any-fn, but returns a variable
+intead of a boolean variable.
+The constraint f can be any LISP function."
+ (let ((z (make-variable))
+        valf valx) 		       
+  (screamer::attach-noticer!
+    #'(lambda()
+       (when (screamer::ground? x) 
+        (setq valx (screamer::apply-substitution x))
+	    (setq valf (apply f (list (screamer::value-of valx))))
+        (assert! (equalv z valf))))
+   x)		
+  z))
+ 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; OM METHODS
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
