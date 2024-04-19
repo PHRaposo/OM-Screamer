@@ -13,6 +13,7 @@ LIBRARY STRUCTURE
 ***********   SCREAMER-PLUS  ***************************
 
 |    -    | screamer-plus | screamer-plus.lisp
+|    -    | screamer-plus | screamer-plus-additions.lisp
 
 ***********   OM-SCREAMER  *****************************
 
