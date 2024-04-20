@@ -548,7 +548,8 @@ The constraint f can be any LISP function."
            ((equal recursive? "growing")
             (om?::assert!-less-deep-mapcar cs (mk-growing vars)))
 
-           (t (om?::assert!-less-deep-mapcar cs vars))
+           (t (s::assert! (apply cs (list vars))))
+		     ;(om?::assert!-less-deep-mapcar cs vars))
           ))
 
          (t (progn (om-message-dialog "ERROR!") (om-abort)))))
