@@ -12,8 +12,8 @@
 *.log
 *.blg
 *.bbl
-*.finderinfo
 
+.finderinfo
 .DS_Store
 
 # don't track auto-generated html's:
