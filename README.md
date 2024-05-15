@@ -2,6 +2,7 @@
 
 Includes:
 
+* ADDITIONS TO OM-BACKTRACK LIBRARY (SCREAMER PROPAGATION / CONSTRAINT PACKAGE)
 
 * PC-SET-THEORY from PW-CONSTRAINTS and OMCS
   by Mikael Laurson (1995) - Ported to OpenMusic by Orjan Sandred (1999)
@@ -16,10 +17,6 @@ Includes:
 
 * SCREAMER-PLUS 0.1 by Simon White
   Copyright 1998-2000 University of Aberdeen
-
-
-* CLOSER-MOP by Pascal Costanza
-  Copyright (c) 2005 - 2016 Pascal Costanza
 
 
 * Code excerpts from t2l-screamer by Killian Sprotte
@@ -44,7 +41,7 @@ logic programming languages such as CHiP and CLP(R). Furthermore, Screamer is
 ##### Changes in Screamer: (in-progress)
 
 
-### This library requires OM-Backtrack.
+###This library requires OM-Backtrack.
 
 
 # [Download OM-Backtrack](https://github.com/PHRaposo/OM-Backtrack/archive/refs/heads/main.zip)
