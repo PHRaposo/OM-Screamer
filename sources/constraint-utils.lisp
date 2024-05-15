@@ -38,18 +38,18 @@
 		      screamer-variables))))
 
 (defmethod! contain-rests? ((domain-list list))
-    :initvals '((6000 nil nil (s::an-integerv)))
+    :initvals '((60 nil nil (s::an-integerv)))
     :indoc '( "domain-list")
     :doc "Returns t if the list containts any rests (represented as null value <nil> in the screamer-score domains)."
     :icon 487
 (not (null (position 'nil (flat domain-list)))))
 
 (defmethod! pcset-equalv ((domain-list list) (pcset list))
-    :initvals '((6000 6400 6700) (0 4 7))
-    :indoc '( "midics" "pcset list")
-    :doc "Returns t if a list of midics <input1> containts all the pitch-classes in pcset list <input2>."
+    :initvals '((60 64 67) (0 4 7))
+    :indoc '( "midic" "pcset list")
+    :doc "Returns t if a list of midi values <input1> containts all the pitch-classes in pcset list <input2>."
     :icon 487
-(all-membersv (mc->pcv (flat (remove nil (flat domain-list)))) pcset))
+(all-membersv (m->pcv (flat (remove nil (flat domain-list)))) pcset))
 
 
 (defun flat-chords (x)
@@ -109,7 +109,7 @@
 (defun stepwise? (n1 n2)
 (if (or (null n1) (null n2))
 nil
-    (s::memberv (om?::absv (s::-v n2 n1)) '(100 200))))
+    (s::memberv (om?::absv (s::-v n2 n1)) '(1 2))))
 
 (defun any-step? (list1 list2)
  (s::orv (stepwise? (second list1) (second list2))
@@ -186,29 +186,29 @@ the function will return t, otherwise returns nil."
 ;;; CONSTRAINTS
 
 (defmethod! constraint-scale ((mode string) (scale list) (voices-list list))
-    :initvals '("midics" (0 200 400 500 700 900 1100 1200) (0))
-    :indoc '( "midics/pcs" "list" "list")
+    :initvals '("midi" (0 2 4 5 7 9 11 12) (0))
+    :indoc '( "midi/pc" "list" "list")
     :doc "Constraint one voice to contain only members of the input scale. Returns a screamer-score-constraint object."
-	:menuins '((0 (("midics" "midics") ("pcs" "pcs"))))
+	:menuins '((0 (("midi" "midi") ("pc" "pc"))))
     :icon 487
 
 (if (equal mode "pcs")
-    (let ((constraint (eval `#'(lambda (x) (?::hard-memberv (if (atom x) x (flat-chords x)) ,(reclist-vars (mc->pcv scale)))))))
+    (let ((constraint (eval `#'(lambda (x) (?::hard-memberv (if (atom x) x (flat-chords x)) ,(reclist-vars (m->pcv scale)))))))
      (constraint-one-voice constraint  "n-inputs" voices-list "pitch"))
 
-    (let ((constraint  (eval `#'(lambda (x) (?::hard-memberv (mc->pcv (if (atom x) x (flat-chords x))) ,(reclist-vars (mc->pcv scale)))))))
+    (let ((constraint  (eval `#'(lambda (x) (?::hard-memberv (m->pcv (if (atom x) x (flat-chords x))) ,(reclist-vars (m->pcv scale)))))))
      (constraint-one-voice constraint  "n-inputs" voices-list "pitch"))))
 
 (defmethod! chords-alldiff ((mode string) (input-mode string) &optional voices-list)
-    :initvals '("midics" "all-voices" nil)
-    :indoc '("midics/pcs" "all-voices/voices-list" "list")
-    :doc "Constraint all chords to contain or only differentc pcs or only different midics. Returns a screamer-score-constraint object."
-	:menuins '((0 (("midics" "midics") ("pcs" "pcs")))
+    :initvals '("midi" "all-voices" nil)
+    :indoc '("midi/pcs" "all-voices/voices-list" "list")
+    :doc "Constraint all chords to contain or only differentc pitch classes or only different midi values. Returns a screamer-score-constraint object."
+	:menuins '((0 (("midi" "midi") ("pc" "pc")))
                          (1 (("all-voices" "all-voices") ("voices-list" "voices-list"))))
     :icon 487
-    (let ((constraint (if (equal mode "midics")
+    (let ((constraint (if (equal mode "midi")
                                  (eval ` #'(lambda (x) (apply 's::/=v (remove nil (flat x)))))
-                                 (eval `#'(lambda (x) (apply 's::/=v  (mc->pcv (remove nil (flat x)))))))))
+                                 (eval `#'(lambda (x) (apply 's::/=v  (m->pcv (remove nil (flat x)))))))))
     (if (equal input-mode "all-voices")
        (constraint-harmony constraint  "n-inputs" "all-voices")
        (constraint-harmony constraint  "n-inputs" "voices-list" :voices voices-list))))
@@ -240,12 +240,12 @@ the function will return t, otherwise returns nil."
                   (if (or (some #'listp x) (some #'listp y))
                       (progn (om-message-dialog "The not-parallel-fifths-octaves constraint does not work with voices that contains chords.")
                                   (om-abort))
-               (let ((interval1  (s::funcallv #'mod (om?::absv (s::-v (first x) (second x))) 1200))
-                     (interval2 (s::funcallv #'mod (om?::absv (s::-v (first y) (second y))) 1200)))
+               (let ((interval1  (s::funcallv #'mod (om?::absv (s::-v (first x) (second x))) 12))
+                     (interval2 (s::funcallv #'mod (om?::absv (s::-v (first y) (second y))) 12)))
 
               (?::ifv (parallel? x y)
-                   (s::orv (s::notv (s::memberv interval1 '(0 700)))
-                                        (s::notv (s::memberv interval2 '(0 700))))
+                   (s::orv (s::notv (s::memberv interval1 '(0 7)))
+                                        (s::notv (s::memberv interval2 '(0 7))))
 
                t))))))))
 
@@ -263,10 +263,10 @@ Returns a list of screamer-score-constraint objects."
              for cs in constraints
    collect (constraint-measure (constraint-one-voice cs "list" voices "pitch") mes))))
 
-(defmethod! chord-at-times ((chords list) (onsets list) (voices list) &optional (mode "midics"))
-  :initvals '( nil nil nil "midics")
+(defmethod! chord-at-times ((chords list) (onsets list) (voices list) &optional (mode "midi"))
+  :initvals '( nil nil nil "midi")
   :indoc '("list" "list" "list" "string")
-  :menuins '((3 (("midics" "midics") ("pcs" "pcs"))))
+  :menuins '((3 (("midi" "midi") ("pc" "pc"))))
   :doc "Constraint all notes of a voice (or voices) to be members of chord at the given onset.
 
 The onsets list should be in chronologial order, e.g., a chord (6000 6400 6700) with onset 1/4
@@ -276,7 +276,7 @@ than 1/4.
 The number of chords must be the same as the number of onsets.
 
 If the optional <mode> arguments is supplied, it can constraint notes to be members of the pitch class
-content of the given chord <pcs> or exactly the same notes of the chord <midics> - default.
+content of the given chord <pcs> or exactly the same notes of the chord <midi> - default.
 
 Returns a list of screamer-score-constraint objects."
   :icon 487
@@ -289,9 +289,9 @@ Returns a list of screamer-score-constraint objects."
                                                              t
                                                              (if (and (>= onset ,(first onset-pair))
                                                                          (< onset ,(second onset-pair)))
-                                                                 (if (equal ,mode "midics")
+                                                                 (if (equal ,mode "midi")
                                                                      (s::memberv (first x) ,(reclist-vars chord))
-                                                                     (s::memberv (mc->pcv (first x))  ,(reclist-vars (remove-duplicates (mc->pcv chord)))))
+                                                                     (s::memberv (m->pcv (first x))  ,(reclist-vars (remove-duplicates (m->pcv chord)))))
                                                              t))))))))
     (loop for cs in constraints
              collect (constraint-one-voice cs "n-inputs" voices "pitch-onset"))))
@@ -324,7 +324,7 @@ Returns a list of screamer-score-constraint objects."
  (constraint-harmony cs "n-inputs" input-mode :voices voices)))
  
 (defmethod! mel-line-intervals ((intervals list) (voices-list list))
- :initvals '((0 200 300 400 500 700 800 900) (0))
+ :initvals '((0 2 3 4 5 7 8 9) (0))
  :indoc '("list" "list")
  :doc "This functions returns true if all notes <first input>
 in the melodic line contains only allowed intervals

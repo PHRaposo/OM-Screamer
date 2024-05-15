@@ -43,7 +43,7 @@
  (if (< ratio 0)
      (x-append (list nil) ratio)
 
- (let ((notes (lmidic chord)))
+ (let ((notes (om/ (lmidic chord) 100)))
    (if (= (length notes) 1)
        (x-append (s::variablize (car notes)) ratio)
        (list (mapcar #'s::variablize notes) ratio)))))
@@ -54,10 +54,10 @@
  (cond
   ((equal (first domain) "notes")
     (if random?
-       (x-append (om?::a-random-mc-member-ofv mcs-approx (second domain)) ratio)
-       (x-append (om?::a-mc-member-ofv mcs-approx (second domain)) ratio)))
+       (x-append (om?::a-random-midi-member-ofv mcs-approx (second domain)) ratio)
+       (x-append (om?::a-midi-member-ofv mcs-approx (second domain)) ratio)))
   ((equal (first domain) "chords")
-    (x-append (om?::list-of-mc-chords-inv (list (third domain)) mcs-approx (second domain) random?) ratio))
+    (x-append (om?::list-of-midi-chords-inv (list (third domain)) mcs-approx (second domain) random?) ratio))
  (t (progn (om-message-dialog "The number of open voices does not corresponds to the number of domains.") (om-abort))))
 ))
 
@@ -67,7 +67,7 @@
  (let ((one-result
         (if (< (first ratios) 0)
             (x-append (list nil) (first ratios))
-            (x-append (om?::list-of-mc-chords-inv (list (first chord-l)) mcs-approx domain random?) (first ratios)))))
+            (x-append (om?::list-of-midi-chords-inv (list (first chord-l)) mcs-approx domain random?) (first ratios)))))
 
    (if (null (first one-result))
 
@@ -255,8 +255,8 @@
 ; INTERFACE
 
 (defmethod! screamer-score-domain ((domain list)(domain-type string) &optional (n-notes nil))
-    :initvals '((6000 6200 6400 6500 6700 6900 7100 7200) "notes" nil)
-    :indoc '( "midics-list"  "domain-type" "number or list")
+    :initvals '((60 62 64 65 67 69 71 72) "notes" nil)
+    :indoc '( "midi-list"  "domain-type" "number or list")
     :doc "Formats the domain (list of midics) according to the selected type (notes or chords)."
     :menuins '((1 (("notes" "notes") ("chords" "chords"))))
     :icon 487

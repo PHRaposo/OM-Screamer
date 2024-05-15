@@ -2,29 +2,7 @@
 
 (defvar *all-screamer-score-variables* nil
  "A global variable storing the order which variables (and non-variables) will appear in the musical score representation 
-of screamer-score (Openmusic). This is used for score-order (new cost-function).")
-	
-(defmacro-compile-time n-values (n
-	 		    &body forms)				
-"FROM T2L-SCREAMER AND SMC(PWGL):
- Copyright (c) 2007, Kilian Sprotte. All rights reserved."
- (let ((values (gensym "VALUES-"))
-       (last-value-cons  (gensym "LAST-VALUE-CONS-"))
-       (value (gensym "VALUE-")))
-   `(let ((,values '())
-          (,last-value-cons nil)
-    (number 0))
-      (block n-values
-  (for-effects
-    (let ((,value (progn ,@forms)))
-      (global (cond ((null ,values)
- 		    (setf ,last-value-cons (list ,value))
- 		    (setf ,values ,last-value-cons))
- 		   (t (setf (rest ,last-value-cons) (list ,value))
- 		      (setf ,last-value-cons (rest ,last-value-cons))))
- 	     (incf number))
-      (when (>= number ,n) (return-from n-values)))))
-      ,values)))
+of screamer-score (Openmusic). This is used for score-position (new cost-function).")
 
   (defun random-force (x)
   "Returns X if it is not a variable. If X is a bound variable then returns

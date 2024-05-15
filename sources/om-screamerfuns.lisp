@@ -149,6 +149,26 @@ x))
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; OM-SCREAMER
 
+(defun a-midi->pcv (x)
+ (if (bound? x)
+     (let ((pc (mod (value-of x) 12)))
+      pc)
+
+     (let ((pcv (an-integer-betweenv 0 11))
+            valx)
+      (screamer::attach-noticer!
+        #'(lambda ()
+           (when (bound? x)
+            (setq valx (apply-substitution x))
+             (assert! (=v pcv (funcallv #'mod (value-of valx) 12)))
+           )
+         )
+       x)
+
+       pcv)
+  )
+ )
+ 
 (defun a-mc->pcv (x)
  (if (bound? x)
      (let ((pc (/ (mod (value-of x) 1200) 100)))
@@ -279,7 +299,56 @@ x))
   (let ((v (if name? (make-variable name) (make-variable))))
     (assert! (memberv v (om::permut-random values)))
    (value-of v)))
+   
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; MIDI
 
+(defvar *max-midi* 127)
+(defvar *min-midi* 0)
+
+(defun a-midiv (approx)
+ (let ((v (if (>= approx 2) 
+	          (an-integerv)
+			  (a-realv)))
+        (a (/ 2 approx)))
+ (assert! (<=v v *max-midic*))
+(assert! (>=v v *min-midic*))
+(assert! (integerpv (/v v a)))
+(value-of v)))
+
+(defun list-of-mcv (n approx)
+  (if (zerop n) nil
+      (cons (a-midiv approx)
+            (list-of-midiv (1- n) approx))))
+
+(defun a-midi-member-ofv (approx domain)
+ (let ((v (a-midiv approx)))
+ (assert! (memberv v domain))
+(value-of v)))
+
+(defun a-random-midi-member-ofv (approx domain)
+ (let ((v (a-midiv approx)))
+ (assert! (memberv v (om::permut-random domain)))
+(value-of v)))
+
+(defun list-of-midi-members-ofv (n approx dom)
+  (if (zerop n) nil
+      (cons (a-midi-member-ofv approx dom)
+            (list-of-midi-members-ofv (1- n) approx dom))))
+
+(defun list-of-random-midi-members-ofv (n approx dom)
+  (if (zerop n) nil
+      (cons (a-random-midi-member-ofv approx dom)
+            (list-of-random-midi-members-ofv (1- n) approx dom))))
+
+(defun list-of-midi-chords-inv (lst1 approx lst2 &optional random?)
+ (let ((v (mapcar #'(lambda (x)
+             (if random? (list-of-random-midi-members-ofv x approx lst2 ) (list-of-midi-members-ofv x approx (reverse lst2))))
+            lst1)))
+ (mapcar #'(lambda (x) (assert! (apply '<v x))) v)
+(value-of v)))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; MIDICENTSV
 
 (defvar *max-midic* 12700)
@@ -439,11 +508,29 @@ x))
       (funcall-car-cdr fn (car list) (cdr list))))
 
 (defun assert!-all-differentv (list)
+;; Functionally the same as (apply #'/=v list) or (all-differentv list), but faster.
     (labels ((all-different (x xs)
                (if (null xs) nil
                (progn (assert! (notv (memberv x xs)))
                    (all-different (car xs) (cdr xs))))))
       (all-different (car list) (cdr list))))
+	  
+;(defun all-diffv? (list) ;NEEDS WORK!
+;    (labels ((all-different (x xs)
+;               (if (null xs) t
+;               (andv (notv (memberv x xs))
+;                   (all-different (car xs) (cdr xs))))))
+;     (all-different (car list) (cdr list))))
+
+;(defun all-diffv? (list);<== from Screamer repository (zebra.lisp)
+;  ;; Functionally the same as (apply #'/=v list), but faster.
+;  (labels ((all-different (x xs)
+;             (if (null xs)
+;                 t
+;                 (andv (notv (=v x (car xs)))
+;                       (all-different x (cdr xs))
+;                       (all-different (car xs) (cdr xs))))))
+;    (all-different (car list) (cdr list))))
 
 (defun assert!-deep-mapcar (fun fun1 list? &rest args)
 "Mapcars <fun> or applies <fun1> to <list?> <args> whether <list?> is a list or not."
@@ -548,7 +635,7 @@ The constraint f can be any LISP function."
            ((equal recursive? "growing")
             (om?::assert!-less-deep-mapcar cs (mk-growing vars)))
 
-           (t (s::assert! (apply cs (list vars))))
+           (t (s::assert!-all (apply cs (list vars))))
 		     ;(om?::assert!-less-deep-mapcar cs vars))
           ))
 
@@ -584,7 +671,7 @@ The constraint f can be any LISP function."
           (t (progn (om-message-dialog "ERROR!") (om-abort)))))
 |#
 
-(om::defmethod! om-assert! ((bool t))
+(om::defmethod! om-assert! (&rest bool)
 :initvals '( ( ) ) 
 :indoc '("boolean variable or list")
 :doc "OM equivalent to SCREAMER::ASSERT!. Accepts one boolean variable or a list of boolean variables."
@@ -689,7 +776,32 @@ The constraint f can be any LISP function."
 (if (s::variable-number? var)
     (s::funcallv #'mod var 12)
     (?::mapcarv #'(lambda (x) (s::funcallv #'mod x 12)) var)))
+	
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; MIDI
 
+(om::defmethod! m->pcv ((n integer))
+:initvals '(60) :indoc '("variable, number or list")
+:icon 479
+(om?::a-midi->pcv n))
+;(s::/v (om?::modv n 1200) 100))
+
+(om::defmethod! m->pcv ((n list))
+:initvals '((60 64 67)) :indoc '("variable, number or list")
+:icon 479
+(mapcar #'m->pcv n))
+
+(om::defmethod! m->pcv ((var screamer+::variable+))
+:initvals '(60) :indoc '("variable, number or list")
+:icon 479
+ (if (s::variable-number? var)
+     (om?::a-midi->pcv var)
+     ;(s::/v (om?::modv var 1200) 100)
+ (?::mapcarv #'om?::a-midi->pcv var)))
+;(?::mapcarv #'(lambda (x) (s::/v (s::funcallv #'mod x 1200) 100) var))))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+	
 (om::defmethod! mc->pcv ((n integer))
 :initvals '(6000) :indoc '("variable, number or list")
 :icon 479
@@ -810,6 +922,18 @@ The constraint f can be any LISP function."
 (om::defmethod! om/v ((arg1 list) (arg2 t))
 (mapcar #'(lambda (input)
           (om/v  input arg2)) arg1))
+
+; -----------------------------------------
+
+(om::defmethod! m->midic ((n t))
+:initvals '(60) :indoc '("variable, number or list")
+:icon 479
+(om*v n 100))
+
+(om::defmethod! midic->m ((n t))
+:initvals '(6000) :indoc '("variable, number or list")
+:icon 479
+(om/v n 100))
 
 ; -----------------------------------------
 

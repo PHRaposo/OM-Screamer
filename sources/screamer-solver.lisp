@@ -79,8 +79,7 @@
 ;;; SCREAMER-SOLUTION
 
 (defun screamer-solution (vars p-vars cs p-cs cs-all valuation n-ith ordering-force map-s out count-fail? obj-form form2)
-   (let* ((pref-valuation *screamer-valuation*)
-          (compiled-p-vars ;==> PROPAGATION VARIABLES
+   (let* ((compiled-p-vars ;==> PROPAGATION VARIABLES
            (if (functionp p-vars)
                (fdefinition (compile-screamer-constraint p-vars))
                (mapcar #'(lambda (x) (fdefinition (compile-screamer-constraint x))) p-vars)))
@@ -396,9 +395,6 @@
 
 ;(print scode) ;<== FOR DEBUG
 
- (case val
-  (2 (setf *screamer-valuation* 2)))
-
   (let ((scs-function (compile (eval `(defun ,(intern (string (gensym "scs-fun-")) :om) ()
 	  						(declare (optimize (speed 3) (safety 0) (debug 0)))
 						        (declare (type ,(type-of vars) ,vars-name))
@@ -411,8 +407,8 @@
   (let ((solution (select-solution out (funcall scs-function) (if (member val '(1 3 5)) val nil) p-vars))) ;==> GET THE SOLUTION
    (print-scs-time scs-time)
 
-   (progn (setf *screamer-valuation* pref-valuation)
-               solution)
+   
+   solution
 	)
    )
   )
@@ -581,7 +577,7 @@
 (t function))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;; VARIABLES
+;;; VARIABLES GENERATORS
 
 (defmethod! screamer-variable ((var string) &optional args)
   :initvals '("an-integer-betweenv" (0 10))

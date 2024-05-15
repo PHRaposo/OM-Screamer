@@ -29,6 +29,9 @@
 
 ;; GLOBAL VARIABLES
 
+(defvar *screamer-score-midi-approx* nil)
+(setf *screamer-score-midi-approx* nil)
+
 (defvar *screamer-score-backtrack* nil)
 (setf *screamer-score-backtrack* nil)
 

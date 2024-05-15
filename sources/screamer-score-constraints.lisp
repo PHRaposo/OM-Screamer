@@ -69,40 +69,49 @@
     :icon 487
  (make-cs-harmony constraint input voice-select voices domain beats percentage-mode percentage cs-mode))
 
-(defmethod! constraint-profile ((bpf-object bpf-lib) (voices list) (approx integer) (range string) &key (cs-mode "propagation"))
-    :initvals '(nil (0) 400 "voice-range" "propagation")
-    :indoc '("bpf or bpf-lib" "number or list of voice numbers" "midics" "string or list" "string")
-    :doc "Constraint profile for voice or voices"
-    :menuins '((3 (("voice-range" "voice-range") ("all" "all"))))
-    :icon 487
- (make-cs-profile bpf-object voices approx range cs-mode))
-
-(defmethod! constraint-profile ((bpf-object bpf-lib)(voices list) (approx integer)(range list) &key (cs-mode "propagation"))
-   :initvals '(nil (0) 400 (2100 10800) "propagation")
-   :indoc '("bpf or bpf-lib" "number or list of voice numbers" "midics" "string or list" "string")
-   :doc "Constraint profile for voice or voices"
-   :menuins '((3 (("voice-range" "voice-range") ("all" "all")))
-              (4 (("propagation" "propagation") ("backtrack" "backtrack" ) ("heuristic" "heuristic"))))
-   :icon 487
- (make-cs-profile bpf-object voices approx range cs-mode))
-
-(defmethod! constraint-profile ((bpf-object bpf) (voices list) (approx integer)(range string) &key (cs-mode "propagation"))
-    :initvals '(nil (0) 400 "voice-range" "propagation")
-    :indoc '( "bpf or bpf-lib" "number or list of voice numbers" "midics" "string or list" "string")
+(defmethod! constraint-profile ((bpf-object bpf-lib) (voices list) (approx integer) (range string) &key (scale-time? t) (cs-mode "propagation"))
+    :initvals '(nil (0) 4 "voice-range" "propagation")
+    :indoc '("bpf or bpf-lib" "list of voice numbers" "integer" "string or list" "t or nil ""string")
     :doc "Constraint profile for voice or voices"
     :menuins '((3 (("voice-range" "voice-range") ("all" "all")))
-		       (4 (("propagation" "propagation") ("backtrack" "backtrack" ) ("heuristic" "heuristic"))))
+               (4 (("t" t) ("nil" nil)))	
+              ;(4 (("propagation" "propagation") ("backtrack" "backtrack" ) ("heuristic" "heuristic")))
+                )
     :icon 487
- (make-cs-profile bpf-object voices approx range cs-mode))
+ (make-cs-profile bpf-object voices approx range scale-time? cs-mode))
 
-(defmethod! constraint-profile ((bpf-object bpf)(voices list) (approx integer)(range list) &key (cs-mode "propagation"))
-   :initvals '(nil (0) 400 (2100 10800) "propagation")
-   :indoc '("bpf or bpf-lib" "number or list of voice numbers" "midics" "string or list" "string")
+(defmethod! constraint-profile ((bpf-object bpf-lib)(voices list) (approx integer)(range list) &key (scale-time? t) (cs-mode "propagation"))
+   :initvals '(nil (0) 4 (21 108) "propagation")
+   :indoc '("bpf or bpf-lib" "list of voice numbers" "integer" "string or list" "t or nil ""string")
    :doc "Constraint profile for voice or voices"
    :menuins '((3 (("voice-range" "voice-range") ("all" "all")))
-   	          (4 (("propagation" "propagation") ("backtrack" "backtrack" ) ("heuristic" "heuristic"))))
+                          (4 (("t" t) ("nil" nil)))
+              ;(5 (("propagation" "propagation") ("backtrack" "backtrack" ) ("heuristic" "heuristic")))
+              )
    :icon 487
- (make-cs-profile bpf-object voices approx range cs-mode))
+ (make-cs-profile bpf-object voices approx range scale-time? cs-mode))
+
+(defmethod! constraint-profile ((bpf-object bpf) (voices list) (approx integer)(range string) &key (scale-time? t) (cs-mode "propagation"))
+    :initvals '(nil (0) 4 "voice-range" "propagation")
+    :indoc '("bpf or bpf-lib" "list of voice numbers" "integer" "string or list" "t or nil ""string")
+    :doc "Constraint profile for voice or voices"
+    :menuins '((3 (("voice-range" "voice-range") ("all" "all")))
+                      (4 (("t" t) ("nil" nil)))
+		       ;(5 (("propagation" "propagation") ("backtrack" "backtrack" ) ("heuristic" "heuristic")))
+                       )
+    :icon 487
+ (make-cs-profile bpf-object voices approx range scale-time? cs-mode))
+
+(defmethod! constraint-profile ((bpf-object bpf) (voices list) (approx integer) (range list) &key (scale-time? t) (cs-mode "propagation"))
+   :initvals '(nil (0) 4 (21 108) "propagation")
+   :indoc '("bpf or bpf-lib" "list of voice numbers" "integer" "string or list" "t or nil ""string")
+   :doc "Constraint profile for voice or voices"
+   :menuins '((3 (("voice-range" "voice-range") ("all" "all")))
+                     (4 (("t" t) ("nil" nil)))
+   	          ;(5 (("propagation" "propagation") ("backtrack" "backtrack" ) ("heuristic" "heuristic")))
+                  )
+   :icon 487
+ (make-cs-profile bpf-object voices approx range scale-time? cs-mode))
 
  (defmethod! constraint-measure ((constraints t) (measure-number t))
   :initvals '(nil 0)
@@ -118,11 +127,107 @@
 
 ; PROFILE-CONSTRAINT
 
-(defun make-profile-constraint (bpf-lib voices approx range domain)
+;;; NEW (IN-PROGRESS)
+
+(defun closest-note-in-domain (note domain)
+ (let* ((abs-intervals (om-abs (om- note domain)))
+        (min-posn (position (list-min abs-intervals) abs-intervals)))
+  (nth min-posn domain)))
+   
+(defun make-melodic-profile (bpf n-notes min-midi max-midi domain)
+ (let* ((y-points (y-points bpf))
+        (y-length (1- (length y-points)))
+        (scale-midi-profile (om-scale y-points min-midi max-midi))
+        (notes-posn (mapcar #'truncate (om-scale (arithm-ser 0 (1- n-notes) 1) 0 (1- y-length))))
+        (raw-profile (posn-match scale-midi-profile notes-posn)))
+
+  (mapcar #'(lambda (x)
+  		      (closest-note-in-domain x domain))
+	raw-profile)))
+	  
+(defun make-melodic-profile-with-time (bpf ratios min-midi max-midi domain &optional tempo)
+(let* ((y-points (y-points bpf))
+        (y-length (1- (length y-points)))
+        (scale-midi-profile (om-scale y-points min-midi max-midi))
+        (ratios-ms (ratios-to-ms (om-abs ratios) (if tempo tempo 60)))
+        (rests-posn (loop for r in ratios for x from 0 when (minusp r) collect x))
+        (midi-time-posn (butlast (remove-nth (mapcar #'truncate (om-scale ratios-ms 0 y-length)) rests-posn)))
+        (raw-profile (posn-match scale-midi-profile midi-time-posn)))
+
+ (mapcar #'(lambda (x)
+	        (closest-note-in-domain x domain))
+  raw-profile)))		   
+   
+;BPF-LIB (BPF OR BPF-LIB
+;VOICES (LIST)
+;APPROX PROFILE-APPROX 
+;RANGE -"voice-range", "all" or list (60 72)
+;DOMAIN -> ALL-DOMAINS 
+
+;MELODIC-PROFILE - NEEDS 
+;BPF
+;N-NOTES (length pitch-domain)
+;MIN (list-min midics-domain)
+;MAX (list-max (midics-domain))
+; MIDI-OPT "midi" -> needs a global var???
+
+;MELODIC-PROFILE-WITH-TEMPO - NEEDS 
+;BPF
+;RATIOS = ratio-domain (mapcar #'(lambda (x) (mapcar #'second x)) (pitch-dur domain)) ;ratios - abs values
+;MIN (list-min midics-domain)
+;MAX (list-max (midics-domain))
+; GLOBAL APPROX *screamer-score-midi-approx*
+; TEMPO = 60
+
+(defun get-profile-min-max (range midis)
+ (cond
+  ((listp range) (repeat-n range (length midis)))
+
+  ((equal "voice-range" range) 
+   (loop for m in midis collect (x-append (list-min m) (list-max m))))
+	   
+  (t (let ((all-midis (remove-duplicates (flat midis))))
+	  (x-append (list-min all-midis) (list-max all-midis))))))
+		  	 
+(defun new-make-profile-constraint (bpf-lib voices approx range domain scale-time?)
+ (let* ((bpfs (if (equal (type-of bpf-lib) 'bpf-lib) (bpf-list bpf-lib) (repeat-n bpf-lib (length (pitch domain)))))
+        (pitch-domain (pitch domain)) ;pitch-variables without rests
+	    (midis (midics-domain domain))
+	    (min-max (get-profile-min-max range midis))
+	    )
+  (cond ((null scale-time?) 
+	     (let* ((length-list (mapcar #'length pitch-domain))
+			    (midi-profiles (loop for m in (posn-match midis voices)
+					                 for l in length-list
+	  					             for mn-mx in (posn-match min-max voices)
+	  								 for bpf in bpfs 
+	  						   collect (make-melodic-profile bpf l (first mn-mx) (second mn-mx) m))))
+	  		   (mapcar #'(lambda (vars midics)
+	  		    (profile-constraint vars midics approx)) (posn-match pitch-domain voices) midi-profiles)))
+		
+		
+	    (t (let* ((ratio-domain (om-abs (mapcar #'(lambda (x) (mapcar #'second x)) (pitch-dur domain))));ratios - abs values	  
+	              (midi-profiles (loop for m in (posn-match midis voices)
+					                   for mn-mx in (posn-match min-max voices)
+									   for r in (posn-match ratio-domain voices)
+									   for bpf in bpfs 
+								  collect (make-melodic-profile-with-time bpf r (first mn-mx) (second mn-mx) m))))
+		   (mapcar #'(lambda (vars midics)
+		    (profile-constraint vars midics approx)) (posn-match pitch-domain voices) midi-profiles)))	   
+   )))
+
+;(mapcar #'(lambda (vars midics)
+; (profile-constraint vars midics approx)) (posn-match pitch-domain voices) midic-profile)))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;											 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(defun make-profile-constraint (bpf-lib voices approx range domain scale-time?)
  (let* ((original-bpfs (if (equal (type-of bpf-lib) 'bpf-lib) (bpf-list bpf-lib) (repeat-n bpf-lib (length (pitch domain)))))
         (pitch-domain (mapcar #'(lambda (x) (mapcar #'first x)) (pitch-dur domain))) ;pitch-variables with rests
         (ratio-domain (om-abs (mapcar #'(lambda (x) (mapcar #'second x)) (pitch-dur domain)))) ;ratios - abs values
-        (bpfs (mapcar #'scale-bpf-time (posn-match ratio-domain voices) original-bpfs))
+        (bpfs (if scale-time? (mapcar #'scale-bpf-time (posn-match ratio-domain voices) original-bpfs)
+		                       original-bpfs))
         (midics (mapcar #'sort-list (midics-domain domain))))
  (if (listp range)
      (let ((new-midics (mapcar #'(lambda (midics-list)
@@ -141,11 +246,20 @@
  )
 )
 
-(defun scale-bpf-time (ratios bpf) ;NEEDS WORK!
+(defun ratios-to-ms (ratios tempo)
+ (let* ((whole-note (/ 240000 tempo))
+        (ratios-to-ms (mapcar #'(lambda (x)
+                                 (coerce x 'double-float))
+                              (om* whole-note ratios))))
+	 (dx->x 0 ratios-to-ms)))
+
+(defun scale-bpf-time (ratios bpf)	
  (let* ((bpf-y-points (y-points bpf))
         (length-lcm (lcm (length ratios) (length bpf-y-points)))
-        (scale-ratios (om-round (om-scale (butlast (dx->x (first ratios) ratios)) 0 (1- length-lcm)) 0))
-		              ;(om-round (om-scale (butlast (dx->x 0 ratios)) 0 (1- length-lcm)) 0))
+		(ratios-ms (ratios-to-ms ratios 60))
+        (scale-ratios (om-round (om-scale ratios-ms ;(butlast (dx->x (first ratios) ratios))
+		                                            0 (1- length-lcm))
+					   0))
         (samples (multiple-value-bind (x y z) (om-sample bpf-y-points length-lcm) (third (list x y z)))))
 (simple-bpf-from-list scale-ratios (posn-match samples scale-ratios))))
 
@@ -277,7 +391,9 @@
 						   		   (get-range score-constraint)
 						           (if (screamer-all-domains-p domain)
                                        (var-domain domain)
-                                   domain)))))
+                                   domain)
+								   (scale-time? score-constraint)
+								   ))))
 
 (defmethod apply-screamer-score-constraint ((score-constraint cs-measure) (domain screamer-score-domain))
  (cond ((equal (get-cs-mode score-constraint) "backtrack")
@@ -347,7 +463,7 @@
  		 				        (truesv (om?::sumv (mapcar #'?::reifyv test)))
  		 						)
  		                 (s::assert! (s::andv (s::>=v truesv (first percent))
- 						                      (s::<=v truesv (second percent))))
+ 						                      (s::<=v truesv (second percent))))						  
  		 					))
                 ((equal percent-cs-mode "less-than")
                  (let* ((test (mapcar #'(lambda (x) (apply cs-fn x)) splitted-list))
@@ -361,7 +477,7 @@
  				   )
                  (if (= percent apply-length)
                      (s::assert! (s::=v truesv percent))
-                     (s::assert! (?::at-leastv (1+ percent) #'(lambda (x) (s::=v 1 x)) truesv)))
+                     (s::assert! (?::at-leastv (1+ percent) #'(lambda (x) (s::=v 1 x)) truesv))) 
  				 ))
                 (t (om-abort)))))
 
@@ -385,6 +501,7 @@
  				        (truesv (om?::sumv (mapcar #'?::reifyv test)))
  						)
                  (s::assert! (s::=v truesv percent))
+				  
  					))
  			((equal percent-cs-mode "between")
  			                 (let* ((test (if (and (= 1 fn-inputs-length) (not chords?))
@@ -393,7 +510,7 @@
  			 				        (truesv (om?::sumv (mapcar #'?::reifyv test)))
  			 						)
  			                 (s::assert! (s::andv (s::>=v truesv (first percent))
- 							                      (s::<=v truesv (second percent))))
+ 							                      (s::<=v truesv (second percent))))					  
  			 					))
                  ((equal percent-cs-mode "less-than")
                   (let* ((test (if (and (= 1 fn-inputs-length) (not chords?))

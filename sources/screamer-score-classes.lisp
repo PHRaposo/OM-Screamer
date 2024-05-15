@@ -110,24 +110,27 @@
    (voices :initform nil :initarg nil :reader get-voices :writer set-voices :documentation "list of voice numbers")
    (approx :initform nil :initarg nil :reader get-approx :writer set-approx :documentation "number")
    (range :initform nil :initarg nil :reader get-range :writer set-range :documentation "number or list")
+   (scale-time? :initform nil :initarg nil :reader scale-time? :writer set-scale-time :documentation "symbol - t or nil")  
    (cs-mode :initform nil :initarg nil :reader get-cs-mode :writer set-cs-mode :documentation "string"))
    (:documentation "A simple container for constraint-profile. A description of each slot is presented below:
    :BPF = bpf or bpf-lib.
    :VOICES = list with voice numbers.
    :APPROX = number in midi cents.
    :RANGE = number or list of numbers (min max).
+   :SCALE-TIME? = t or nil. If nil, the durations are ignored.	   
    :CS-MODE = propagation or backtrack [string] (not implemented yet). This should be extended in the future to include heuristics or other search optimizations."))
 
 (defmethod cs-profile-p ((self cs-profile)) t)
 (defmethod cs-profile-p ((self t)) nil)
 (defmethod screamer-score-constraint-p ((self cs-profile)) t)
 
-(defmethod make-cs-profile ((bpf t)(voices list)(approx integer)(range t)(cs-mode string))
+(defmethod make-cs-profile ((bpf t)(voices list)(approx integer)(range t) (scale-time? t)(cs-mode string))
   (let ((instance (make-instance 'cs-profile)))
    (set-bpf bpf instance)
    (set-voices voices instance)
    (set-approx approx instance)
    (set-range range instance)
+   (set-scale-time scale-time? instance)   
    (set-cs-mode cs-mode instance)
   instance))
 
