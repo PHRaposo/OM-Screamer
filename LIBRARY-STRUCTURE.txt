@@ -4,12 +4,6 @@ LIBRARY STRUCTURE
 
 | sources |
 
-***********   CLOSER-MOP  ******************************
-
-|    -    |   closer-mop  | closer-mop-packages.lisp
-|    -    |        -      | closer-mop-shared.lisp
-|    -    |        -      | closer-lispworks.lisp
-
 ***********   SCREAMER-PLUS  ***************************
 
 |    -    | screamer-plus | screamer-plus.lisp
