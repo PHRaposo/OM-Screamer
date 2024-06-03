@@ -51,18 +51,6 @@ logic programming languages such as CHiP and CLP(R). Furthermore, Screamer is
 # [Download OM-Backtrack](https://github.com/PHRaposo/OM-Backtrack/archive/refs/heads/V2.0.zip)
 
 
-SCREAMER-SOLVER SCREENSHOT:
-
-
-![alt text](https://github.com/PHRaposo/OM-Screamer/blob/main/screenshot2.png?raw=true)
-
-
-SCREAMER-SCORE SCREENSHOT:
-
-
-![alt text](https://github.com/PHRaposo/OM-Screamer/blob/main/screenshot3.png?raw=true)
-
-
 # [Download OM-Screamer](https://github.com/PHRaposo/OM-Screamer/archive/refs/heads/main.zip)
 
 
