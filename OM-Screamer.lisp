@@ -66,7 +66,7 @@
 ;--------------------------------------------------
 
 
-(fill-library '(("Propagation" nil nil (best-value solution static-ordering linear-force divide-and-conquer-force reorder domain-size range-size order) nil)
+(fill-library '(("Propagation" nil nil (best-value solution static-ordering linear-force divide-and-conquer-force random-force reorder domain-size range-size order) nil)
 	            ("Pc-set-theory"
 				   (("SCs" nil nil (om?::SC-name om?::SC+off om?::SCs-card om?::SC-info om?::sub/supersets om?::SC-subsets om?::normal-order) nil)
 				    ("constraints" nil nil (om?::set-classpv? om?::sub-setpv? om?::member-of-scv? om?::normal-orderv) nil)
