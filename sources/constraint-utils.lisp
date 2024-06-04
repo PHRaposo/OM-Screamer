@@ -52,8 +52,8 @@
 (all-membersv (m->pcv (flat (remove nil (flat domain-list)))) pcset))
 
 
-(defun flat-chords (x)
- (flat (loop for el in x collect (if (listp el) (reverse el) el))))
+;(defun flat-chords (x)
+; (flat (loop for el in x collect (if (listp el) (reverse el) el))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;==> COUNTERPOINT: IN PROGRESS
@@ -193,10 +193,16 @@ the function will return t, otherwise returns nil."
     :icon 486 ;487
 
 (if (equal mode "pcs")
-    (let ((constraint (eval `#'(lambda (x) "constraint-scale-pcs" (?::hard-memberv (if (atom x) x (flat-chords x)) ,(reclist-vars (m->pcv scale)))))))
+    (let ((constraint (eval `#'(lambda (x) "constraint-scale-pcs" (if (atom x) 
+                                                                                                     (?::hard-memberv  x ,(reclist-vars (m->pcv scale)))
+                                                                                        (mapcar #'(lambda (xx) (?::hard-memberv xx ,(reclist-vars (m->pcv scale))))
+                                                                                                (flat x)))))))
      (constraint-one-voice constraint  "n-inputs" voices-list "pitch"))
 
-    (let ((constraint  (eval `#'(lambda (x) "constraint-scale-midi" (?::hard-memberv (m->pcv (if (atom x) x (flat-chords x))) ,(reclist-vars (m->pcv scale)))))))
+    (let ((constraint  (eval `#'(lambda (x) "constraint-scale-midi" (if (atom x) 
+                                                                                                      (?::hard-memberv (m->pcv  x) ,(reclist-vars (m->pcv scale)))
+                                                                                                      (mapcar #'(lambda (xx) (?::hard-memberv (m->pcv xx) ,(reclist-vars (m->pcv scale)))) 
+                                                                                                              (flat x)))))))
      (constraint-one-voice constraint  "n-inputs" voices-list "pitch"))))
 
 (defmethod! chords-alldiff ((mode string) (input-mode string) &optional voices-list)
@@ -221,8 +227,8 @@ the function will return t, otherwise returns nil."
                          (1 (("no" "no") ("yes" "yes"))))
     :icon 486 ;487
     (let ((constraint (if (equal unison? "no")
-                                 (eval `#'(lambda (x) "no-crossing" (apply #'s::>v (remove nil (flat-chords x)))))
-                                 (eval `#'(lambda (x) "no-crossing" (apply #'s::>=v (remove nil (flat-chords x))))))))
+                                 (eval `#'(lambda (x) "no-crossing" (apply #'s::>v (remove nil (flat x)))))
+                                 (eval `#'(lambda (x) "no-crossing" (apply #'s::>=v (remove nil (flat x))))))))
 
     (if (equal input-mode "all-voices")
        (constraint-harmony constraint  "n-inputs" "all-voices")
@@ -303,7 +309,7 @@ Returns a list of screamer-score-constraint objects."
   :icon 486 ;487
   :menuins '((0 (("all-voices" "all-voices") ("voices-list" "voices-list"))))
  (let* ((cs (eval `#'(lambda (x) "symmetrical-chords?"
-                      (let* ((flat-list (flat-chords x))
+                      (let* ((flat-list (flat x))
 							 (intervalsv (x->dx-absv (remove nil flat-list)))
 							 (len (length intervalsv))
 							 (positions (arithm-ser 0 (1- len) 1))

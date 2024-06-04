@@ -286,7 +286,7 @@ x))
  (let ((v (mapcar #'(lambda (x)
              (if random? (list-of-random-members-ofv x lst2) (list-of-members-ofv x (reverse lst2))))
             lst1)))
- (mapcar #'(lambda (x) (assert! (apply '<v x))) v)
+ (mapcar #'(lambda (x) (assert! (apply '/=v x))) v)
 (value-of v)))
 
 (defun list-of-random-members-ofv (n dom)
@@ -352,7 +352,7 @@ x))
  (let ((v (mapcar #'(lambda (x)
              (if random? (list-of-random-midi-members-ofv x approx lst2 ) (list-of-midi-members-ofv x approx (reverse lst2))))
             lst1)))
- (mapcar #'(lambda (x) (assert! (apply '<v x))) v)
+ (mapcar #'(lambda (x) (assert! (apply '/=v x))) v)
 (value-of v)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -398,7 +398,7 @@ x))
  (let ((v (mapcar #'(lambda (x)
              (if random? (list-of-random-mc-members-ofv x approx lst2 ) (list-of-mc-members-ofv x approx (reverse lst2))))
             lst1)))
- (mapcar #'(lambda (x) (assert! (apply '<v x))) v)
+ (mapcar #'(lambda (x) (assert! (apply '/=v x))) v)
 (value-of v)))
 
 ;(defun all-rotations-internal (list accumul)
@@ -502,20 +502,20 @@ x))
                       (app-rec (cdr x))))))
    (app-rec list))))
 
-(defun assert!-funcallv-rec (fn list)
- (labels ((funcall-rec (f x)
-            (if (null x)
-		 nil
-            (progn (assert! (funcallv f x)) (funcall-rec f (cdr x))))))
- (funcall-rec fn list)))
+;(defun assert!-funcallv-rec (fn list)
+; (labels ((funcall-rec (f x)
+;            (if (null x)
+;		 nil
+;            (progn (assert! (funcallv f x)) (funcall-rec f (cdr x))))))
+; (funcall-rec fn list)))
 
-(defun funcallv-rec-car-cdr (fn list)
- (labels ((funcall-car-cdr (f x xs)
-           (if (null xs)
-		        nil
-               (progn (funcall f x xs)
-                      (funcall-car-cdr f (car xs) (cdr xs))))))
-  (funcall-car-cdr fn (car list) (cdr list))))
+;(defun funcallv-rec-car-cdr (fn list)
+; (labels ((funcall-car-cdr (f x xs)
+;           (if (null xs)
+;		        nil
+;               (progn (funcall f x xs)
+;                      (funcall-car-cdr f (car xs) (cdr xs))))))
+;  (funcall-car-cdr fn (car list) (cdr list))))
 
 ;(labels ((funcall-car-cdr (x xs)
 ;             (ifv (null xs)
@@ -524,13 +524,13 @@ x))
 ;                        (funcall-car-cdr (carv xs) (cdrv xs))))))
 ; (funcall-car-cdr (carv list) (cdrv list))))
 
-(defun assert!-funcallv-rec-car-cdr (fn list)
-    (labels ((funcall-car-cdr (f x xs)
-               (if (null xs)
-			        nil
-               (progn (assert! (funcall f x xs))
-                      (funcall-car-cdr f (car xs) (cdr xs))))))
-      (funcall-car-cdr fn (car list) (cdr list))))
+;(defun assert!-funcallv-rec-car-cdr (fn list)
+;    (labels ((funcall-car-cdr (f x xs)
+;               (if (null xs)
+;			        nil
+;               (progn (assert! (funcall f x xs))
+;                      (funcall-car-cdr f (car xs) (cdr xs))))))
+;      (funcall-car-cdr fn (car list) (cdr list))))
 
 (defun assert!-all-differentv (list)
 ;; Functionally the same as (apply #'/=v list) or (all-differentv list), but faster.
@@ -670,37 +670,6 @@ The constraint f can be any LISP function."
 
          (t (progn (om-message-dialog "ERROR!") (om-abort)))))
  )
- 
-#|
- (om::defmethod! apply-backtrack-cont ((cs function) (mode string) (recursive? string) (vars t))
- :initvals '(nil "atom" "off" nil)
- :indoc '("patch in lambda mode" "string" "string" "list of variables" )
- :menuins '((1 (("atom" "atom") ("list" "list")))
-                  (2 (("off" "off") ("n-inputs" "n-inputs") ("car-cdr" "car-cdr") ("growing" "growing")))
-                 )
- :doc "Applies constraint recursively to list of variables."
- :icon 486
-
- (cond ((equal mode "atom")
-         (om?::deep-mapcar cs cs vars))
-
-           ((equal mode "list")
-            (cond
-
-            ((equal recursive? "n-inputs")
-            (om?::appc-rec cs vars))
-
-            ((equal recursive? "car-cdr")
-            (om?::funcall-rec-car-cdr cs vars))
-
-            ((equal recursive? "growing")
-            (appc-rec-growing cs (mk-growing vars)))
-
-            (t (om?::less-deep-mapcar cs vars))
-           ))
-
-          (t (progn (om-message-dialog "ERROR!") (om-abort)))))
-|#
 
 (om::defmethod! om-assert! (&rest bool)
 :initvals '( ( ) ) 
@@ -763,6 +732,21 @@ The constraint f can be any LISP function."
  :icon 477
  (s::=v (?::lengthv (?::intersectionv list1 list2)) 0))
 
+ (om::defmethod! all-intervalsv ((var-list list))
+ :initvals '(nil)
+ :indoc '("list")
+ :doc "Returns a list of screamer variables constrained to be the intervals between each variable with each other variable in list."
+ :icon 485
+ (if (= 1 (length (remove nil (flat var-list))))
+      nil
+  (let* ((flat-list (remove nil (flat var-list)))
+  	     (positions (arithm-ser 0 (1- (length flat-list)) 1))
+		 (all-comb-posn (om?::asc-permutations positions 2))
+		 (all-perms (mapcar #'(lambda (x) (posn-match flat-list x)) all-comb-posn)))
+ (mapcar #'(lambda (vars)
+  (screamer::-v (first vars) (second vars)))
+  all-perms))))
+ 
 ; -----------------------------------------
 ; OM+V / OM-V / OM*V / OM/V / MOD12V / MC->PCV / OM-ABSV
 

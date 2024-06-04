@@ -18,9 +18,6 @@
 ;;; * SCREAMER-PLUS 0.1 by Simon White
 ;;;  Copyright 1998-2000 University of Aberdeen
 ;;;
-;;; * CLOSER-MOP by Pascal Costanza
-;;;   Copyright (c) 2005 - 2016 Pascal Costanza
-;;;
 ;;; * Code excerpts from t2l-screamer by Killian Sprotte
 ;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -74,18 +71,18 @@
 
  		       ("Screamer-Solver"
  		          (("main" nil nil (screamer-solver force-function om-asert! screamer-doc) nil)
-				   ("om-methods" nil nil (om+v om-v om*v om/v m->pcv mc->pcv modv mod12v om-absv sumv x->dxv x->dx-absv dx->xv all-membersv not-intersectionv all-diffv) nil)
+				   ("om-methods" nil nil (om+v om-v om*v om/v m->pcv mc->pcv modv mod12v om-absv sumv x->dxv x->dx-absv dx->xv all-intervalsv all-membersv not-intersectionv all-diffv) nil)
 				   ("variables" nil nil (screamer-variable list-ofvs list-of-lists-ofv list-of-chords-inv) nil)
 				   ("functions" nil nil (apply-contv) nil)
   				   ("constraints"
-					(("general" nil nil (om?::all-diffv? om?::assert!-all-differentv) nil)) nil nil nil)
+					(("general" nil nil (om?::assert!-all-differentv) nil)) nil nil nil)
 				   ("utils" nil nil (om?::all-rotations) nil)
  					 ) Nil Nil Nil)
 
 	   		       ("Screamer-Score"
 	   		        (("main" nil nil (screamer-score screamer-score-domain constraint-one-voice constraint-harmony constraint-profile constraint-measure) nil)
 					 ("constraints"
-					  (("utils" nil nil (flat-chords contain-rests? variables-in pcset-equalv) nil)
+					  (("utils" nil nil (contain-rests? variables-in pcset-equalv) nil)
 					   ("built-in" nil nil (constraint-scale chords-alldiff no-crossing not-parallels-fifths-octaves chord-at-measure chord-at-times
 						                   symmetrical-chords? mel-line-intervals) nil)
 					   ("counterpoint" nil nil (parallel? direct? contrary? oblique? stepwise? any-step? step-upper-voice? tied?) nil))
