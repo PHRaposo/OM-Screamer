@@ -643,7 +643,14 @@ The constraint f can be any LISP function."
 :icon 486
  (handler-bind ((error #'(lambda (c)
                           (when *msg-error-label-on*
-                            (om-message-dialog (string+ "Error while evaluating the function " (symbol-name (function-name cs)) " : "
+                            (om-message-dialog (string+ "Error while evaluating the function " 
+								                (if (stringp (function-name cs))
+												    (let ((patch? (find-lambda-patchbox cs)))
+													 (if patch? 
+														 (name (reference patch?))
+														 (get-patch-function-name cs)))
+													(symbol-name (function-name cs))) 
+														" : "
                                                      (om-report-condition c))
                                                :size (om-make-point 300 200))
                             (om-abort)))))
