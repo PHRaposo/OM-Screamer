@@ -3,10 +3,6 @@
 Includes:
 
 * ADDITIONS TO OM-BACKTRACK LIBRARY (SCREAMER PROPAGATION / CONSTRAINT PACKAGE)
-* INCLUDES A NEW LOCK BUTTON FOR SOME SCREAMER METHODS (FUNCTION-BUTTON) - SHORTCHUT "#"
-THE FILE 170.TIF (INCLUDED HERE IN THE RESOURCES/BUTTON FOLDER) SHOULD BE PLACED AT
-"OPENMUSIC ROOT"/RESOURCES/ICON/ FOLDER. 
-
 
 * PC-SET-THEORY from PW-CONSTRAINTS and OMCS
   by Mikael Laurson (1995) - Ported to OpenMusic by Orjan Sandred (1999)
@@ -23,7 +19,7 @@ THE FILE 170.TIF (INCLUDED HERE IN THE RESOURCES/BUTTON FOLDER) SHOULD BE PLACED
   Copyright 1998-2000 University of Aberdeen
 
 
-* Code excerpts from t2l-screamer by Killian Sprotte
+* Code excerpts by Killian Sprotte
 
 
 #### OM-Screamer is an adaptation of the propagation part of SCREAMER to the paradigm of visual programming language of Openmusic.
@@ -45,10 +41,22 @@ logic programming languages such as CHiP and CLP(R). Furthermore, Screamer is
 ##### Changes in Screamer: (in-progress)
 
 
-### This library requires OM-Backtrack V. 2.0.
+###This library requires OM-Backtrack.
 
 
-# [Download OM-Backtrack](https://github.com/PHRaposo/OM-Backtrack/archive/refs/heads/V2.0.zip)
+# [Download OM-Backtrack](https://github.com/PHRaposo/OM-Backtrack/archive/refs/heads/main.zip)
+
+
+SCREAMER-SOLVER SCREENSHOT:
+
+
+![alt text](https://github.com/PHRaposo/OM-Screamer/blob/main/screenshot2.png?raw=true)
+
+
+SCREAMER-SCORE SCREENSHOT:
+
+
+![alt text](https://github.com/PHRaposo/OM-Screamer/blob/main/screenshot3.png?raw=true)
 
 
 # [Download OM-Screamer](https://github.com/PHRaposo/OM-Screamer/archive/refs/heads/main.zip)

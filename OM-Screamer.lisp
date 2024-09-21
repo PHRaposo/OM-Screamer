@@ -18,7 +18,7 @@
 ;;; * SCREAMER-PLUS 0.1 by Simon White
 ;;;  Copyright 1998-2000 University of Aberdeen
 ;;;
-;;; * Code excerpts from t2l-screamer by Killian Sprotte
+;;; * Code excerpts by Killian Sprotte
 ;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -32,8 +32,8 @@
 
 (defvar *screamer-files* nil)
 (setf  *screamer-files* (list
-				         (om::om-relative-path '("sources") "fun-button")
-		                 (om::om-relative-path '("sources") "om-backtrack-additions")
+			 (om::om-relative-path '("sources") "fun-button")
+		         (om::om-relative-path '("sources") "om-backtrack-additions")
                          (om::om-relative-path '("sources" "screamer-plus") "screamer-plus")
                          (om::om-relative-path '("sources" "screamer-plus") "screamer-plus-additions")
                          (om::om-relative-path '("sources") "package")
@@ -50,7 +50,6 @@
                          (om::om-relative-path '("sources") "screamer-score-constraints")
                          (om::om-relative-path '("sources") "screamer-score")
                          (om::om-relative-path '("sources") "constraint-utils")
-                         (om::om-relative-path '("sources") "analysis-tools")
                           ))
 
 ;--------------------------------------------------
@@ -71,7 +70,7 @@
 
  		       ("Screamer-Solver"
  		          (("main" nil nil (screamer-solver force-function om-asert! screamer-doc) nil)
-				   ("om-methods" nil nil (om+v om-v om*v om/v m->pcv mc->pcv modv mod12v om-absv sumv x->dxv x->dx-absv dx->xv all-intervalsv all-membersv not-intersectionv all-diffv) nil)
+				   ("om-methods" nil nil (om+v om-v om*v om/v m->pcv mc->pcv modv mod12v om-absv sumv x->dxv x->dx-absv dx->xv all-intervalsv all-membersv not-intersectionv all-diffv list-equalv?) nil)
 				   ("variables" nil nil (screamer-variable list-ofvs list-of-lists-ofv list-of-chords-inv) nil)
 				   ("functions" nil nil (apply-contv) nil)
   				   ("constraints"
@@ -81,13 +80,8 @@
 
 	   		       ("Screamer-Score"
 	   		        (("main" nil nil (screamer-score screamer-score-domain constraint-one-voice constraint-harmony constraint-profile constraint-measure) nil)
-					 ("constraints"
-					  (("utils" nil nil (contain-rests? variables-in pcset-equalv) nil)
-					   ("built-in" nil nil (constraint-scale chords-alldiff no-crossing not-parallels-fifths-octaves chord-at-measure chord-at-times
-						                   symmetrical-chords? mel-line-intervals) nil)
-					   ("counterpoint" nil nil (parallel? direct? contrary? oblique? stepwise? any-step? step-upper-voice? tied?) nil))
-						 nil nil nil)
-	  				   ("om-utils" nil nil (quadratic-bezier cubic-bezier voice-merger bpf-lib-from-poly) nil)
+					 ("constraints-utils" nil nil (contain-rests? variables-in pcset-equalv) nil)
+	  				 ("om-utils" nil nil (quadratic-bezier cubic-bezier voice-merger bpf-lib-from-poly) nil)
 	   			      ) Nil Nil Nil)
 
 		       ("Screamer"
@@ -106,7 +100,7 @@
 		            ("functions" nil nil (s::funcallv s::applyv) nil) ) Nil Nil Nil)
 
 	 		       ("Screamer-Plus"
-	 		           (("primitives" nil nil (screamer+::a-subset-of screamer+::a-partition-of screamer+::members-ofv) nil)
+	 		           (("primitives" nil nil (screamer+::a-subset-of screamer+::a-partition-of screamer+::members-ofv screamer+::not-equalv) nil)
 					    ("variables" nil nil (screamer+::a-listv screamer+::a-consv screamer+::a-symbolv screamer+::a-stringv
 						                      screamer+::a-typed-varv) nil)
 	 				    ("type-restrictions" nil nil (screamer+::listpv screamer+::conspv screamer+::symbolpv screamer+::stringpv screamer+::typepv) nil)
@@ -124,6 +118,8 @@
                                                                                          screamer+::constraint-fn) nil)
 						;("stream-output" nil nil (screamer+::formatv) nil)
 						("functions" nil nil (s::funcallgv) nil)
+						("additions" nil nil (screamer+::interval-memberv screamer+::interval-notv-memberv screamer+::abs-interval-memberv screamer+::abs-interval-notv-memberv screamer+::hard-memberv
+							screamer+::mod-interval-memberv screamer+::mod-interval-notv-memberv) nil)
 	 					) Nil Nil Nil)
 
                 ;("FOLDER" Nil Nil (package::FUNCTION) Nil)
@@ -146,5 +142,5 @@ Includes:
 * SCREAMER-PLUS ~A by Simon White
   Copyright 1998-2000 University of Aberdeen
 
-* Code excerpts from t2l-screamer by Killian Sprotte"
+* Code excerpts by Killian Sprotte"
  ?::*screamer+-version*))
