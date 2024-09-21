@@ -32,68 +32,45 @@
       (setq index (1+ index)))
     (nreverse res)))
 
-(defun pitch-domains (voices domains)
-(let* ((locked-voices-pitch (mapcar #'(lambda (x)
-                                    (if (locked-voice? x)
-                                        (chords x) t)) voices))
-         (open-voices-posn (positions locked-voices-pitch t)))
-(subs-posn locked-voices-pitch open-voices-posn domains)))
-
-(defun pitch-dur-locked (ratio chord)
- (if (< ratio 0)
-     (x-append (list nil) ratio)
-
- (let ((notes (om/ (lmidic chord) 100)))
-   (if (= (length notes) 1)
-       (x-append (s::variablize (car notes)) ratio)
-       (list (mapcar #'s::variablize notes) ratio)))))
-
-(defun pitch-dur-vars (ratio domain mcs-approx random?)
- (if (< ratio 0)
- (x-append (list nil) ratio)
- (cond
-  ((equal (first domain) "notes")
-    (if random?
-       (x-append (om?::a-random-midi-member-ofv mcs-approx (second domain)) ratio)
-       (x-append (om?::a-midi-member-ofv mcs-approx (second domain)) ratio)))
-  ((equal (first domain) "chords")
-    (x-append (om?::list-of-midi-chords-inv (list (third domain)) mcs-approx (second domain) random?) ratio))
- (t (progn (om-message-dialog "The number of open voices does not corresponds to the number of domains.") (om-abort))))
-))
-
-(defun pitch-dur-chords (ratios domain chord-l mcs-approx random? accumul)
-(if chord-l
-
- (let ((one-result
-        (if (< (first ratios) 0)
-            (x-append (list nil) (first ratios))
-            (x-append (om?::list-of-midi-chords-inv (list (first chord-l)) mcs-approx domain random?) (first ratios)))))
-
-   (if (null (first one-result))
-
-       (pitch-dur-chords (cdr ratios) domain chord-l mcs-approx random? (x-append (list one-result) accumul))
-
-       (pitch-dur-chords (cdr ratios) domain (cdr chord-l) mcs-approx random? (x-append (list one-result) accumul))))
-
- (reverse accumul)))
-
-(defun domain-pitch-dur (voices pitch-domains mcs-approx random?)
-(mapcar #'(lambda (voice pitch-dom)
- (if (locked-voice? voice)
-     (mapcar #'pitch-dur-locked (tree2ratio (tree voice)) pitch-dom)
-(if (equal (first pitch-dom) "chords")
-     (if (listp (third pitch-dom)) ;==> corrected (third (first pitch-domais))) to (third pitch-dom))-21.01.2024
-         (let* ((ratios (tree2ratio (tree voice)))
-                  (n-chords (length (remove-if #'(lambda (x) (< x 0)) ratios)))
-                  (chords-correct-length (flat (group-list (third pitch-dom) (list n-chords) 'circular)))) ;==> corrected (third (first pitch-domais))
-          (pitch-dur-chords ratios (second pitch-dom) chords-correct-length mcs-approx random? nil));==> corrected (third (second pitch-domais)) to (second pitch-dom)-24.05.2024
-     (mapcar #'(lambda (input)
-      (pitch-dur-vars input pitch-dom mcs-approx random?)) (tree2ratio (tree voice))))
-
-     (mapcar #'(lambda (input)
-      (pitch-dur-vars input pitch-dom mcs-approx random?)) (tree2ratio (tree voice))))
-    ))
- voices pitch-domains))
+(defun new-domain-pitch-dur (voices domains mcs-approx random?) ;<== NEW 12.09.2024
+ (loop for voice in voices 
+          if (locked-voice? voice)
+          collect  (let* ((ratios (tree2ratio (tree voice)))
+                               (all-rests? (null (chords voice)))
+                               (chords (if all-rests?   
+                                                (repeat-n nil (length (remove-if #'(lambda (x) (minusp x)) ratios)))
+                                                (chords voice))))
+                      (loop for ratio in ratios
+                                collect (if (minusp ratio)
+                                               (list nil ratio)
+                                                (let ((notes (if all-rests?
+                                                                     (pop chords)
+                                                                     (om/ (lmidic (pop chords)) 100))))
+                                                (cond ((null notes) (list (s::variablize notes) ratio))
+                                                          ((= (length notes) 1) (x-append (s::variablize (car notes)) ratio))
+                                                          (t (list (mapcar #'s::variablize notes) ratio)))))))
+         else 
+         collect (let* ((ratios (tree2ratio (tree voice)))
+                           (domain (pop domains))
+                           (voice-domain (if (= 2 mcs-approx) (mapcar #'round (domain domain)) (mapcar #'float (domain domain)))))
+                     (if (string-equal "notes" (domain-type domain))
+                         (loop for ratio in ratios
+                                   collect (if (minusp ratio)
+                                                  (list nil ratio)
+                                                  (if random?
+                                                     (list (om?::a-random-member-ofv voice-domain) ratio)
+                                                     (list (s::a-member-ofv  voice-domain) ratio))))
+                     (let* ((n-notes (n-notes domain))
+                             (n-chords (length (remove-if #'(lambda (x) (< x 0)) ratios)))
+                             (chords-correct-length (if (listp n-notes) 
+                                                                     (flat (group-list (n-notes domain) (list n-chords) 'circular))
+                                                                      (repeat-n n-notes n-chords)))
+                             (voice-domain (if (= 2 mcs-approx) (domain domain) (mapcar #'float (domain domain))))
+                            (chords (om?::list-of-midi-chords-inv chords-correct-length mcs-approx voice-domain random?)))
+                                         (loop for ratio in ratios
+                                                  collect (if (minusp ratio)
+                                                                (list nil ratio)
+                                                                (list (pop chords) ratio))))))))
 
 (defun get-measure-rest-places (measure)
  (let ((tree (list '? (list (tree measure)))))
@@ -150,8 +127,14 @@
    (repeat-n (/ 1 (second time-sig))
                   (first time-sig)))
 
+(defun get-max-length-time-sig (voices)  ;<== NEW (05/09/2024
+ (let* ((time-sigs (mapcar #'get-time-sig voices))
+        (time-sig-lengths (mapcar #'length time-sigs))
+		(max-posn (position (list-max time-sig-lengths) time-sig-lengths)))
+  (nth max-posn time-sigs)))
+  
 (defun get-beats-offbeats (voices all-onsets pitch-variables-all-onsets)
- (let* ((time-sig (get-time-sig (first voices)))
+ (let* ((time-sig (get-max-length-time-sig voices))  ;<== NEW (05/09/2024) ;(get-time-sig (first voices)))
           (beats (mapcar #'get-beats-from-time-sig time-sig))
           (beats-length (mapcar #'length beats))
 	  (first-beats-posn-posn (dx->x 0 (butlast beats-length)))
@@ -164,15 +147,50 @@
        offbeats
 	  (posn-match chords first-beats-posn))))
 
+(defun build-ratios-domain (pitch-durs-domain)
+   (handler-bind ((error #'(lambda (c)
+                             (when *msg-error-label-on*
+                               (om-message-dialog (string+ "Error while evaluating the function " "build-ratios-domain" " : " 
+                                                        (om-report-condition c))
+                                                  :size (om-make-point 300 200))
+                               (om-abort)))))
+
+ (let* ((ratios (mapcar #'(lambda (x) (mapcar #'second x)) pitch-durs-domain))
+        (sums (mapcar #'(lambda (x) (apply #'+ (om-abs (flat x)))) ratios))
+		(max-sum (list-max (flat sums))))
+  (loop for voice-ratios in ratios
+	    for voice-sum in sums
+	    collect (if (< voice-sum max-sum)
+			        (x-append voice-ratios (- voice-sum max-sum))
+					 voice-ratios)))))		
+ 
+(defun build-midics-domain (voices pitch-durs-domain domains mcs-approx)
+ (let ((voice-domains (mapcar #'domain domains)))
+  (loop for voice in voices 
+		for pitch-dur-dom in pitch-durs-domain
+		if (locked-voice? voice)
+		collect (mapcar #'first pitch-dur-dom)
+		else 
+		collect (if (= 2 mcs-approx)
+					(mapcar #'round (pop voice-domains))
+					(mapcar #'float (pop voice-domains))))))
+							  
 (defun build-variables-domain (voices domains mcs-approx random?)
- (let* ((pitch-domains (pitch-domains voices (if (screamer-score-domain-p domains)
-		                                                          (list (get-domain-parameters domains))
-												   (mapcar #'(lambda (score-domain)
-												     (get-domain-parameters score-domain)) domains))));==> chord-objects for locked-voices and list of midics for variables
-         (midics-domain (mapcar #'(lambda (x) (if (chord-p (first x)) (flat (mapcar #'lmidic x)) (second x))) pitch-domains))
-         (pitch-durs-domain (domain-pitch-dur voices pitch-domains mcs-approx random?)) ;==> list-of-list with pitch/dur (include rests - nil)
-         (ratios-domain (mapcar #'(lambda (x) (mapcar #'second x)) pitch-durs-domain))  ;==> list-of-lists of ratios	 	        
-         (pitch-variables (mapcar #'(lambda (x) (mapcar #'first x)) pitch-durs-domain))  ;==> list-of-lists of pitches [midics for locked-voices, nil for rests and screamer (a-random-member-ofv domain) for open-voices]
+   (handler-bind ((error #'(lambda (c)
+                             (when *msg-error-label-on*
+                               (om-message-dialog (string+ "Error while evaluating the function " "build-variables-domain" " : " 
+                                                        (om-report-condition c))
+                                                  :size (om-make-point 300 200))
+                               (om-abort)))))
+
+ (let* ((pitch-durs-domain (new-domain-pitch-dur voices (list! domains) mcs-approx random?));<== NEW 12/09/2024 ;==> list-of-lists of pitch-variables/durations(ratio)
+         (midics-domain (build-midics-domain voices pitch-durs-domain (list! domains) mcs-approx));<== NEW 12/09/2024		 
+		 (ratios-domain (build-ratios-domain pitch-durs-domain));(mapcar #'(lambda (x) (mapcar #'second x)) pitch-durs-domain));==> list-of-lists of ratios  
+         (pitch-variables (mapcar #'(lambda (x) (mapcar #'first x)) pitch-durs-domain)) ;==> list-of-lists of pitches [midics for locked-voices, nil for rests and screamer (a-member-ofv domain) for open-voices]
+         (pitch-durs-domain (loop for ratios in ratios-domain  
+                                                 for pitches in pitch-variables
+                                                 collect (mat-trans (list pitches ratios))))
+         (pitch-variables (mapcar #'(lambda (x) (mapcar #'first x)) pitch-durs-domain))
          (onsets-domain (mapcar #'ratios2onsets ratios-domain)) ;==> list-of-lists of onsets
          (notes-positions (mapcar #'ratios2notes-posn ratios-domain)) ;==> list-of-lists of notes positions
          (all-onsets (sort-list (remove-duplicates (flat onsets-domain)))) ;==> all-onsets from all-voices
@@ -192,16 +210,26 @@
                             (remove-if #'(lambda (x) (or (not (some #'s::variable? (flat x)))
                                                          (some #'null (remove nil (flat x)))))
                           (third beats-and-offbeats))))
-        (rest-positions (mapcar #'get-rest-places voices)) ;==> rests positions
+        (rest-positions (loop for ratios in ratios-domain
+				              collect (loop for ratio in ratios
+								  	        for x from 0
+											when (minusp ratio)
+											collect x))) ;; <== NEW (07/09/2024
+        ;; (mapcar #'get-rest-places voices)) ;==> rests positions
         (pitch-positions-without-rests (mapcar #'remove-rest-posn rest-positions notes-positions)) ;==> only notes positions
         (pitch-variables-without-rests (mapcar #'posn-match pitch-variables pitch-positions-without-rests)) ;==> only pitch/var without rests
-		(all-chords ;==> list-of-lists of chords for all voices (nil for rests and lists for domains in "chords" mode)
-                            (remove-if #'(lambda (x) (or (not (some #'s::variable? (flat x)))
-                                                          (some #'null (remove nil (flat x)))))
+	(all-chords ;==> list-of-lists of chords for all voices (nil for rests and lists for domains in "chords" mode)
+          (remove-if #'(lambda (x) (or (not (some #'s::variable? (flat x)))
+                                                      (some #'null (remove nil (flat x)))))
                            (mat-trans pitch-variables-all-onsets)))
-		;(chords-ratios (x->dx (sort-list (remove-duplicates (flat (mapcar #'(lambda (x) (dx->x 0 (om-abs x))) ratios-domain)))))) ===> NOT IMPLEMENTED YET
-		;(pitch-dur-chords (mapcar #'list all-chords chords-ratios)) ;==> lists-of-lists of chords (pitches) and durations (ratios) ===> NOT IMPLEMENTED YET
-		;(pitch-dur-onset-chords (mapcar #'list all-chords chords-ratios all-onsets)) ;==> lists-of-lists of chords (pitches), durations (ratios) and onsets (ratios) ===> NOT IMPLEMENTED YET
+	(chords-ratios (x->dx (sort-list (remove-duplicates (flat (mapcar #'(lambda (x) (dx->x 0 (om-abs x))) ratios-domain))))))
+        (pitch-dur-chords (mapcar #'list all-chords chords-ratios)) ;; <== NEW (04/09/2024) ==================
+	(pitch-onset-chords (remove-if #'(lambda (x) (or (not (some #'s::variable? (flat (first x))))  
+                                                          (some #'null (remove nil (flat (first x))))))  
+                           (mapcar #'list (mat-trans pitch-variables-all-onsets) all-onsets)))               
+        (pitch-dur-onset-chords (loop for pitch-durs in pitch-dur-chords   
+                                                       for pitch-onset in pitch-onset-chords       
+                                                       collect (list (first pitch-onset) (second pitch-durs) (second pitch-onset)))) ;<===
         (pitch-onset-domain (mapcar #'(lambda (x y) (mapcar #'(lambda (input1 input2) (if (listp input1) (x-append (list input1) input2) (x-append input1 input2))) x y)) pitch-variables onsets-domain))
         (pitch-dur-onset-domain (mapcar #'(lambda (x y) (mapcar #' x-append x y)) pitch-durs-domain onsets-domain)))
 
@@ -215,11 +243,19 @@
 	   chords-on-beats
 	   chords-off-beats
 	   chords-first-beats
-	   nil ;==> PITCH-DUR-CHORDS
-	   nil ;==> PITCH-DUR-ONSET-CHORDS
-	   midics-domain)))
+	   pitch-dur-chords
+	   pitch-onset-chords   
+	   pitch-dur-onset-chords 
+	   midics-domain))))
 
 (defmethod build-measures-domain ((voices list) (vars-domain screamer-variables-domain))
+   (handler-bind ((error #'(lambda (c)
+                             (when *msg-error-label-on*
+                               (om-message-dialog (string+ "Error while evaluating the box " "build-measures-domain" " : " 
+                                                        (om-report-condition c))
+                                                  :size (om-make-point 300 200))
+                               (om-abort)))))
+
 (let* ((measures (mapcar #'get-measures voices))
 	     (measures-matrix (if (list-of-listp measures) (mat-trans measures) measures))
 	     (notes-length-by-measure (mat-trans (mapcar #'(lambda (m-mat)
@@ -246,24 +282,46 @@
 	                                                                  (some #'null (remove nil (flat x)))))
 	                                        measure)
 	                         collect chords))
-	;==> CHORD-ON-BEAT ;==> CHORD-OFF-BEAT	;==> PITCH-DUR-CHORDS ;==> PITCH-DUR-ONSET-CHORDS
-	   (midics-domain (midics-domain vars-domain)))
+  	   (pitch-dur-onset-chords (group-list (chords-pitch-dur-onset vars-domain) chords-length-by-measure 'linear)); <== NEW (05/09/2024)
+	   (pitch-dur-chords (group-list (chords-pitch-dur vars-domain) chords-length-by-measure 'linear)) ; <==
+	   (pitch-onset-chords (group-list (chords-pitch-onset vars-domain) chords-length-by-measure 'linear)) ; <==
+	   (chords-on-beat (let ((on-beat-chords (chords-on-beat vars-domain))) ; <==
+	                    (loop for mes in chords-domains
+							  collect (loop for chord in mes
+								            when (member chord on-beat-chords :test #'equal)
+											collect chord))))
+ 	   (chords-off-beat (let ((off-beat-chords (chords-off-beat vars-domain))) ; <==
+ 	                    (loop for mes in chords-domains
+ 							  collect (loop for chord in mes
+ 								            when (member chord off-beat-chords :test #'equal)
+ 											collect chord))))											
+	   (chords-1st-beat (loop for mes in chords-domains ; <==
+		   	                  collect (list (car mes))))															   						   
+	   (midics-domain (midics-domain vars-domain)))	   
 (loop for pitch in (mat-trans pitch-domains)
       for chords in chords-domains
+	  for chords-pitch-dur in pitch-dur-chords
+	  for chords-pitch-onset in pitch-onset-chords
+	  for chords-pitch-dur-onset in pitch-dur-onset-chords
 	  for pitch-dur in (mat-trans pitch-dur-domains)
 	  for pitch-onset in (mat-trans pitch-onset-domains)
 	  for pitch-dur-onset in (mat-trans pitch-dur-onset-domains)
+	  for on-beat-chords in chords-on-beat
+	  for off-beat-chords in chords-off-beat
+	  for 1st-beat-chords in chords-1st-beat
       collect
 	 (make-measures-domain pitch
 						   chords
 						   pitch-dur
 						   pitch-onset
 						   pitch-dur-onset
-						   nil ;chords-on-beat
-						   nil ;chords-off-beat
-						   nil ;chords-pitch-dur
-						   nil ;chords-pitch-dur-onset
-						   midics-domain))))
+						   on-beat-chords
+						   off-beat-chords
+						   1st-beat-chords						   
+						   chords-pitch-dur
+						   chords-pitch-onset
+						   chords-pitch-dur-onset
+						   midics-domain)))))
 
 (defun build-all-domains (poly domains mcs-approx random?)
 (let* ((voices (voices poly))
@@ -276,7 +334,7 @@
 (defmethod! screamer-score-domain ((domain list)(domain-type string) &optional (n-notes nil))
     :initvals '((60 62 64 65 67 69 71 72) "notes" nil)
     :indoc '( "midi-list"  "domain-type" "number or list")
-    :doc "Formats the domain (list of midics) according to the selected type (notes or chords)."
+    :doc "Formats the domain (list of midis) according to the selected type (notes or chords)."
     :menuins '((1 (("notes" "notes") ("chords" "chords"))))
-    :icon 486 ;487
+    :icon 486
  (make-score-domain domain domain-type n-notes))

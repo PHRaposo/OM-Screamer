@@ -149,6 +149,33 @@ x))
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; OM-SCREAMER
 
+(defun list-elements-ofv (x)
+  (let (
+        (z (make-variable))
+       )
+     (?::attach-noticer!
+       #'(lambda()
+           (when (and (bound? x) (every #'bound? (value-of x)))
+              (do* (
+                    (dec (?::apply-substitution x) (cdr dec))
+                    (curr (car dec) (car dec))
+                    (vals nil)
+                    )
+                  ((endp dec) 
+                   (assert! (equalv z vals))
+                   )
+                 (om::push-end (value-of curr) vals)
+                 )
+              )
+           )
+       x)  
+  z)
+)
+
+(defun equalv-lists (l1 l2)
+ (equalv (list-elements-ofv l1)
+              (list-elements-ofv l2)))
+ 
 (defun a-midi->pcv (x)
  (if (bound? x)
      (let ((pc (mod (value-of x) 12)))
@@ -466,10 +493,10 @@ x))
 ;;; RECURSIVE FUNCTIONS FOR APPLY-CONTV
 
 (cl::defun assert!-all (x) 
-(cond ((null x) nil)
-      ((and (screamer::variable? x) (not (screamer::booleanpv x))) nil)
-      ((atom x) (assert! x))
-	  (t (loop for el in x do (assert!-all el))))) 
+(cond ((atom x)
+            (if (screamer::booleanpv x)
+                 (assert! x)))
+          (t (assert!-all (car x)) (assert!-all (cdr x)))))
 
 ;(if (null x) nil ;<==BUG HERE
 ;	(if (atom x) (assert! x)
@@ -498,7 +525,7 @@ x))
            (if (null (nth (1- fn-inputs) x))
  	            nil
                (progn (assert! (apply fn (mapcar #'(lambda (n)
-  		  	                              (nth n x)) list-inputs)))
+  		  	                               (nth n x)) list-inputs)))
                       (app-rec (cdr x))))))
    (app-rec list))))
 
@@ -564,18 +591,18 @@ x))
   (t (progn (apply #'assert!-deep-mapcar fun fun1 (car list?) args)
      (apply #'assert!-deep-mapcar fun fun1 (cdr list?) args)))))
 
-(defun assert!-less-deep-mapcar (fun  list? &rest args)
- "Applies <fun> to <list?> <args> if <list?> is a one-level list .
-  Mapcars <fun> to <list?> <args> if <list?> is a multi-level list. "
- (cond
-   ((null list?) nil)
-   ((atom (car list?)) (assert! (apply fun (list list?) args)))
-   ((atom (car (car list?)))
-    (progn (assert! (apply fun (car list?) args)) (apply #'assert!-less-deep-mapcar fun (cdr list?) args)))
-   (t (progn (apply #'assert!-less-deep-mapcar fun  (car list?) args)
-            (apply #'assert!-less-deep-mapcar fun  (cdr list?) args)))))
+;(defun assert!-less-deep-mapcar (fun  list? &rest args)
+; "Applies <fun> to <list?> <args> if <list?> is a one-level list .
+;  Mapcars <fun> to <list?> <args> if <list?> is a multi-level list. "
+; (cond
+;   ((null list?) nil)
+;   ((atom (car list?)) (assert! (apply fun (list list?) args)))
+;   ((atom (car (car list?)))
+;    (progn (assert! (apply fun (car list?) args)) (apply #'assert!-less-deep-mapcar fun (cdr list?) args)))
+;   (t (progn (apply #'assert!-less-deep-mapcar fun  (car list?) args)
+;            (apply #'assert!-less-deep-mapcar fun  (cdr list?) args)))))
 
-(defun any-fn (f x)
+(defun any-fn (f &rest x)
 ;; note: Experimental function.
 "This function returns a boolean variable which is the result of
 the constraint function f applied to each variable in X as soon
@@ -590,7 +617,7 @@ applied to bound values, not variables."
     #'(lambda()
        (when (screamer::ground? x) 
         (setq valx (screamer::apply-substitution x))
-		(setq valf (apply f (list (screamer::value-of valx))))
+		(setq valf (apply f (screamer::value-of valx))) ;removed list
         (assert! (eqv b valf))))
         x)		
   b))
@@ -664,15 +691,15 @@ The constraint f can be any LISP function."
            (om?::assert!-apply-rec cs vars))
 
            ((equal recursive? "car-cdr")
-			(om?::assert!-all (mapcar #'(lambda (x)
-		                       (funcall cs (first x) (second x)))
-							    (mk-car-cdr vars))))
+			(mapcar #'(lambda (x)
+		          (screamer::assert! (funcall cs (first x) (second x))))
+							    (mk-car-cdr vars)))
 
            ((equal recursive? "growing")
-            (om?::assert!-less-deep-mapcar cs (mk-growing vars)))
+		    (mapcar #'(lambda (x)
+			 (screamer::assert! (funcall cs x))) (mk-growing vars)))
 
-           (t (om?::assert!-all (apply cs (list vars))))
-		     ;(om?::assert!-less-deep-mapcar cs vars))
+           (t (screamer::assert! (apply cs (list vars))))
           ))
 
          (t (progn (om-message-dialog "ERROR!") (om-abort)))))
@@ -867,6 +894,31 @@ The constraint f can be any LISP function."
                 (s::memberv x sequence))
    list)))
 
+(om::defmethod! om-memberv ((variable screamer+::variable+) (lst list))
+:initvals '(nil nil) :indoc '("variable, number or list" "list")
+:icon 477
+ (screamer::memberv variable lst))
+
+(om::defmethod! om-memberv ((variable number) (lst list))
+:initvals '(nil nil) :indoc '("variable, number or list" "list")
+:icon 477
+ (not (null (member variable lst))))
+ 
+ (om::defmethod! om-memberv ((variable screamer+::variable+) (lst screamer+::variable+))
+ :initvals '(nil nil) :indoc '("variable, number or list" "list")
+ :icon 477
+  (screamer::memberv variable lst))
+  
+(om::defmethod! om-memberv ((variable number) (lst screamer+::variable+))
+:initvals '(nil nil) :indoc '("variable, number or list" "list")
+:icon 477
+(screamer::memberv variable lst))
+  
+(om::defmethod! om-memberv ((variable list) (lst list))
+ (mapcar #'(lambda (x)
+  (screamer::memberv x lst))
+ variable))
+
 (om::defmethod! all-diffv ((list t))
 :initvals '(nil) :indoc '("list")
 :icon 477
@@ -883,6 +935,11 @@ The constraint f can be any LISP function."
 (if (listp list)
 (om?::sumv list)
 (s::applyv 'om?::sumv (list list))))
+
+(om::defmethod! list-equalv? ((l1 list) (l2 list))
+:initvals '(nil nil) :indoc '("list" "list")
+:icon 476
+(om?::equalv-lists l1 l2))
 
 ; -----------------------------------------
 

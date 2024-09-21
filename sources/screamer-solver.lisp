@@ -59,7 +59,7 @@
     :menuins '((5 (("one-value" "one-value") ("all-values" "all-values")
                            ("listener" "listener") ("n-values" "n-values") ("ith-value" "ith-value") ("best-value" "best-value") ))
                      (10 (("off" nil) ("on" t))) )
-    :icon 486 ;487
+    :icon 486
 
  (screamer-solution variables
                    p-variables
@@ -602,7 +602,7 @@
                        ("divide-and-conquer-force" "divide-and-conquer-force")
                        ("random-force" "random-force")))
                    )
-  :icon 486 ;487
+  :icon 486
 (if (or (equal force-function "static-ordering linear-force")
         (equal force-function "static-ordering divide-and-conquer-force")
         (equal force-function "static-ordering random-force"))
@@ -624,7 +624,7 @@
                         ("domain-size" "domain-size")
                         ("range-size" "range-size" )))
                    )
-  :icon 486 ;487
+  :icon 486
 (om-show-reference-doc
  (cond
   ((equal function "solution") 's::solution)
@@ -659,7 +659,7 @@
                          ("a-booleanv" "a-booleanv")
                   ))
                    )
-  :icon 486 ;487
+  :icon 486
   (cond
     ((equal var "an-integer-betweenv") (s::an-integer-betweenv (first args) (second args)))
     ((equal var "a-member-ofv") (s::a-member-ofv args))
@@ -692,7 +692,7 @@
                          ("a-booleanv" "a-booleanv")
                   ))
                    )
-  :icon 486 ;487
+  :icon 486
 (make-lists-ofv n-vars variables args))
 
 (defmethod! list-of-lists-ofv ((n-vars list) (variables string) &optional args)
@@ -713,7 +713,7 @@
                          ("a-booleanv" "a-booleanv")
                   ))
                    )
-  :icon 486 ;487
+  :icon 486
 (mapcar #'(lambda (x)
 (make-lists-ofv x variables args)) n-vars))
 
@@ -737,5 +737,6 @@
   :indoc '("list" "list" "t or nil")
   :menuins '((2 (("nil" 'nil)  ("t" 't))))
   :doc "Generates a list of screamer variables interpeted as CHORDS, that is a list with members of domain with no duplications and in ascending order."
-  :icon 486 ;487
+  :icon 486
  (om?::list-of-chords-inv n-chords domain random?))
+

@@ -32,9 +32,6 @@
 (defvar *screamer-score-midi-approx* nil)
 (setf *screamer-score-midi-approx* nil)
 
-(defvar *screamer-score-backtrack* nil)
-(setf *screamer-score-backtrack* nil)
-
 (defvar *screamer-score-debug* nil)
 (setf  *screamer-score-debug* nil)
 
@@ -52,7 +49,13 @@
 
 (defun set-debug (bool)
  (setf *screamer-score-debug* bool)
- (when (not (null *screamer-score-debug*))
-       (progn (print "DEBUG is ON.")
-       (setf *print-screamer-score-failures?* t)
-       (setf *print-screamer-score-time?* t))))
+ (if *screamer-score-debug*
+     (progn 
+         (setf *print-screamer-score-failures?* t)
+         (setf *print-screamer-score-time?* t)
+         "SCREAMER-SCORE DEBUG: ON.")
+	 (progn 
+		 (setf *print-screamer-score-failures?* nil)
+                (setf *print-screamer-score-time?* nil)
+                "SCREAMER-SCORE DEBUG: OFF.")
+ ))
