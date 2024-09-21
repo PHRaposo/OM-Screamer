@@ -16,7 +16,8 @@
                               (make-pathname :directory (pathname-directory *load-pathname*)
                                              :name "SCs-data.lisp")))
 
-(defvar *all-possible-chroma-subsets-hash* (make-hash-table :test #'equalv))
+(screamer::defvar-compile-time *all-possible-chroma-subsets-hash* (make-hash-table :test #'equalv)
+ "Hash-table with all possible chromatic subsets.")
 
 (defun fill-possible-chroma-subsets-hash ()
   (let (sets-list) 
