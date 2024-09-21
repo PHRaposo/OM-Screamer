@@ -255,13 +255,13 @@
 
   (defun mod-interval-memberv (x y sequence)
   (if (and (bound? x) (bound? y))
-      (member (mod (- (value-of x) (value-of y)) 1200) sequence)
+      (member (mod (- (value-of x) (value-of y)) 12) sequence)
 
     (let (
     (z (a-booleanv))
     (i (a-numberv))
     )
-    (assert! (=v i (funcallv #'mod (-v x y) 1200)))
+    (assert! (=v i (funcallv #'mod (-v x y) 12)))
     (assert! (eqv z (memberv i sequence)))
 
       (attach-noticer!
@@ -285,13 +285,13 @@
 
   (defun mod-interval-notv-memberv (x y sequence)
   (if (and (bound? x) (bound? y))
-      (not (member (mod (- (value-of x) (value-of y)) 1200) sequence))
+      (not (member (mod (- (value-of x) (value-of y)) 12) sequence))
 
     (let (
     (z (a-booleanv))
     (i (a-numberv))
     )
-    (assert! (=v i (funcallv #'mod (-v x y) 1200)))
+    (assert! (=v i (funcallv #'mod (-v x y) 12)))
     (assert! (eqv z (notv (memberv i sequence))))
 
       (attach-noticer!
@@ -312,3 +312,4 @@
       z)
     )
   )
+

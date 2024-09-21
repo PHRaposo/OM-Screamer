@@ -73,6 +73,11 @@
 ;;; 05/09/1999          Repaired bug in ifv
 ;;; 17/02/2000          Changed defpackage so that symbol names are consistent
 ;;;                     across packages.
+;;; 
+;;; 11/08/2024 	       Substituted all DEFMACROS for SCREAMER::DEFMACRO-COMPILE-TIME (phraposo)
+;;;
+;;; 02/09/2024         Removed macro CAREFULLY (not working!)
+;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 
@@ -149,7 +154,7 @@
 ;;; value-of has already been applied to x
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(defmacro objectp (var)
+(screamer::defmacro-compile-time objectp (var)
   "Determines whether a variable is a standard CLOS object or not"
   `(typep ,var 'standard-object))
 
@@ -277,7 +282,7 @@
 
 
 ;;; A shorthand
-(defmacro setq-domains (vars vals &aux (res nil))
+(screamer::defmacro-compile-time setq-domains (vars vals &aux (res nil))
   ;; Replaced append with an nconc 8/7/00
   (dolist (var vars) (setq res (nconc (list var vals) res)))
   (cons 'setq res))
@@ -367,23 +372,24 @@
 ;;; >
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(defmacro carefully (&body forms)
-  `(let (retval)     
-     (setq retval (carefully-evaluate ,(car forms)))
-     (if (> ,(length forms) 1)
-       (carefully ,@(rest forms))
-       retval)))
+;; FIXME: CAREFULLY MACRO AND CAREFULLY-EVALUATE NOT WORKING!
+;(defmacro carefully (&body forms)
+;  `(let (retval)     
+;     (setq retval (carefully-evaluate ,(car forms)))
+;     (if (> ,(length forms) 1)
+;       (carefully ,@(rest forms))
+;       retval)))
 
 
-(defmacro carefully-evaluate (form)
-  `(let (error-found)
-     (setq error-found (multiple-value-list (ignore-errors ,form)))
-     (if (and (= (length error-found) 2)
-	      (null (car error-found))
-	      (typep (second error-found) (find-class 'error))
-	      )
-	 (warn "~s failed" (quote ,form))
-       (apply #'values error-found))))
+;(defmacro carefully-evaluate (form)
+;  `(let (error-found)
+;     (setq error-found (multiple-value-list (ignore-errors ,form)))
+;     (if (and (= (length error-found) 2)
+;	      (null (car error-found))
+;	      (typep (second error-found) (find-class 'error))
+;	      )
+;	 (warn "~s failed" (quote ,form))
+;       (apply #'values error-found))))
 
 
 (defun slot-names-of (obj)
@@ -444,7 +450,7 @@
 ;;; PROPAGATION PROPERTIES: as for equalv, except that no propagation occurs
 ;;; if the equality assertion fails.
 
-(defmacro make-equal (var value &optional (retval '(fail)))
+(screamer::defmacro-compile-time make-equal (var value &optional (retval '(fail)))
   `(if (possibly? (equalv ,var ,value))
        (progn
 	 (assert! (equalv ,var ,value))
@@ -457,7 +463,7 @@
        (values ,retval))))
 
 
-(defmacro ifv (condition exp1 &optional (exp2 nil))
+(screamer::defmacro-compile-time ifv (condition exp1 &optional (exp2 nil))
   ;; If the condition is bound then there is no need to create additional
   ;; constraint variables
   `(let ((c ,condition))
@@ -644,11 +650,11 @@
 ;;; Some variables for constraining values in positions of lists
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(defmacro firstv (el) `(carv ,el))
-(defmacro secondv (el) `(nthv 1 ,el))
-(defmacro thirdv (el) `(nthv 2 ,el))
-(defmacro fourthv (el) `(nthv 3 ,el))
-(defmacro restv (el) `(cdrv ,el))
+(screamer::defmacro-compile-time firstv (el) `(carv ,el))
+(screamer::defmacro-compile-time secondv (el) `(nthv 1 ,el))
+(screamer::defmacro-compile-time thirdv (el) `(nthv 2 ,el))
+(screamer::defmacro-compile-time fourthv (el) `(nthv 3 ,el))
+(screamer::defmacro-compile-time restv (el) `(cdrv ,el))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -1234,10 +1240,10 @@
 ;;; Some functions for constraining elements to be of a specific type
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(defmacro listpv (el) `(typepv ,el 'list))
-(defmacro conspv (el) `(typepv ,el 'cons))
-(defmacro symbolpv (el) `(typepv ,el symbol))
-(defmacro stringpv (el) `(typepv ,el 'string))
+(screamer::defmacro-compile-time listpv (el) `(typepv ,el 'list))
+(screamer::defmacro-compile-time conspv (el) `(typepv ,el 'cons))
+(screamer::defmacro-compile-time symbolpv (el) `(typepv ,el symbol))
+(screamer::defmacro-compile-time stringpv (el) `(typepv ,el 'string))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -1317,10 +1323,10 @@
 ;;; Some functions & macros for generating variables of a specific type
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(defmacro a-listv () '(a-typed-varv 'list))
-(defmacro a-consv () '(a-typed-varv 'cons))
-(defmacro a-symbolv () '(a-typed-varv 'symbol))
-(defmacro a-stringv () '(a-typed-varv 'string))
+(screamer::defmacro-compile-time a-listv () '(a-typed-varv 'list))
+(screamer::defmacro-compile-time a-consv () '(a-typed-varv 'cons))
+(screamer::defmacro-compile-time a-symbolv () '(a-typed-varv 'symbol))
+(screamer::defmacro-compile-time a-stringv () '(a-typed-varv 'string))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Function: a-typed-varv
@@ -1603,7 +1609,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 
-(defmacro at-mostv (n f &rest x)
+(screamer::defmacro-compile-time at-mostv (n f &rest x)
   `(at-mostv-internal ,n ,f ,@x))
 
  
@@ -1715,7 +1721,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 
-(defmacro at-leastv (n f &rest x)
+(screamer::defmacro-compile-time at-leastv (n f &rest x)
   `(at-leastv-internal ,n ,f ,@x))
 
 
@@ -1838,7 +1844,7 @@
 ;;;  )
 
 
-(defmacro exactlyv (n f &rest x)
+(screamer::defmacro-compile-time exactlyv (n f &rest x)
   `(exactlyv-internal ,n ,f ,@x))
 
 (defun exactlyv-internal (n f &rest x)
