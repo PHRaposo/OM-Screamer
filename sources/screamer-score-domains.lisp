@@ -174,6 +174,20 @@
 		collect (if (= 2 mcs-approx)
 					(mapcar #'round (pop voice-domains))
 					(mapcar #'float (pop voice-domains))))))
+
+(defun chords-length-by-measure (voices) ;<== 10/10/2024
+ (let* ((v-mes (loop for voice in voices collect (get-measures voice)))
+       (mes-ratios (mat-trans (loop for vm in v-mes
+                         collect (loop for mes in vm
+                                         collect (tree2ratio (list '? (list (tree mes))))))))
+       (mes-all-onsets (loop for measure in mes-ratios 
+                             collect (let* ((ratios (loop for vr in measure
+                                                          collect (butlast (dx->x 0 (om-abs vr))))))
+                                       (remove-duplicates 
+                                        (sort-list 
+                                         (flat ratios)))))))
+                             
+(mapcar #'length mes-all-onsets)))
 							  
 (defun build-variables-domain (voices domains mcs-approx random?)
    (handler-bind ((error #'(lambda (c)
@@ -271,17 +285,23 @@
 	     (pitch-dur-domains (mapcar #'(lambda (notes-domain notes-length) (group-list notes-domain notes-length 'linear))  (pitch-dur vars-domain) notes-length-by-measure))
 	     (pitch-onset-domains (mapcar #'(lambda (notes-domain notes-length) (group-list notes-domain notes-length 'linear))  (pitch-onset vars-domain) notes-length-by-measure))
 	     (pitch-dur-onset-domains (mapcar #'(lambda (notes-domain notes-length) (group-list notes-domain notes-length 'linear))  (pitch-dur-onset vars-domain) notes-length-by-measure))
-	     (chords-length-by-measure (mapcar #'(lambda (x) (length (remove-duplicates (flat x))))
-	                                                  (mat-trans (loop for part in pitch-onset-domains
-	                                                                             for x = (loop for measure in part
-	                                                                                           collect (mapcar #'second measure))
-	                                                                             collect x))))
+	     (chords-length-by-measure (chords-length-by-measure voices));<== 10/10/2024
+                                        ;(loop for mes in (mat-trans notes-length-by-measure)
+                                        ;                          collect (list-max mes)))
+                                        ;(mapcar #'(lambda (x) (length (remove-duplicates (flat x))))
+	                                                  ;(mat-trans (loop for part in pitch-onset-domains
+	                                                  ;                           for x = (loop for measure in part
+	                                                  ;                                         collect (mapcar #'second measure))
+	                                                  ;                           collect x))))
 	   (chords-all-onsets (group-list (mat-trans (pitch-vars-all-onsets vars-domain)) chords-length-by-measure 'linear))
 	   (chords-domains (loop for measure in chords-all-onsets
-	                         for chords = (remove-if #'(lambda (x)(or (not (some #'s::variable? (flat x)))
-	                                                                  (some #'null (remove nil (flat x)))))
-	                                        measure)
-	                         collect chords))
+	                         collect (loop for chord in measure
+                                                 when (not (null (remove nil (flat chord))))
+                                                 collect chord))) ;<== 10/10/2024
+                                   ;for chords = (remove-if #'(lambda (x)(or (not (some #'s::variable? (flat x)))
+	                           ;                                       (some #'null (remove nil (flat x)))))
+	                           ;             measure)
+	                         ;collect chords))
   	   (pitch-dur-onset-chords (group-list (chords-pitch-dur-onset vars-domain) chords-length-by-measure 'linear)); <== NEW (05/09/2024)
 	   (pitch-dur-chords (group-list (chords-pitch-dur vars-domain) chords-length-by-measure 'linear)) ; <==
 	   (pitch-onset-chords (group-list (chords-pitch-onset vars-domain) chords-length-by-measure 'linear)) ; <==
@@ -297,7 +317,7 @@
  											collect chord))))											
 	   (chords-1st-beat (loop for mes in chords-domains ; <==
 		   	                  collect (list (car mes))))															   						   
-	   (midics-domain (midics-domain vars-domain)))	   
+	   (midics-domain (midics-domain vars-domain)))
 (loop for pitch in (mat-trans pitch-domains)
       for chords in chords-domains
 	  for chords-pitch-dur in pitch-dur-chords
