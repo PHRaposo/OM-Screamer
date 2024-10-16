@@ -177,16 +177,16 @@
 
 (defun chords-length-by-measure (voices) ;<== 10/10/2024
  (let* ((v-mes (loop for voice in voices collect (get-measures voice)))
-       (mes-ratios (mat-trans (loop for vm in v-mes
+       (mes-ratios  (mat-trans (loop for vm in v-mes
                          collect (loop for mes in vm
-                                         collect (tree2ratio (list '? (list (tree mes))))))))
+                                             collect (tree2ratio (list '? (list (tree mes))))))))
        (mes-all-onsets (loop for measure in mes-ratios 
-                             collect (let* ((ratios (loop for vr in measure
-                                                          collect (butlast (dx->x 0 (om-abs vr))))))
-                                       (remove-duplicates 
+                             collect (let* ((onsets (loop for vr in measure
+                                                          when vr collect (butlast (dx->x 0 (om-abs vr))))))
+                                       (when onsets 
+                                         (remove-duplicates 
                                         (sort-list 
-                                         (flat ratios)))))))
-                             
+                                         (flat onsets))))))))                    
 (mapcar #'length mes-all-onsets)))
 							  
 (defun build-variables-domain (voices domains mcs-approx random?)
