@@ -180,11 +180,12 @@
  (let* ((bpf-y-points (y-points bpf))
         (length-lcm (lcm (length ratios) (length bpf-y-points)))
 		(ratios-ms (ratios-to-ms ratios 60))
-        (scale-ratios (om-round (om-scale ratios-ms ;(butlast (dx->x (first ratios) ratios))
+        (scale-ratios (remove nil (om-round (om-scale ratios-ms ;(butlast (dx->x (first ratios) ratios))
 		                                            0 (1- length-lcm))
-					   0))
+					   0))) ;REMOVE NIL FOR NOW!
         (samples (multiple-value-bind (x y z) (om-sample bpf-y-points length-lcm) (third (list x y z)))))
-(simple-bpf-from-list scale-ratios (posn-match samples scale-ratios))))
+;(print (list "SCALE-RATIOS" scale-ratios)) (print (list "SAMPLES" samples))
+(simple-bpf-from-list scale-ratios (remove nil (posn-match samples scale-ratios)))))
 
 (defun midics-profiles-voice-range (bpfs voices midics pitch-domain approx)
   (let* ((samples (mapcar #'(lambda (bpf pitch-dom)
