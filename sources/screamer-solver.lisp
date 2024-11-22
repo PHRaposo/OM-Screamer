@@ -486,6 +486,12 @@
  (eval `(defun ,(gensym (if (null name) "anon-fun-" (concatenate 'string name "-"))) ,.(rest fn))))
 
 (defun compile-screamer-constraint (fun) ;;;CE
+(handler-bind ((error #'(lambda (c)
+                       (when *msg-error-label-on*
+                         (om-message-dialog (string+ "Error while evaluating the function " "compile-screamer-constraint" " : "
+                                                  (om-report-condition c))
+                                            :size (om-make-point 300 200))
+                         (om-abort)))))
  (let* ((expr (function-lambda-expression fun))
         (patchbox (find-lambda-patchbox fun))
         (patch-name (if (stringp patchbox);<== lambda function documentation
@@ -495,7 +501,10 @@
 							 (name (reference patchbox))))));<== patch in lambda mode
     (if (compiled-function-p fun) ;expr)
         expr
-    (compile (make-anon-screamerfun expr patch-name)))))
+    (compile (eval `(defun ,(gensym (if (null patch-name) "anon-fun-" (concatenate 'string patch-name "-"))) ,(function-lambda-list fun)
+		             (apply ,fun (list ,.(function-lambda-list fun))))))
+	;(compile (make-anon-screamerfun expr patch-name))
+	))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; OUTPUT OPTIONS
