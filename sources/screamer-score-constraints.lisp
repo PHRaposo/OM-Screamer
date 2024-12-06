@@ -28,6 +28,12 @@
 ;; BACKTRACK CONSTRAINTS
 
 (defun compile-screamer-backtrack-constraint (fun)
+(handler-bind ((error #'(lambda (c)
+                       (when *msg-error-label-on*
+                         (om-message-dialog (string+ "Error while evaluating the function " "compile-screamer-backtrack-constraint" " : "
+                                                  (om-report-condition c))
+                                            :size (om-make-point 300 200))
+                         (om-abort)))))
  (let* ((expr (function-lambda-expression fun))
         (patchbox (find-lambda-patchbox fun))
         (patch-name (if (stringp patchbox);<== lambda function documentation
@@ -42,14 +48,14 @@
   `(defun ,(gensym (if (null patch-name) 
                                   "backtrack-anon-fun-"
                                   (concatenate 'string patch-name "-backtrack-")))
-    ,lambda-list (om?::any-fn ,fun ,@lambda-list))))))
+    ,lambda-list (om?::any-fn ,fun ,@lambda-list)))))))
 
 ;;; MAIN-INTERFACE
 
 (defmethod! constraint-one-voice ((constraint function) (input string)(voices list)(domain string)
-	                               &key (percentage-mode "off") (percentage 0) (cs-mode "propagation"))
-    :initvals '(nil "list" (0 1) "pitch" "off" 0 "propagation")
-    :indoc '( "<lambda-patch>" "list" "list-of-voice-numbers" "string" "string" "number" "string")
+	                               &key (rests "exclude") (percentage-mode "off") (percentage 0) (cs-mode "propagation"))
+    :initvals '(nil "list" (0 1) "pitch" "exclude" "off" 0 "propagation")
+    :indoc '( "<lambda-patch>" "list" "list-of-voice-numbers" "string" "string" "string" "number" "string")
     :doc "Constraint for one-voice"
     :menuins '((1 (("list" "list") ("n-inputs" "n-inputs") ("car-cdr" "car-cdr") ("growing" "growing")))
                      (3 (
@@ -59,19 +65,20 @@
                        ("pitch-dur-onset" "pitch-dur-onset")
                           )
                         )
-                    (4 (("off" "off") ("exactly" "exactly") ("less-than" "less-than") ("greater-than" "greater-than")("between" "between")))
-					(6 (("propagation" "propagation")
+					(4 (("include" "include") ("exclude" "exclude")))	
+                    (5 (("off" "off") ("exactly" "exactly") ("less-than" "less-than") ("greater-than" "greater-than")("between" "between")))
+					(7 (("propagation" "propagation")
 						("backtrack" "backtrack")
 					   ;("heuristic" "heuristic")  ;==> NOT IMPLEMENTED
 					   ))
                      )
     :icon 486
- (make-cs-one-voice constraint input voices domain percentage-mode percentage cs-mode))
+ (make-cs-one-voice constraint input voices domain rests percentage-mode percentage cs-mode))
 
 (defmethod! constraint-harmony ((constraint function) (input string) (voice-select string)
-								&key (voices '(0)) (domain "pitch") (beats "all") (percentage-mode "off") (percentage 0) (cs-mode "propagation"))
-    :initvals '(nil "list" "all-voices" (0) "pitch" "all" "off" 0 "propagation")
-    :indoc '( "<lambda-patch>"  "string" "string" "list" "string" "string" "string" "integer" "string")
+								&key (voices '(0)) (domain "pitch") (rests "exclude") (beats "all") (percentage-mode "off") (percentage 0) (cs-mode "propagation"))
+    :initvals '(nil "list" "all-voices" (0) "pitch" "exclude" "all" "off" 0 "propagation")
+    :indoc '( "<lambda-patch>"  "string" "string" "list" "string" "string" "string" "string" "integer" "string")
     :doc "Constraint for one-voice"
     :menuins '((1 (("list" "list") ("n-inputs" "n-inputs")("car-cdr" "car-cdr") ("growing" "growing")))
                (2 (("all-voices" "all-voices") ("voices-list" "voices-list")))
@@ -79,15 +86,16 @@
 			       ("pitch-dur" "chords-pitch-dur")
 				   ("pitch-onset" "chords-pitch-onset")("pitch-dur-onset" "chords-pitch-dur-onset")
 			       ))
-               (5 (("all" "all") ("on-beat" "on-beat") ("off-beat" "off-beat") ("1st-beat" "1st-beat")))
-               (6 (("off" "off") ("exactly" "exactly") ("less-than" "less-than") ("greater-than" "greater-than")("between" "between")))
-			   (8 (("propagation" "propagation")
+			   (5 (("include" "include") ("exclude" "exclude")))   
+               (6 (("all" "all") ("on-beat" "on-beat") ("off-beat" "off-beat") ("1st-beat" "1st-beat")))
+               (7 (("off" "off") ("exactly" "exactly") ("less-than" "less-than") ("greater-than" "greater-than")("between" "between")))
+			   (9 (("propagation" "propagation")
 			       ("backtrack" "backtrack")
 			      ;("heuristic" "heuristic") ;==> NOT IMPLEMENTED
 			       ))
 				)
     :icon 486
- (make-cs-harmony constraint input voice-select voices domain beats percentage-mode percentage cs-mode))
+ (make-cs-harmony constraint input voice-select voices domain rests beats percentage-mode percentage cs-mode))
 
 (defmethod! constraint-profile ((bpf-object bpf-lib) (voices list) (approx integer) (range string) &key (scale-time? t) (cs-mode "propagation"))
     :initvals '(nil (0) 4 "voice-range" "propagation")
@@ -140,18 +148,51 @@
   :icon 486
   (make-cs-measure constraints measure-number))
 
+
+ (defmethod! constraint-measures ((constraints t) (measure-number list) (type string) (voices list) (domain string) (rests string))
+  :initvals '(nil (0 1) "one-voice" (0 1) "pitch" "exclude")
+  :indoc '("screamer-score-constraints" "measure number or list of numbers" "string" "list" "string" "string")
+  :menuins '((2 (("one-voice" "one-voice") ("harmony" "harmony")))
+             (4 (("pitch" "pitch")
+                 ("pitch-dur" "pitch-dur")
+                 ("pitch-onset" "pitch-onset")
+                 ("pitch-dur-onset" "pitch-dur-onset")))
+			 (5 (("include" "include") ("exclude" "exclude"))))  
+  :doc "Formats the constraint to be applyied to selected measures at the same time. 
+  The number of inputs must be the same as the number of voices and measures.
+  Ex.: For measures '(0 1 2) and voices (0 1 2), the constraint must have three inputs and will be applied to measure 0 and voice 0, measure 1 and voice 1,
+measure 2 and voice 2. Each input will return all events in those measures."
+  :icon 486
+  (make-cs-measures constraints measure-number type voices domain rests))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; AUXILIARY FUNCTIONS
 ;;
 ;
 
 (defun make-profile-constraint (bpf-lib voices approx range domain scale-time?)
- (let* ((original-bpfs (if (equal (type-of bpf-lib) 'bpf-lib) (bpf-list bpf-lib) (repeat-n bpf-lib (length (pitch domain)))))
-        (pitch-domain (mapcar #'(lambda (x) (mapcar #'first x)) (pitch-dur domain))) ;pitch-variables with rests
-        (ratio-domain (om-abs (mapcar #'(lambda (x) (mapcar #'second x)) (pitch-dur domain)))) ;ratios - abs values
+ (let* ((original-bpfs (if (equal (type-of bpf-lib) 'bpf-lib)
+                           (bpf-list bpf-lib)
+	                       (repeat-n bpf-lib (if (listp domain)
+							                     (length (pitch (car domain)))
+							                     (length (pitch domain))))))
+        (pitch-domain  (if (listp domain) ;pitch-variables with rests <== LIST OF DOMAINS
+						   (let ((measures (mat-trans (mapcar #'pitch-dur-include domain))))
+						      (loop for voice in measures
+							        collect (mapcar #'first (rec-merge-domain voice (length voice)))))
+							(mapcar #'(lambda (x)(mapcar #'first x));<== ONE DOMAIN 
+							                      (pitch-dur-include domain))))              
+        (ratio-domain (if (listp domain) ;ratios - abs values <== LIST OF DOMAINS
+						   (let ((measures (mat-trans (mapcar #'pitch-dur-include domain))))		 
+							  (loop for voice in measures 
+						            collect (om-abs (mapcar #'second (rec-merge-domain voice (length voice))))))
+				      (om-abs (mapcar #'(lambda (x) (mapcar #'second x));<== ONE DOMAIN 
+					                                 (pitch-dur-include domain))))) 
         (bpfs (if scale-time? (mapcar #'scale-bpf-time (posn-match ratio-domain voices) original-bpfs)
 		                       original-bpfs))
-        (midics (mapcar #'sort-list (midics-domain domain))))
+        (midics (if (listp domain)
+			         (mapcar #'sort-list (midics-domain (car domain)))
+		             (mapcar #'sort-list (midics-domain domain)))))
  (if (listp range)
      (let ((new-midics (mapcar #'(lambda (midics-list)
 		                          (remove-if-not #'(lambda (n)
@@ -226,12 +267,6 @@
  vars midics-profiles)))
 
  ;; PERCENTAGE-CONSTRAINT
-
- (defun split-domain-list1 (list-length n-inputs voice-domain);==> N-INPUTS ((0 1) (1 2) (2 3) ...)
-  (let* ((posn (loop for x from 0 to (- list-length n-inputs)
-           for y = (arithm-ser x (+ x (1- n-inputs)) 1)
-  collect y)))
- (posn-match voice-domain posn)))
 	
 (defun fix-chords-domain-type (cs-domain-type domain)
 (cond ((string-equal "pitch" cs-domain-type) domain)
@@ -271,8 +306,9 @@
 ;;; ***********************   APPLY-SCREAMER-SCORE-CONSTRAINT   *********************************  ;;;
 ;;; *********************************************************************************************  ;;;
 
-(defmethod apply-screamer-score-constraint ((score-constraint cs-one-voice) (domain screamer-score-domain))
- (let ((voices-domain (posn-match (get-one-voice-domain score-constraint domain) (get-voices score-constraint))))
+(defmethod apply-screamer-score-constraint ((score-constraint cs-one-voice) (domain t)) ;<== OBJECT OR LIST ;(domain screamer-score-domain))
+ (let ((voices-domain
+		(posn-match (get-one-voice-domain score-constraint domain) (get-voices score-constraint))))
   (cond ((not (equal (get-perc-mode score-constraint) "off"));<== PERCENTAGE-CONSTRAINT
          (mapcar #'(lambda (voice)
                     (apply-percentage-constraint score-constraint voice))
@@ -284,7 +320,7 @@
                              (apply-contv cs-fn "list" cs-input voice))
                    voices-domain))))))
 
-(defmethod apply-screamer-score-constraint ((score-constraint cs-harmony) (domain screamer-score-domain))
+(defmethod apply-screamer-score-constraint ((score-constraint cs-harmony) (domain t));<== OBJECT OR LIST (domain screamer-score-domain))
  (let* ((cs-domain-type (get-domain score-constraint))
 	   (chords-domain (cond ((string-equal "pitch" cs-domain-type)
  	                         (get-chord-beat score-constraint domain))
@@ -327,7 +363,7 @@
 								 chords-domain))))		 
                         (apply-contv cs-fn "list" cs-input voice-chords)))))))))))
 
-(defmethod apply-screamer-score-constraint ((score-constraint cs-profile) (domain screamer-score-domain))
+(defmethod apply-screamer-score-constraint ((score-constraint cs-profile) (domain t)) ;screamer-score-domain))
 (make-profile-constraint
   (get-bpf score-constraint)
   (get-voices score-constraint)
@@ -346,17 +382,67 @@
 		        (if (numberp mes-numbers);<== ONE MEASURE
 		            (apply-screamer-score-constraint cs-objects (nth mes-numbers mes-domain))
 		            (mapcar #'(lambda (mes-num);<== LIST OF MEASURES
-		                      (apply-screamer-score-constraint cs-objects (nth mes-num mes-domain)))
+								(if (listp mes-num)
+									(apply-screamer-score-constraint cs-objects (posn-match mes-domain mes-num))
+		                            (apply-screamer-score-constraint cs-objects (nth mes-num mes-domain))))
 		            mes-numbers)))
 			    (t ;<== LIST OF CONSTRAINTS
 				(mapcar #'(lambda (cs-obj)
 					       (if (numberp mes-numbers);<== ONE MEASURE
 							   (apply-screamer-score-constraint cs-obj (nth mes-numbers mes-domain))
 		                       (mapcar #'(lambda (mes-num);<== LIST OF MEASURES
-				                          (apply-screamer-score-constraint cs-obj (nth mes-num mes-domain)))
+				                          (if (listp mes-num)
+											  (apply-screamer-score-constraint cs-obj (posn-match mes-domain mes-num))
+											  (apply-screamer-score-constraint cs-obj (nth mes-num mes-domain))))
 				                mes-numbers)))
 			    cs-objects))))) 
 
+(defmethod apply-screamer-score-constraint ((score-constraint cs-measures) (domain t)) ;<== OBJECT OR LIST ;(domain screamer-score-domain))
+ (let* ((mes-domain (mes-domain domain))
+	    (mes-numbers (measures score-constraint))
+		(cs-type (cs-type score-constraint))
+		(voices (get-voices score-constraint))
+		(new-obj (if (string-equal "one-voice" cs-type)
+		             (make-cs-one-voice (constraint score-constraint) 
+												"list"
+											   (get-voices score-constraint)
+											   (get-domain score-constraint)
+											   (get-rests score-constraint)
+											   "off"
+											   nil 
+											   "propagation")
+		             (make-cs-harmony (constraint score-constraint) 
+									   "list"
+									   "voices-list"
+									   voices
+									  (let ((d (get-domain score-constraint)))
+									   (if (string-equal "pitch" d)
+										    d 
+										   (concatenate 'string "chords-" d)))
+									  (get-rests score-constraint)
+									   "all"
+									   "off"
+										nil 
+									   "propagation")))								   
+        (domains (loop for voice in voices 
+					   for mes-num in mes-numbers
+					   collect (if (string-equal "one-voice" cs-type)
+					               (nth voice (get-one-voice-domain new-obj (if (listp mes-num)
+									                                             (posn-match mes-domain mes-num)
+																				 (nth mes-num mes-domain))))
+							   (let ((mes (if (listp mes-num)
+									          (posn-match mes-domain mes-num)
+											  (nth mes-num mes-domain))))
+								(cond ((string-equal "pitch" cs-type)
+								       (get-chord-beat new-obj mes))
+						              (t (get-chord-domain new-obj mes)))))))
+		(fn-inputs (length (function-lambda-list (constraint score-constraint))))							  
+		(list-inputs (arithm-ser 0 (1- fn-inputs) 1)))
+ (screamer::assert! (apply (constraint new-obj)
+	                  (mapcar #'(lambda (n)
+			  	                 (nth n domains))
+				        list-inputs)))))
+				   
 (defmethod apply-percentage-constraint ((score-constraint cs-one-voice) (voices-domain list))
 (let ((cs-input-type (get-input score-constraint)))
  (cond ((string-equal "n-inputs" cs-input-type)

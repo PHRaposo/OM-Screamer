@@ -658,6 +658,12 @@ The constraint f can be any LISP function."
  collect y)))
  (posn-match vars (reverse posn))))
 
+(defun split-domain-list1 (list-length n-inputs voice-domain);==> N-INPUTS ((0 1) (1 2) (2 3) ...)
+  (let* ((posn (loop for x from 0 to (- list-length n-inputs)
+           for y = (arithm-ser x (+ x (1- n-inputs)) 1)
+  collect y)))
+ (posn-match voice-domain posn)))
+
 ; APPLY-CONTV
 
 (om::defmethod! apply-contv ((cs function) (mode string) (recursive? string) (vars t))
@@ -688,7 +694,10 @@ The constraint f can be any LISP function."
            (cond
 
            ((equal recursive? "n-inputs")
-           (om?::assert!-apply-rec cs vars))
+           (mapcar #'(lambda (x)
+		          (screamer::assert! (apply cs x)))
+            (split-domain-list1 (length vars) (length (function-lambda-list cs)) vars)))
+           ;(om?::assert!-apply-rec cs vars))
 
            ((equal recursive? "car-cdr")
 			(mapcar #'(lambda (x)
@@ -705,12 +714,19 @@ The constraint f can be any LISP function."
          (t (progn (om-message-dialog "ERROR!") (om-abort)))))
  )
 
-(om::defmethod! om-assert! (&rest bool)
-:initvals '( ( ) ) 
+(om::defmethod! om-assert! ((x screamer+::variable+))
+:initvals '( t ) 
 :indoc '("boolean variable or list")
 :doc "OM equivalent to SCREAMER::ASSERT!. Accepts one boolean variable or a list of boolean variables."
 :icon 486
-(om?::assert!-all bool))
+(screamer::assert! x))
+
+(om::defmethod! om-assert! ((x list))
+:initvals '( t ) 
+:indoc '("boolean variable or list")
+:doc "OM equivalent to SCREAMER::ASSERT!. Accepts one boolean variable or a list of boolean variables."
+:icon 486
+(mapcar #'om-assert! x))
 
  (om::defmethod! x->dxv ((list list))
  :initvals '((1 2 3 4 5)) :indoc '("variable or list of variables")
@@ -941,6 +957,12 @@ The constraint f can be any LISP function."
 :icon 476
 (om?::equalv-lists l1 l2))
 
+(om::defmethod! om-make-equal ((x t) (y t))
+:initvals '(nil nil) :indoc '("any" "any")
+:icon 486
+(?::make-equal x y)
+ t)
+ 
 ; -----------------------------------------
 
 (om::defmethod! om*v ((arg1 t) (arg2 t))

@@ -32,6 +32,7 @@
   (input :initform nil :initarg :input :reader get-input :writer set-input :documentation "string")
   (voices :initform nil :initarg :voices :reader get-voices :writer set-voices :documentation "list of voice numbers")
   (domain :initform nil :initarg :domain :reader get-domain :writer set-domain :documentation "string")
+  (rests :initform nil :initarg :rests :reader get-rests :writer set-rests :documentation "string")
   (percentage-mode :initform nil :initarg :percentage-mode :reader get-perc-mode :writer set-perc-mode :documentation "string")
   (percentage :initform nil :initarg :percentage :reader get-perc :writer set-perc :documentation "number or list of numbers")
   (cs-mode :initform nil :initarg :cs-mode :reader get-cs-mode :writer set-cs-mode :documentation "string"))
@@ -40,6 +41,7 @@
 :INPUT = list, n-inputs, car-cdr or growing [string].
 :VOICES = list with voice numbers.
 :DOMAIN = pitch, pitch-dur, pitch-onset or pitch-dur-onset.
+:RESTS = include or exclude.
 :PERCENTAGE-MODE = off, exactly, less-than, greather-than or between.
 :PERCENTAGE = number of list of numbers (used for between).
 :CS-MODE = propagation or backtrack (not implemented yet). This should be extended in the future to include heuristics or other search optimizations."))
@@ -54,11 +56,12 @@
 											 (compile-screamer-constraint constraint)))))
   (set-constraint compiled-constraint self)))
 
-(defmethod make-cs-one-voice ((cs function)(input string)(voices list)(domain string)(percentage-mode string)(percentage t) (cs-mode string))
+(defmethod make-cs-one-voice ((cs function)(input string)(voices list)(domain string) (rests string)(percentage-mode string)(percentage t) (cs-mode string))
  (let ((instance (make-instance 'cs-one-voice 
 					:input input
 					:voices voices
 					:domain domain
+					:rests rests
 					:percentage-mode percentage-mode
 					:percentage percentage
 					:cs-mode cs-mode)))
@@ -71,6 +74,7 @@
  (voice-select :initform nil :initarg :voice-select :reader get-v-sel :writer set-v-sel :documentation "string")
  (voices :initform nil :initarg :voices :reader get-voices :writer set-voices :documentation "list of voice numbers")
  (domain :initform nil :initarg :domain :reader get-domain :writer set-domain :documentation "string")
+ (rests :initform nil :initarg :rests :reader get-rests :writer set-rests :documentation "string")
  (beats :initform nil :initarg :beats :reader get-beats :writer set-beats :documentation "string")
  (percentage-mode :initform nil :initarg :percentage-mode :reader get-perc-mode :writer set-perc-mode :documentation "string")
  (percentage :initform nil :initarg :percentage :reader get-perc :writer set-perc :documentation "number or list of numbers")
@@ -80,7 +84,8 @@
  :INPUT = list, n-inputs, car-cdr or growing [string].
  :VOICE-SELECT = all-voices or voices-list [string].
  :VOICES = list with voice numbers.
- :DOMAIN = pitch, pitch+dur, pitch+onset or pitch+dur+onset (not implemented yet).
+ :DOMAIN = pitch, pitch+dur, pitch+onset or pitch+dur+onset.
+ :RESTS = include or exclude.
  :BEATS = all, on-beat, off-beat or 1st-beat.
  :PERCENTAGE-MODE = off, exactly, less-than, greather-than or between.
  :PERCENTAGE = number of list of numbers (used for between).
@@ -96,12 +101,13 @@
 											 (compile-screamer-constraint constraint)))))
   (set-constraint compiled-constraint self)))
 
-(defmethod make-cs-harmony ((cs function)(input string)(voice-select string)(voices list)(domain string)(beats string)(percentage-mode string)(percentage t) (cs-mode string))
+(defmethod make-cs-harmony ((cs function)(input string)(voice-select string)(voices list)(domain string)(rests string)(beats string)(percentage-mode string)(percentage t) (cs-mode string))
   (let ((instance (make-instance 'cs-harmony
 	  	            :input input 
 					:voice-select voice-select
 					:voices voices
 					:domain domain
+					:rests rests
 					:beats beats
 					:percentage-mode percentage-mode
 					:percentage percentage
@@ -156,6 +162,36 @@
     :constraint cs
     :measure measure))
 
+(defclass cs-measures (screamer-score-constraint)
+ ((constraint :initform nil :initarg :constraint :reader constraint :writer set-constraint :documentation "lambda-patch")
+  (measures :initform nil :initarg :measures :reader measures :writer set-measures :documentation "list")
+  (cs-type :initform nil :initarg :cs-type :reader cs-type :writer set-cs-type :documentation "one-voice or harmony")
+  (voices :initform nil :initarg :voices :reader get-voices :writer set-voices :documentation "list of voice numbers")
+  (domain :initform nil :initarg :domain :reader get-domain :writer set-domain :documentation "string")
+  (rests :initform nil :initarg :rests :reader get-rests :writer set-rests :documentation "string")
+   )
+ (:documentation "A simple container for constraints. A description of each slot is presented below:
+ :CONSTRAINT = constraint-one-voice, constraint-harmony or constraint-profile object.
+ :MEASURES = list with measure numbers.
+ :CS-TYPE = one-voice or harmony.
+ :VOICES = list with voice numbers.
+ :DOMAIN = pitch, pitch+dur, pitch+onset or pitch+dur+onset.
+ :RESTS = include or exclude.
+  This should be extended in the future to include heuristics or other search optimizations."))
+
+(defmethod cs-measures-p ((self cs-measures)) t)
+(defmethod cs-measures-p ((self t)) nil)
+(defmethod screamer-score-constraint-p ((self cs-measures)) t)
+
+(defmethod make-cs-measures ((cs t)(measures list) (cs-type string) (voices list) (domain string) (rests string))
+ (make-instance 'cs-measures
+    :constraint cs
+    :measures measures
+	:cs-type cs-type
+	:voices voices
+	:domain domain
+	:rests rests))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; DOMAINS
 
@@ -192,54 +228,80 @@ A description of each slot is presented below:
 
 (defclass screamer-variables-domain (screamer-score-domain)
    ((pitch :initform nil :initarg :pitch :reader pitch :writer set-pitch :documentation "list of lists")
+    (pitch-include :initform nil :initarg :pitch-include :reader pitch-include :writer set-pitch-include :documentation "list of lists")
     (chords :initform nil :initarg :chords :reader chords :writer set-chords :documentation "list of lists")
+    (chords-include :initform nil :initarg :chords-include :reader chords-include :writer set-chords-include :documentation "list of lists")	
 	(pitch-dur :initform nil :initarg :pitch-dur :reader pitch-dur :writer set-pitch-dur :documentation "list of lists")
 	(pitch-onset :initform nil :initarg :pitch-onset :reader pitch-onset :writer set-pitch-onset :documentation "list of lists")
 	(pitch-dur-onset :initform nil :initarg :pitch-dur-onset :reader pitch-dur-onset :writer set-pitch-dur-onset :documentation "list of lists")
 	(pitch-vars-all-onsets :initform nil :initarg :pitch-vars-all-onsets :reader pitch-vars-all-onsets :writer set-pitch-vars-all-onsets :documentation "list of lists")
+	(pitch-dur-include :initform nil :initarg :pitch-dur-include :reader pitch-dur-include :writer set-pitch-dur-include :documentation "list of lists")
+	(pitch-onset-include :initform nil :initarg :pitch-onset-include :reader pitch-onset-include :writer set-pitch-onset-include :documentation "list of lists")
+	(pitch-dur-onset-include :initform nil :initarg :pitch-dur-onset-include :reader pitch-dur-onset-include :writer set-pitch-dur-onset-include :documentation "list of lists")
     (chords-on-beat :initform nil :initarg :chords-on-beat :reader chords-on-beat :writer set-chords-on-beat :documentation "list of lists")
     (chords-off-beat :initform nil :initarg :chords-off-beat :reader chords-off-beat :writer set-chords-off-beat :documentation "list of lists")
     (chords-1st-beat :initform nil :initarg :chords-1st-beat :reader chords-1st-beat :writer set-chords-1st-beat :documentation "list of lists")
     (chords-pitch-dur :initform nil :initarg :chords-pitch-dur :reader chords-pitch-dur :writer set-chords-pitch-dur :documentation "list of lists")
     (chords-pitch-onset :initform nil :initarg :chords-pitch-onset :reader chords-pitch-onset :writer set-chords-pitch-onset :documentation "list of lists")	
     (chords-pitch-dur-onset :initform nil :initarg :chords-pitch-dur-onset :reader chords-pitch-dur-onset :writer set-chords-pitch-dur-onset :documentation "list of lists")
+	(chords-pitch-dur-include :initform nil :initarg :chords-pitch-dur-include :reader chords-pitch-dur-include :writer set-chords-pitch-dur-include :documentation "list of lists")
+    (chords-pitch-onset-include :initform nil :initarg :chords-pitch-onset-include :reader chords-pitch-onset-include :writer set-chords-pitch-onset-include :documentation "list of lists")	
+    (chords-pitch-dur-onset-include :initform nil :initarg :chords-pitch-dur-onset-include :reader chords-pitch-dur-onset-include :writer set-chords-pitch-dur-onset-include :documentation "list of lists")
     (midics-domain :initform nil :initarg :midics-domain :reader midics-domain :writer set-midics-domain :documentation "list of lists"))  ;<== CHANGED TO MIDI!
    (:documentation "A simple container for screamer-variables-domain.
  A description of each slot is presented below:
    :PITCH = list of lists of screamer variables (a-member-ofv or a-random-member-ofv) without rests (nil).
-   :CHORDS = list of lists of screamer variables organized as chords, with rests.
-   :PITCH-DUR  = list of lists of screamer variables. Each sublist contains two arguments (pitch-variable dur). Include rests.
-   :PITCH-ONSETS   = list of lists of screamer variables and ratios. Each sublist contains two arguments (pitch-variable onset). Include rests.
-   :PITCH-DUR-ONSETS   = list of lists of screamer variables and ratios. Each sublist contains three arguments (pitch-variable onset). Include rests.
-   :PITCH-VARS-ALL-ONSETS = list of lists of screamer variables in all onsets. The variable is repeated in case of long notes.
+   :PITCH-INCLUDE = list of lists of screamer variables (a-member-ofv or a-random-member-ofv) with rests.
+   :CHORDS = list of lists of screamer variables organized as chords, with rests inside chords.
+   :CHORDS-INCLUDE = list of lists of screamer variables organized as chords, with chords with all rests.  
+   :PITCH-DUR  = list of lists of screamer variables. Each sublist contains two arguments (pitch-variable dur). Does not include rests.
+   :PITCH-ONSETS   = list of lists of screamer variables and ratios. Each sublist contains two arguments (pitch-variable onset). Does not include rests.
+   :PITCH-DUR-ONSETS   = list of lists of screamer variables and ratios. Each sublist contains three arguments (pitch-variable onset). Does not include rests.
+   :PITCH-VARS-ALL-ONSETS = list of lists of screamer variables in all onsets. The variable is repeated in case of long notes. Include rests.
+   :PITCH-DUR-INCLUDE  = list of lists of screamer variables. Each sublist contains two arguments (pitch-variable dur). Include rests.
+   :PITCH-ONSETS-INCLUDE     = list of lists of screamer variables and ratios. Each sublist contains two arguments (pitch-variable onset). Include rests.
+   :PITCH-DUR-ONSETS-INCLUDE     = list of lists of screamer variables and ratios. Each sublist contains three arguments (pitch-variable onset). Include rests.    
    :CHORD-ON-BEAT = list of lists of screamer variables organized as chords. Contains only the first chord of each beat.
    :CHORDS-OFF-BEAT = list of lists of screamer variables organized as chords, removing the first chord of each beat.
    :CHORDS-1ST-BEAT = list of lists of screamer variables organized as chords. Contains only the first beat of each measure.
    :CHORDS-PITCH-DUR = TODO doc.
    :CHORDS-PITCH-ONSET = TODO doc.  
    :CHORDS-PITCH-DUR-ONSET = TODO doc.
+   :CHORDS-PITCH-DUR-INCLUDE = TODO doc.
+   :CHORDS-PITCH-ONSET-INCLUDE = TODO doc.  
+   :CHORDS-PITCH-DUR-ONSET-INCLUDE = TODO doc.  
    :MIDICS-DOMAIN = list of lists of midicents, one list for each voice.")) ;<== CHANGED TO MIDI!
 
 (defmethod screamer-variables-domain-p ((self screamer-variables-domain)) t)
 (defmethod screamer-variables-domain-p ((self t )) nil )
 (defmethod screamer-score-domain-p ((self screamer-variables-domain)) t)
 
-(defmethod make-variables-domain ((pitch list) (chords list) (pitch-durs list) (pitch-onset list) (pitch-dur-onset list) (pitch-vars-all-onsets list)
-	   	                          (chords-on-beat list) (chords-off-beat list) (chords-1st-beat list) (pitch-dur-chords list) (pitch-onset-chords list)
-								  (pitch-dur-onset-chords list) (midics-domain list))
+(defmethod make-variables-domain ((pitch list) (pitch-include list) (chords list) (chords-include list) (pitch-durs list) (pitch-onset list) (pitch-dur-onset list) (pitch-vars-all-onsets list)
+                                   (pitch-durs-include list) (pitch-onset-include  list) (pitch-dur-onset-include  list)(chords-on-beat list) (chords-off-beat list)
+								   (chords-1st-beat list) (pitch-dur-chords list) (pitch-onset-chords list)(pitch-dur-onset-chords list) (pitch-dur-chords-include list)
+								   (pitch-onset-chords-include list)(pitch-dur-onset-chords-include list)
+								   (midics-domain list))
  (make-instance 'screamer-variables-domain
   :pitch pitch
+  :pitch-include pitch-include
   :chords chords
+  :chords-include chords-include 
   :pitch-dur pitch-durs
   :pitch-onset pitch-onset
   :pitch-dur-onset pitch-dur-onset
   :pitch-vars-all-onsets pitch-vars-all-onsets
+  :pitch-dur-include pitch-durs-include
+  :pitch-onset-include pitch-onset-include
+  :pitch-dur-onset-include pitch-dur-onset-include
   :chords-on-beat chords-on-beat
   :chords-off-beat chords-off-beat
   :chords-1st-beat chords-1st-beat
   :chords-pitch-dur pitch-dur-chords
   :chords-pitch-onset pitch-onset-chords 
   :chords-pitch-dur-onset pitch-dur-onset-chords
+  :chords-pitch-dur-include pitch-dur-chords-include
+  :chords-pitch-onset-include pitch-onset-chords-include
+  :chords-pitch-dur-onset-include pitch-dur-onset-chords-include
   :midics-domain midics-domain))
 
  (defmethod list-all-slots ((domain screamer-variables-domain))
@@ -257,57 +319,81 @@ A description of each slot is presented below:
    ;(slot-value domain 'chords-pitch-dur-onset)
    (slot-value domain 'midics-domain)))
 
-;; THESE METHODS IS FOR USING WITH BACKTRACK-CONSTRAINTS, SINCE SCREAMER RETURNS A LIST OF VALUES AND NOT CLASSES.
-;; TODO: FIND A WAY TO REBUILD THE MEASURES-DOMAIN OR UNIFY THEM INTO A SINGLE LIST (ALL-DOMAINS = VARIABLES-DOMAIN + MEASURES-DOMAIN)
 
  (defclass screamer-measures-domain (screamer-score-domain)
    ((pitch :initform nil :initarg :pitch :reader pitch :writer set-pitch :documentation "list of lists")
+    (pitch-include :initform nil :initarg :pitch-include :reader pitch-include :writer set-pitch-include :documentation "list of lists")
     (chords :initform nil :initarg :chords :reader chords :writer set-chords :documentation "list of lists")
+    (chords-include :initform nil :initarg :chords-include :reader chords-include :writer set-chords-include :documentation "list of lists")	
 	(pitch-dur :initform nil :initarg :pitch-dur :reader pitch-dur :writer set-pitch-dur :documentation "list of lists")
 	(pitch-onset :initform nil :initarg :pitch-onset :reader pitch-onset :writer set-pitch-onset :documentation "list of lists")
 	(pitch-dur-onset :initform nil :initarg :pitch-dur-onset :reader pitch-dur-onset :writer set-pitch-dur-onset :documentation "list of lists")
+    (pitch-dur-include :initform nil :initarg :pitch-dur-include :reader pitch-dur-include :writer set-pitch-dur-include :documentation "list of lists")
+	(pitch-onset-include :initform nil :initarg :pitch-onset-include :reader pitch-onset-include :writer set-pitch-onset-include :documentation "list of lists")
+	(pitch-dur-onset-include :initform nil :initarg :pitch-dur-onset-include :reader pitch-dur-onset-include :writer set-pitch-dur-onset-include :documentation "list of lists")
     (chords-on-beat :initform nil :initarg :chords-on-beat :reader chords-on-beat :writer set-chords-on-beat :documentation "list of lists")
     (chords-off-beat :initform nil :initarg :chords-off-beat :reader chords-off-beat :writer set-chords-off-beat :documentation "list of lists")
 	(chords-1st-beat :initform nil :initarg :chords-1st-beat :reader chords-1st-beat :writer set-chords-1st-beat :documentation "list of lists")
     (chords-pitch-dur :initform nil :initarg :chords-pitch-dur :reader chords-pitch-dur :writer set-chords-pitch-dur :documentation "list of lists")
-    (chords-pitch-onset :initform nil :initarg :chords-pitch-onset :reader chords-pitch-onset :writer set-chords-pitch-onset :documentation "list of lists")	
+    (chords-pitch-onset :initform nil :initarg :chords-pitch-onset :reader chords-pitch-onset :writer set-chords-pitch-onset :documentation "list of lists")		
     (chords-pitch-dur-onset :initform nil :initarg :chords-pitch-dur-onset :reader chords-pitch-dur-onset :writer set-chords-pitch-dur-onset :documentation "list of lists")
+	(chords-pitch-dur-include :initform nil :initarg :chords-pitch-dur-include :reader chords-pitch-dur-include :writer set-chords-pitch-dur-include :documentation "list of lists")
+    (chords-pitch-onset-include :initform nil :initarg :chords-pitch-onset-include :reader chords-pitch-onset-include :writer set-chords-pitch-onset-include :documentation "list of lists")	
+    (chords-pitch-dur-onset-include :initform nil :initarg :chords-pitch-dur-onset-include :reader chords-pitch-dur-onset-include :writer set-chords-pitch-dur-onset-include :documentation "list of lists")	
     (midics-domain :initform nil :initarg :midics-domain :reader midics-domain :writer set-midics-domain :documentation "list of lists"))
    (:documentation "A simple container for screamer-measures-domain.
  A description of each slot is presented below:
    :PITCH = list of lists of screamer variables (a-member-ofv or a-random-member-ofv) without rests (nil).
-   :CHORDS = list of lists of screamer variables organized as chords, with rests.
+   :PITCH-INCLUDE = list of lists of screamer variables (a-member-ofv or a-random-member-ofv) with rests.
+   :CHORDS = list of lists of screamer variables organized as chords, without rests.
+   :CHORDS-INCLUDE = list of lists of screamer variables organized as chords, with rests.  
    :PITCH-DUR  = list of lists of screamer variables. Each sublist contains two arguments (pitch-variable dur). Include rests.
    :PITCH-ONSETS   = list of lists of screamer variables and ratios. Each sublist contains two arguments (pitch-variable onset). Include rests.
    :PITCH-DUR-ONSETS   = list of lists of screamer variables and ratios. Each sublist contains three arguments (pitch-variable onset). Include rests.
    :PITCH-VARS-WITH-RESTS = list of lists of screamer variables with rests (nil). Used to build measures-domain.
+   :PITCH-DUR-INCLUDE  = list of lists of screamer variables. Each sublist contains two arguments (pitch-variable dur). Include rests.
+   :PITCH-ONSETS-INCLUDE     = list of lists of screamer variables and ratios. Each sublist contains two arguments (pitch-variable onset). Include rests.
+   :PITCH-DUR-ONSETS-INCLUDE     = list of lists of screamer variables and ratios. Each sublist contains three arguments (pitch-variable onset). Include rests.    
    :CHORD-ON-BEAT = list of lists of screamer variables organized as chords. Contains only the first chord of each beat.  
    :CHORDS-OFF-BEAT = list of lists of screamer variables organized as chords, removing the first chord of each beat. 
    :CHORDS-1ST-BEAT = list of lists of screamer variables organized as chords. Contains only the first beat of each measure.
    :CHORDS-PITCH-DUR = TODO doc.
    :CHORDS-PITCH-ONSET = TODO doc.   
    :CHORDS-PITCH-DUR-ONSET = TODO doc.
+   :CHORDS-PITCH-DUR-INCLUDE = TODO doc.
+   :CHORDS-PITCH-ONSET-INCLUDE = TODO doc.  
+   :CHORDS-PITCH-DUR-ONSET-INCLUDE = TODO doc. 
    :MIDICS-DOMAIN = list of lists of midicents, one list for each voice."))
 
 (defmethod screamer-measures-domain-p ((self screamer-measures-domain)) t)
 (defmethod screamer-measures-domain-p ((self t )) nil )
 (defmethod screamer-score-domain-p ((self screamer-measures-domain)) t)
 
-(defmethod make-measures-domain ((pitch list) (chords list) (pitch-durs list) (pitch-onset list)
-								 (pitch-dur-onset list) (chords-on-beat list) (chords-off-beat list) (chords-1st-beat list)
-								 (pitch-dur-chords list) (pitch-onset-chords list) (pitch-dur-onset-chords list) (midics-domain list))
+;; INCLUDE 
+(defmethod make-measures-domain ((pitch list) (pitch-include list) (chords list) (chords-include list)(pitch-durs list) (pitch-onset list)
+								 (pitch-dur-onset list) (pitch-durs-include list) (pitch-onset-include  list) (pitch-dur-onset-include  list) (chords-on-beat list) (chords-off-beat list) (chords-1st-beat list)
+								 (pitch-dur-chords list) (pitch-onset-chords list) (pitch-dur-onset-chords list) (pitch-dur-chords-include list)
+								   (pitch-onset-chords-include list)(pitch-dur-onset-chords-include list) (midics-domain list))
   (make-instance 'screamer-measures-domain
    :pitch pitch
+   :pitch-include pitch-include
    :chords chords
+   :chords-include chords-include
    :pitch-dur pitch-durs
    :pitch-onset pitch-onset
    :pitch-dur-onset pitch-dur-onset
+   :pitch-dur-include pitch-durs-include
+   :pitch-onset-include pitch-onset-include
+   :pitch-dur-onset-include pitch-dur-onset-include
    :chords-on-beat chords-on-beat
    :chords-off-beat chords-off-beat
    :chords-1st-beat chords-1st-beat
    :chords-pitch-dur pitch-dur-chords
    :chords-pitch-onset pitch-onset-chords  
    :chords-pitch-dur-onset pitch-dur-onset-chords
+   :chords-pitch-dur-include pitch-dur-chords-include
+   :chords-pitch-onset-include pitch-onset-chords-include
+   :chords-pitch-dur-onset-include pitch-dur-onset-chords-include  
    :midics-domain midics-domain))
 
 (defmethod list-all-slots ((domain screamer-measures-domain))
@@ -342,13 +428,36 @@ A description of each slot is presented below:
 	   :mes-domain mes-domain))
 
 (defmethod get-one-voice-domain ((self cs-one-voice) (domain screamer-variables-domain))
-  (funcall (read-from-string (get-domain self)) domain))
+ (let* ((rests (get-rests self))
+	    (fun (read-from-string (if (string-equal rests "include")
+		                           (concatenate 'string (get-domain self) "-" rests)
+								   (get-domain self)))))
+  (funcall fun domain)))
 
 (defmethod get-one-voice-domain ((self cs-one-voice) (domain screamer-measures-domain))
- (funcall (read-from-string (get-domain self)) domain))
+ (let* ((rests (get-rests self))
+	    (fun (read-from-string (if (string-equal rests "include")
+		                           (concatenate 'string (get-domain self) "-" rests)
+								   (get-domain self)))))
+  (funcall fun domain)))
 
 (defmethod get-one-voice-domain ((self cs-one-voice) (domain screamer-all-domains))
  (get-one-voice-domain self (var-domain domain)))
+ 
+ (defun rec-merge-domain (domains mes-length)
+ (cond ((= 1 mes-length) domains)
+        (t (let* ((doms domains)
+                  (merge-once (apply #'x-append  (list (pop doms) (pop doms)))))
+	        (if (null doms)
+		         merge-once
+	            (rec-merge-domain (x-append (list merge-once) doms) (1- mes-length)))))))
+	
+ (defmethod get-one-voice-domain ((self cs-one-voice) (domain list))
+ "List of measures."
+ (let ((measures (mat-trans (loop for mes in domain
+	                   collect (get-one-voice-domain self mes)))))
+(loop for voice in measures 
+      collect (rec-merge-domain voice (length voice)))))					   
 
 (defmethod get-chord-beat ((self cs-harmony) (domain screamer-variables-domain))
  (let ((beats (read-from-string (concatenate 'string "chords-" (get-beats self)))))
@@ -362,18 +471,40 @@ A description of each slot is presented below:
       (chords domain)
 	  (funcall beats domain))))
 
+(defmethod get-chord-beat ((self cs-harmony) (domain list))
+ "List of measures."
+(let ((measures (mat-trans (loop for mes in domain
+	                   collect (get-chord-beat self mes)))))
+(loop for voice in measures 
+      collect (rec-merge-domain voice (length voice)))))
+
 (defmethod get-chord-beat ((self cs-harmony) (domain screamer-all-domains))
  (get-chord-beat self (var-domain domain)))
 
 (defmethod get-chord-domain ((self cs-harmony) (domain screamer-variables-domain))
- (funcall (read-from-string (get-domain self)) domain))
+  (let* ((rests (get-rests self))
+	    (fun (read-from-string (if (string-equal rests "include")
+		                           (concatenate 'string (get-domain self) "-" rests)
+								   (get-domain self)))))
+  (funcall fun domain)))
   
 (defmethod get-chord-domain ((self cs-harmony) (domain screamer-measures-domain))
-  (funcall (read-from-string (get-domain self)) domain))
+  (let* ((rests (get-rests self))
+	    (fun (read-from-string (if (string-equal rests "include")
+		                           (concatenate 'string (get-domain self) "-" rests)
+								   (get-domain self)))))
+  (funcall fun domain)))
    
 (defmethod get-chord-domain ((self cs-harmony) (domain screamer-all-domains))
    (get-chord-domain self (var-domain domain)))     
   
+ (defmethod get-chord-domain ((self cs-harmony) (domain list))
+  "List of measures."
+ (let ((measures (mat-trans (loop for mes in domain
+	                   collect (get-chord-domain self mes)))))
+(loop for voice in measures 
+      collect (rec-merge-domain voice (length voice)))))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; SCREAMER-POLY, SCREAMER-VOICE, SCREAMER-MEASURE AND SCREAMER-CHORD
 ;;; TODO: SCREAMER BPF, BPF-LIB (DEPENDS-ON OM-SCALE - OM-ROUND, BPFS, X-POINTS, Y-POINTS)

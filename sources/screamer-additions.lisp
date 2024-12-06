@@ -4,6 +4,9 @@
  "A global variable storing the order which variables (and non-variables) will appear in the musical score representation 
 of screamer-score (Openmusic). This is used for score-position (new cost-function).")
 
+;(defvar-compile-time *variables-percent* nil
+ ;"PERCENTAGE") ;<== FOR PROGRESS-BAR
+ 
   (defun random-force (x)
   "Returns X if it is not a variable. If X is a bound variable then returns
   its value.
