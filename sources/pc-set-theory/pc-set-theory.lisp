@@ -243,7 +243,7 @@ Optional arguments:
 (om?-symb->om  (all-subsets (om-symb->om? fn)
                                      (if card-min card-min 0)
                                      (if card-max card-max (get-card (string fn)))
-                                     (if forbid forbid nil))))
+                                     (if forbid (om-symb->om? forbid) nil))))
 
 (om::defmethod! SC-subsets ((fn list) &optional (card-min nil) (card-max nil) (forbid nil))
   :initvals '('(om::|6-27A| om::|6-27B|) nil nil nil)
@@ -256,7 +256,7 @@ Optional arguments:
              (om?-symb->om  (all-subsets (om-symb->om? x)
                             (if card-min card-min 0)
                             (if card-max card-max (get-card (string x)))
-                            (if forbid forbid nil))))
+                            (if forbid (om-symb->om? forbid) nil))))
              fn)
  )
  :test #'equal))
