@@ -70,7 +70,7 @@
 
  		       ("Screamer-Solver"
  		          (("main" nil nil (screamer-solver force-function om-asert! screamer-doc) nil)
-				   ("om-methods" nil nil (om+v om-v om*v om/v m->pcv mc->pcv modv mod12v om-absv sumv x->dxv x->dx-absv dx->xv all-intervalsv all-membersv not-intersectionv all-diffv list-equalv?) nil)
+				   ("om-methods" nil nil (om+v om-v om*v om/v m->pcv mc->pcv modv mod12v om-absv sumv x->dxv x->dx-absv dx->xv all-intervalsv all-membersv not-intersectionv all-diffv list-equalv? om-make-equal) nil)
 				   ("variables" nil nil (screamer-variable list-ofvs list-of-lists-ofv list-of-chords-inv) nil)
 				   ("functions" nil nil (apply-contv) nil)
   				   ("constraints"
