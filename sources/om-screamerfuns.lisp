@@ -117,35 +117,6 @@ x))
                     perms)))
   vars))
 			  
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;; DEEP-MAPCAR - FROM PATCHWORK, OM AND ESQUISSE
-
- (defun deep-mapcar (fun fun1 list? &rest args)
-   "Mapcars <fun> or applies <fun1> to <list?> <args> whether <list?> is a list or not."
-   (cond
-     ((null list?) ())
-     ((not (consp list?)) (apply fun1 list? args))
-     (t (cons (apply #'deep-mapcar fun fun1 (car list?) args)
- 	     (apply #'deep-mapcar fun fun1 (cdr list?) args)))))
-
- (defun car-mapcar (fun list?  &rest args)
-    "Mapcars <fun> if list? is a list or applies <fun> if it is an atom or
-  a one-element list"
-    (cond  ((atom list?) (apply fun list? args))
-           ((= (length list?) 1) (apply fun (car list?) args))
-           (t (mapcar #'(lambda (x) (apply fun x  args ))  list? ))))
-
- (defun less-deep-mapcar (fun  list? &rest args)
-    "Applies <fun> to <list?> <args> if <list?> is a one-level list .
-     Mapcars <fun> to <list?> <args> if <list?> is a multi-level list. "
-    (cond
-      ((null list?) ())
-      ((atom (car list?)) (apply fun list? args))
-      ((atom (car (car list?)))
-       (cons (apply fun (car list?)  args ) (apply #'less-deep-mapcar fun (cdr list?) args)))
-      (t (cons (apply #'less-deep-mapcar fun  (car list?) args)
-               (apply #'less-deep-mapcar fun  (cdr list?) args)))))
-
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; OM-SCREAMER
 
@@ -225,17 +196,6 @@ x))
   	 (if (null accumul)
   	     (dx->xv i (cdr lst) (append (cons (+v i (first lst)) accumul) (list i))) 
   		 (dx->xv i (cdr lst) (cons (+v (first lst) (first accumul)) accumul)))))
-		 
-; (defun dx->xv (start list)
-;  (dx->xv-internal start list nil))
-
-; (defun dx->xv-internal (start list accumul)
-;      (let ((sum (if accumul
-;                      (+v (first list) (first accumul))
- ;                     (+v start (first list)))))
- ;(if (cdr list)
- ;    (dx->xv-internal start (cdr list) (om::x-append sum accumul))
- ;    (om::x-append start (reverse accumul) sum))))
 
  (defun dx->xv-listv (start list)
   (dx->xv-internal-listv start list nil))
@@ -313,7 +273,7 @@ x))
  (let ((v (mapcar #'(lambda (x)
              (if random? (list-of-random-members-ofv x lst2) (list-of-members-ofv x (reverse lst2))))
             lst1)))
- (mapcar #'(lambda (x) (assert! (apply '/=v x))) v)
+ (mapcar #'(lambda (x) (assert!-all-differentv x)) v)
 (value-of v)))
 
 (defun list-of-random-members-ofv (n dom)
@@ -428,16 +388,6 @@ x))
  (mapcar #'(lambda (x) (assert! (apply '/=v x))) v)
 (value-of v)))
 
-;(defun all-rotations-internal (list accumul)
-; (let ((rotation (if accumul (om::x-append (cdr (first accumul)) (first (first accumul)))
-                                         ;(om::x-append (cdr list) (first list)))))
-;(if (equal (first list) (first rotation))
-;    (om::x-append (list rotation) (reverse accumul))
-;    (all-rotations-internal list (om::x-append (list rotation) accumul)))))
-
-;(defun all-rotations (list)
-; (all-rotations-internal list nil))
-
 (cl::defun all-rotations (lst &optional (dir "->"))
  (let ((rep (list lst)))
   (loop for x from 0
@@ -490,74 +440,7 @@ x))
 (one-value (solution mcv (static-ordering #'linear-force))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;; RECURSIVE FUNCTIONS FOR APPLY-CONTV
-
-(cl::defun assert!-all (x) 
-(cond ((atom x)
-            (if (screamer::booleanpv x)
-                 (assert! x)))
-          (t (assert!-all (car x)) (assert!-all (cdr x)))))
-
-;(if (null x) nil ;<==BUG HERE
-;	(if (atom x) (assert! x)
-;		(if (and (listp x) (every #'atom x))
-;		    (progn (assert! (car x))
-;		           (assert!-all (cdr x)))
-;			(if (and (listp x) (every #'listp x))
-;			    (progn (assert!-all (car (car x)))
-;				       (assert!-all (cdr x))))))))
-
-(defun apply-rec (fn list) (apply-rec-internal fn list nil))
-
-(defun apply-rec-internal (fn list accumul)
- (let* ((fn-inputs (length (om::function-lambda-list fn)))
-        (list-inputs (all-values (an-integer-between 0 (1- fn-inputs)))))
- (if (null (nth (1- fn-inputs) list))
-      accumul
-      (let ((one-result (apply fn (mapcar #'(lambda (n)
-			  	                 (nth n list)) list-inputs))))
-	(apply-rec-internal fn (cdr list) (om::x-append accumul one-result))))))
-
-(defun assert!-apply-rec (fn list)
- (let* ((fn-inputs (length (om::function-lambda-list fn)))
-        (list-inputs (all-values (an-integer-between 0 (1- fn-inputs)))))
-  (labels ((app-rec (x)
-           (if (null (nth (1- fn-inputs) x))
- 	            nil
-               (progn (assert! (apply fn (mapcar #'(lambda (n)
-  		  	                               (nth n x)) list-inputs)))
-                      (app-rec (cdr x))))))
-   (app-rec list))))
-
-;(defun assert!-funcallv-rec (fn list)
-; (labels ((funcall-rec (f x)
-;            (if (null x)
-;		 nil
-;            (progn (assert! (funcallv f x)) (funcall-rec f (cdr x))))))
-; (funcall-rec fn list)))
-
-;(defun funcallv-rec-car-cdr (fn list)
-; (labels ((funcall-car-cdr (f x xs)
-;           (if (null xs)
-;		        nil
-;               (progn (funcall f x xs)
-;                      (funcall-car-cdr f (car xs) (cdr xs))))))
-;  (funcall-car-cdr fn (car list) (cdr list))))
-
-;(labels ((funcall-car-cdr (x xs)
-;             (ifv (null xs)
-;              t
-;              (andv (funcallv fn x xs)
-;                        (funcall-car-cdr (carv xs) (cdrv xs))))))
-; (funcall-car-cdr (carv list) (cdrv list))))
-
-;(defun assert!-funcallv-rec-car-cdr (fn list)
-;    (labels ((funcall-car-cdr (f x xs)
-;               (if (null xs)
-;			        nil
-;               (progn (assert! (funcall f x xs))
-;                      (funcall-car-cdr f (car xs) (cdr xs))))))
-;      (funcall-car-cdr fn (car list) (cdr list))))
+;;; RECURSIVE FUNCTIONS
 
 (defun assert!-all-differentv (list)
 ;; Functionally the same as (apply #'/=v list) or (all-differentv list), but faster.
@@ -590,17 +473,6 @@ x))
   ((not (consp list?)) (assert! (apply fun1 list? args)))
   (t (progn (apply #'assert!-deep-mapcar fun fun1 (car list?) args)
      (apply #'assert!-deep-mapcar fun fun1 (cdr list?) args)))))
-
-;(defun assert!-less-deep-mapcar (fun  list? &rest args)
-; "Applies <fun> to <list?> <args> if <list?> is a one-level list .
-;  Mapcars <fun> to <list?> <args> if <list?> is a multi-level list. "
-; (cond
-;   ((null list?) nil)
-;   ((atom (car list?)) (assert! (apply fun (list list?) args)))
-;   ((atom (car (car list?)))
-;    (progn (assert! (apply fun (car list?) args)) (apply #'assert!-less-deep-mapcar fun (cdr list?) args)))
-;   (t (progn (apply #'assert!-less-deep-mapcar fun  (car list?) args)
-;            (apply #'assert!-less-deep-mapcar fun  (cdr list?) args)))))
 
 (defun any-fn (f &rest x)
 ;; note: Experimental function.
@@ -697,7 +569,6 @@ The constraint f can be any LISP function."
            (mapcar #'(lambda (x)
 		          (screamer::assert! (apply cs x)))
             (split-domain-list1 (length vars) (length (function-lambda-list cs)) vars)))
-           ;(om?::assert!-apply-rec cs vars))
 
            ((equal recursive? "car-cdr")
 			(mapcar #'(lambda (x)
@@ -1116,23 +987,4 @@ The constraint f can be any LISP function."
    (simple-bpf-from-list (butlast (dx->x 0 (om* tempo-ms (om-abs (tree2ratio (tree voice))))))
                                     (flat (mapcar #'lmidic (chords voice))))))
    (voices poly-obj))))
-
-;;;RHYTHMIC CONSTRUCTOR
-
-(defmethod! cons-tree ((timesig list) (puls list) (subdiv list))
-  :initvals '( ( (5 8) (6 8) (6 8)) ((2 3) (2 2 2) (1)) (((1 1) (1 1 1)) ((1 1) (1 1) (1 1)) ((1.0))))
-  :indoc '( "list" "list" "list")
-  :doc
-"Constructs a rhythmic tree from three arguments:
-(1) A list of time signatures;
-(2) A list of lists of pulses subdivisions;
-(3) A list of lists of beats subdivisions or a list of ratios.
-"
-  :icon 254
-(list '?
-      (mapcar #'(lambda (tim p s)
-                 (list tim
-                      (mapcar #'list p s)))
-       timesig puls subdiv)))
-
 

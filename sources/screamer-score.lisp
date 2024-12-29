@@ -1,39 +1,3 @@
-;;----------------------------------------------------------------------------
-;; PROGRESS-BAR
-;;
-;; Adapted from: 
-;;
-;; examples/capi/elements/progress-bar-from-background-thread.lisp
-;;
-;;----------------------------------------------------------------------------
-;; Copyright (c) 1987--2022 LispWorks Ltd. All rights reserved.
-;;----------------------------------------------------------------------------
-
-#|
-(in-package "CL-USER")
-
-(capi:define-interface progress-bar-screamer ()
-  ()
-  (:panes
-   (progress-bar
-    capi:progress-bar
-    :start 0
-    :end 100
-    ))
-  (:layouts
-   (progress-layout
-    capi:simple-layout
-    '(progress-bar)))
-  (:default-initargs
-   :title "SCREAMER-SCORE: Searching... "
-   :best-width 350
-   :best-x :center
-   :best-y :center
-   :layout 'progress-layout
-   ))
-|#
-;;----------------------------------------------------------------------------
-
 ;; Copyright (c) 2024 Paulo Henrique Raposo
 
 ;; Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -71,18 +35,6 @@
  (if (null solution)
      (progn (om-message-dialog "UNABLE TO FIND A SOLUTION." ) (om-beep) (om-abort))
   (make-instance 'poly :voices (mapcar #'update-pitches voices solution))))
-  
-(defun test-solution-2 (solution voices)
-(if (null solution)
-    (error "UNABLE TO FIND A SOLUTION.")
-
-   (list (loop for pitches in solution
-	   	       for voice in voices
-		       collect (list pitches (ratios voice)))
-		 (get-time-sig (car voices))
-		 (tempo (car voices)))))
-
-;(defvar *score-solution* nil)
 
 (defmethod! screamer-score ((poly-object poly)(domains t)(score-constraints t)
                              &key (force-function '("reorder" "score-position" "(declare (ignore x))" "<" "linear-force")) (random? t) (m-approx 2))
@@ -97,12 +49,11 @@
 <KEY-RANDOM?>: t for a random solution or nil for a ordered solution.
 <KEY-M-APPROX> Midi approximation (2 for semitone, 4 for quarter-tones, etc...)."
   :icon 486
-;(setf *score-solution* nil)
+
  (setf *screamer-score-midi-approx* m-approx)
  (setf s::*all-screamer-score-variables* nil)
 
 (let* ((all-domains (build-all-domains poly-object domains m-approx random?))
-	   ;(interface (capi:display (make-instance 'cl-user::progress-bar-screamer)))
 	    scs-time)
 	   
 (if *print-screamer-score-time?*
@@ -147,73 +98,14 @@
     (print "FUNCTIONS APPLIED: OK!"))
 
 ; ====================================================== ;
-
-#|
-(flet ((update-progress-bar (percent)
-           (capi:execute-with-interface
-            interface
-            #'(lambda ()
-                (with-slots (cl-user::progress-layout cl-user::progress-bar) interface
-                  (let ((idlep (= (round percent) 100)))
-                   (setf (capi:simple-pane-enabled cl-user::progress-layout)
-                          idlep)
-                    (setf (capi:range-slug-start cl-user::progress-bar) (round percent))
-                    ;(when (and (= (round percent) 100) *score-solution*) ;<== NOT NEEDED ANYMORE?
-                    ;  (capi:quit-interface interface));<== NOT NEEDED ANYMORE?
-                     ))))))
-					  
-(setf screamer::*variables-percent* (/ 100 (length screamer::*all-screamer-score-variables*)))
-
-(mapcar #'(lambda (x)
-     (screamer::attach-noticer!
-      #'(lambda() 
-   (when (screamer::bound? x)
-   (funcall #'update-progress-bar (* (1+ (position x screamer::*all-screamer-score-variables*)) screamer::*variables-percent*)))
-    )
-      x)
- ) (posn-match screamer::*all-screamer-score-variables* (let ((len (length screamer::*all-screamer-score-variables*)))
-                                                          (om- (om-round (list 1 (* len 1/4) (* len 1/2) (* len 3/4) len)) 1))))  
-
-|#				  
+			  
  (let ((solution (screamer-score-solution all-domains force-function)))
 
-;(setf *score-solution* (if (null solution) t t))
-;(when *score-solution* (capi:quit-interface interface))
-
-  (setf s::*all-screamer-score-variables* nil)
-  ;(setf s::*variables-percent* nil)  
+  (setf s::*all-screamer-score-variables* nil) 
   (setf *screamer-score-midi-approx* nil)
   (if *print-screamer-score-time?* (print-scs-time scs-time))
   (test-solution solution (voices poly-object))	  
  ))) 
- ;) ;<== FLET - PROGRESS-BAR
-
- ;; IN-PROGRESS
-(defmethod screamer-score-2 ((pitch-dur list) (time-sig list) (tempo number) (domains t) (score-constraints t)
-                              &key (force-function '("reorder" "score-position" "(declare (ignore x))" "<" "linear-force")) (random? t) (m-approx 2))
-	
-  (setf *screamer-score-midi-approx* m-approx)							   
-  (setf s::*all-screamer-score-variables* nil)
-
- (let* ((screamer-poly (make-screamer-poly (mapcar #'(lambda (p-d) (make-screamer-voice (first p-d) nil (second p-d) time-sig tempo nil)) pitch-dur)))
- 	   (all-domains (build-all-domains screamer-poly domains m-approx random?))
- 	   )
-
-  (setf s::*all-screamer-score-variables* (flat (chords (var-domain all-domains))))
-
-     (if (screamer-score-constraint-p score-constraints)
-        (apply-screamer-score-constraint score-constraints all-domains)
-        (mapcar #'(lambda (constraint)
-                   (apply-screamer-score-constraint constraint all-domains))
-          (remove nil (flat score-constraints)))
-     )
-
-  (let ((solution (screamer-score-solution all-domains force-function)))
-
-   (setf s::*all-screamer-score-variables* nil)
-   (setf *screamer-score-midi-approx* nil)
-   (test-solution-2 solution (voices screamer-poly))
-  )))
      
 (defun screamer-score-solution (all-domains force)
  (let ((variables-domain (var-domain all-domains))

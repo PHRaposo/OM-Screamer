@@ -32,6 +32,11 @@
       (setq index (1+ index)))
     (nreverse res)))
 
+(defmethod locked-voice? ((self voice))
+ (let ((voice-chords (remove-duplicates (flat (mapcar #'lmidic (chords self))))))
+  (not (and (or (null (first voice-chords)) (= 6000 (first voice-chords)))
+            (= 1 (length voice-chords))))))
+			
 (defun new-domain-pitch-dur (voices domains mcs-approx random?) ;<== NEW 12.09.2024
  (loop for voice in voices
        for x from 0

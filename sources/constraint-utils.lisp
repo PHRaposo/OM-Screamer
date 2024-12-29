@@ -40,11 +40,6 @@
  Returns all screamer variables, removing rests."
     :icon 486
 (om-variables-in domain-list))
- ;(let ((screamer-variables (screamer::variables-in (flat domain-list))))
- ;         (if screamer-variables
-		 	; (if (list-of-listp domain-list)
-	             ;(group-list screamer-variables (mapcar #'length domain-list) 'linear)
-		     ; screamer-variables))))
 
 (defmethod! contain-rests? ((domain-list list))
     :initvals '((60 nil nil (s::an-integerv)))
