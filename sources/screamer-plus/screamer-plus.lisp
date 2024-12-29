@@ -76,6 +76,9 @@
 ;;; 
 ;;; 11/08/2024 	       Substituted all DEFMACROS for SCREAMER::DEFMACRO-COMPILE-TIME (phraposo)
 ;;;
+;;; 12/08/2024         Changed definition of CONSTRAINT-FN:
+;;; 				   Included SCREAMER::VALID-FUNCTION-NAME test. (phraposo)
+;;;
 ;;; 02/09/2024         Removed macro CAREFULLY (not working!)
 ;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -117,7 +120,7 @@
     :slot-valuev :class-ofv :class-namev  :slot-exists-pv :reconcile
     :funcallinv :mapcarv :maplistv :everyv :somev :noteveryv :notanyv
     :at-leastv :at-mostv :exactlyv :constraint-fn :formatv :*enumeration-limit*
-    :carefully :slot-names-of :objectp :eqv :funcallgv :setq-domains :make-setv :sort-rem-dupv)    
+    :carefully :slot-names-of :objectp :eqv :funcallgv :setq-domains)    
   (:export ;; screamer
     :either :local :global :for-effects :local-output :multiple-value-call-nondeterministic
     :nondeterministic-function? :funcall-nondeterministic :apply-nondeterministic :unwind-trail
@@ -1161,15 +1164,16 @@
     ;(format t "Function name is ~a~%" fn-name)
     (setq cfn-name (read-from-string (format nil "~av" fn-name) nil nil))
     ;(format t "Constraint function name is ~a~%" cfn-name)
-    (if (fboundp cfn-name)
-	(symbol-function cfn-name)
-      (function
-       (lambda(&rest args)
-	 (value-of (applyv (value-of f) args))
-	 )
-       )
-      )
-    )
+    (if (screamer::valid-function-name? fn-name)
+		(if (fboundp cfn-name)
+	         (symbol-function cfn-name)
+	        (function (lambda (&rest args)
+	                   (value-of (applyv (value-of f) args)))
+		))
+        (function (lambda (&rest args)
+                   (value-of (applyv (value-of f) args))))
+     )
+   )
   )
 
 
@@ -2247,7 +2251,31 @@
 ;;; This function returns a boolean variable constrained to indicate whether
 ;;; the lists x and y have the same members
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+ ;; SET-EQUALV FIX (PHRAPOSO) - 11/12/2024
 
+(defun set-equalv (x y)
+  (let ((z (a-booleanv)))
+    (flet ((strcmp (x y)
+             (numberp (|STRING>| (format nil "~s" x) (format nil "~s" y)))))
+
+      ;; Noticer for x and y
+      (let ((noticer
+              #'(lambda()
+                  (when (and (bound? x) (bound? y))
+                    (let ((mx (members-ofv (apply-substitution x)))
+                          (my (members-ofv (apply-substitution y))))
+                      (when (and (bound? mx) (bound? my))
+                        (assert!
+                          (equalv z
+                            (equalv
+                              (sort (value-of mx) #'strcmp)
+                              (sort (value-of my) #'strcmp))))))))))
+        (attach-noticer! noticer x)
+        (attach-noticer! noticer y))
+      )
+  z))
+  
+#|
 (defun set-equalv (x y)
   (let ((z (a-booleanv))
          noticer)
@@ -2276,7 +2304,7 @@
     (attach-noticer! noticer y)
     )
   z))
-
+|#
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Function: bag-equalv
