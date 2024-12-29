@@ -14,7 +14,8 @@
                               (make-pathname :directory (pathname-directory *load-pathname*)
                                              :name "normal-order-data.lisp")))
 
-(defvar *normal-order-hash* (make-hash-table :test #'equalv))
+(screamer::defvar-compile-time *normal-order-hash* (make-hash-table :test #'equalv)
+ "Stores all normal order values for all set classes.")
 
 (defun fill-normal-order-hash () 
   (let (normal-order-list) 
