@@ -27,13 +27,13 @@
                              &key (p-variables nil)
                                   (constraints nil)
                                   (p-constraints nil)
-						          (constraints-all nil)
+                                  (constraints-all nil)
                                   (screamer-valuation "one-value")
-								  (n-ith-value nil)
+                                  (n-ith-value nil)
                                   (force-function "static-ordering linear-force")
-								  (map-solutions nil)
+                                  (map-solutions nil)
                                   (output nil) (count-failures? nil)
-								  (objective-form nil) (form2 nil))
+                                  (objective-form nil) (form2 nil))
 
     :initvals '(nil nil nil nil nil "one-value" nil "static-ordering linear-force" nil nil nil nil nil)
 
@@ -65,11 +65,11 @@
                    p-variables
                    constraints
                    p-constraints
-			       constraints-all
+                   constraints-all
                    screamer-valuation
-				   n-ith-value
+                   n-ith-value
                    force-function
-			       map-solutions
+                   map-solutions
                    output
                    count-failures?
                    objective-form
@@ -176,53 +176,53 @@
 	    (0 ;==>  STATIC-ORDERING
 	     (case val
 	      (0 `(s::one-value
-			  (apply-cont ',compiled-map-sol
+			  (map-solutions ',compiled-map-sol
 	       (s::solution ,(if p-vars `(list ,vars-name ,p-vars-name)
                                                   vars-name)
 	      (s::static-ordering ,(case force-function
 	                                     (0 `#'s::linear-force)
 	                                     (1 `#'s::divide-and-conquer-force)
-                                         (2 `#'s::random-force)))))))
+                                             (2 `#'s::random-force)))))))
 	      (1 `(s::all-values
-			   (apply-cont ',compiled-map-sol
+			   (map-solutions ',compiled-map-sol
 	              (s::solution  ,(if p-vars `(list ,vars-name ,p-vars-name)
                                                   vars-name)
 	               (s::static-ordering ,(case force-function
 	                                             (0 `#'s::linear-force)
 	                                             (1 `#'s::divide-and-conquer-force)
-                                                 (2 `#'s::random-force)))))))
+                                                     (2 `#'s::random-force)))))))
 	      (2  `(s::print-values
-			    (apply-cont ',compiled-map-sol
+			    (map-solutions ',compiled-map-sol
 	               (s::solution ,(if p-vars `(list ,vars-name ,p-vars-name)
                                                   vars-name)
 	                (s::static-ordering ,(case force-function
 	                                              (0 `#'s::linear-force)
 	                                              (1 `#'s::divide-and-conquer-force)
-                                                  (2 `#'s::random-force)))))))
+                                                      (2 `#'s::random-force)))))))
 	      (3  `(s::n-values ,n-ith-value
-		  	 (apply-cont ',compiled-map-sol
+		  	 (map-solutions ',compiled-map-sol
 	               (s::solution  ,(if p-vars `(list ,vars-name ,p-vars-name)
                                                   vars-name)
 	                (s::static-ordering ,(case force-function
 	                                              (0 `#'s::linear-force)
 	                                              (1 `#'s::divide-and-conquer-force)
-                                                  (2 `#'s::random-force)))))))
+                                                      (2 `#'s::random-force)))))))
 	      (4  `(s::ith-value ,n-ith-value
-		  	 (apply-cont ',compiled-map-sol
+		  	 (map-solutions ',compiled-map-sol
 	               (s::solution ,(if p-vars `(list ,vars-name ,p-vars-name)
                                                   vars-name)
 	                (s::static-ordering ,(case force-function
 	                                              (0 `#'s::linear-force)
 	                                              (1 `#'s::divide-and-conquer-force)
-                                                  (2 `#'s::random-force)))))))
+                                                      (2 `#'s::random-force)))))))
 	      (5  `(s::best-value
-			   (apply-cont ',compiled-map-sol
+			   (map-solutions ',compiled-map-sol
 	            (s::solution ,(if p-vars `(list ,vars-name ,p-vars-name)
                                                   vars-name)
 	             (s::static-ordering ,(case force-function
 	                                   (0 `#'s::linear-force)
 	                                   (1 `#'s::divide-and-conquer-force)
-                                       (2 `#'s::random-force)))))
+                                           (2 `#'s::random-force)))))
 			   ,(cond ((not (null form2))
 	  			      `(apply ',(first compiled-forms) ,(if p-vars `(list ,vars-name ,p-vars-name)
                                                   `(list ,vars-name)))
@@ -234,7 +234,7 @@
 	  (1 ;==> REORDER
 	     (case val
 	      (0  `(s::one-value
-			   (apply-cont ',compiled-map-sol
+			   (map-solutions ',compiled-map-sol
 	       (s::solution ,(if p-vars `(list ,vars-name ,p-vars-name)
                                                   vars-name)
 	      (s::reorder ,(case cost-function
@@ -252,9 +252,9 @@
 	                       ,(case reorder-force
 	                            (0 `#'s::linear-force)
 	                            (1 `#'s::divide-and-conquer-force)
-                                (2 `#'s::random-force)))))))
+                                    (2 `#'s::random-force)))))))
 	      (1 `(s::all-values
-			   (apply-cont ',compiled-map-sol
+			   (map-solutions ',compiled-map-sol
 	            (s::solution  ,(if p-vars `(list ,vars-name ,p-vars-name)
                                                   vars-name)
 	      (s::reorder ,(case cost-function
@@ -272,9 +272,9 @@
 	                       ,(case reorder-force
 	                            (0 `#'s::linear-force)
 	                            (1 `#'s::divide-and-conquer-force)
-                                (2 `#'s::random-force)))))))
+                                    (2 `#'s::random-force)))))))
 	      (2  `(s::print-values
-			   (apply-cont ',compiled-map-sol
+			   (map-solutions ',compiled-map-sol
 	             (s::solution  ,(if p-vars `(list ,vars-name ,p-vars-name)
                                                   vars-name)
 	             (s::reorder ,(case cost-function
@@ -292,10 +292,10 @@
 	                       ,(case reorder-force
 	                            (0 `#'s::linear-force)
 	                            (1 `#'s::divide-and-conquer-force)
-                                (2 `#'s::random-force)))))))
+                                    (2 `#'s::random-force)))))))
 
 	      (3  `(s::n-values ,n-ith-value
-		   (apply-cont ',compiled-map-sol
+		   (map-solutions ',compiled-map-sol
 	               (s::solution  ,(if p-vars `(list ,vars-name ,p-vars-name)
                                                   vars-name)
 	             (s::reorder ,(case cost-function
@@ -313,10 +313,10 @@
 	                       ,(case reorder-force
 	                            (0 `#'s::linear-force)
 	                            (1 `#'s::divide-and-conquer-force)
-                                (2 `#'s::random-force)))))))
+                                    (2 `#'s::random-force)))))))
 
 	      (4  `(s::ith-value ,n-ith-value
-		   (apply-cont ',compiled-map-sol
+		   (map-solutions ',compiled-map-sol
 	               (s::solution  ,(if p-vars `(list ,vars-name ,p-vars-name)
                                                   vars-name)
 	             (s::reorder ,(case cost-function
@@ -334,9 +334,9 @@
 	                       ,(case reorder-force
 	                            (0 `#'s::linear-force)
 	                            (1 `#'s::divide-and-conquer-force)
-                                (2 `#'s::random-force)))))))
+                                    (2 `#'s::random-force)))))))
 	      (5  `(s::best-value
-			   (apply-cont ',compiled-map-sol
+			   (map-solutions ',compiled-map-sol
 	            (s::solution ,(if p-vars `(list ,vars-name ,p-vars-name)
                                                   vars-name)
 	             (s::reorder ,(case cost-function
@@ -354,7 +354,7 @@
 	                       ,(case reorder-force
 	                            (0 `#'s::linear-force)
 	                            (1 `#'s::divide-and-conquer-force)
-                                (2 `#'s::random-force)))))
+                                    (2 `#'s::random-force)))))
 			   ,(cond ((not (null form2))
 	  			      `(apply ',(first compiled-forms) ,(if p-vars `(list ,vars-name ,p-vars-name)
                                                   `(list ,vars-name)) )
@@ -421,6 +421,31 @@
 		       `(list ,.x))
 		     (t `(list ,.(mapcar #'reclist x))))))
   (reclist vars)))
+
+(defun map-solutions (funs args)
+ (cond ((null funs) args)
+       ((atom funs)
+        (let ((results nil))
+        (setf results (apply funs (list args)))
+        (if (screamer::booleanp results)
+             args
+             results))) 
+       ((listp funs)
+        (let ((results nil))
+	 (loop for fun in funs
+               if (null results)
+               do (if fun 
+                      (let ((new-results (apply fun (list args))))
+                       (if (screamer::booleanp new-results)
+                            (setf results args)
+                            (setf results new-results)))
+                      (setf results args))
+               else
+               do (when fun 
+                   (let ((new-results (apply fun (list results))))
+                    (when (not (screamer::booleanp new-results))
+                     (setf results new-results))))
+               finally (return results))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; COMPILE-CONSTRAINT
