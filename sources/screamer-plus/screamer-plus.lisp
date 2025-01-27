@@ -77,7 +77,7 @@
 ;;; 11/08/2024 	       Substituted all DEFMACROS for SCREAMER::DEFMACRO-COMPILE-TIME (phraposo)
 ;;;
 ;;; 12/08/2024         Changed definition of CONSTRAINT-FN:
-;;; 				   Included SCREAMER::VALID-FUNCTION-NAME test. (phraposo)
+;;; 		       Included SCREAMER::VALID-FUNCTION-NAME test. (phraposo)
 ;;;
 ;;; 02/09/2024         Removed macro CAREFULLY (not working!)
 ;;;
@@ -1164,14 +1164,10 @@
     ;(format t "Function name is ~a~%" fn-name)
     (setq cfn-name (read-from-string (format nil "~av" fn-name) nil nil))
     ;(format t "Constraint function name is ~a~%" cfn-name)
-    (if (screamer::valid-function-name? fn-name)
-		(if (fboundp cfn-name)
-	         (symbol-function cfn-name)
-	        (function (lambda (&rest args)
-	                   (value-of (applyv (value-of f) args)))
-		))
+    (if (and (screamer::valid-function-name? fn-name) (fboundp cfn-name))
+	(symbol-function cfn-name)
         (function (lambda (&rest args)
-                   (value-of (applyv (value-of f) args))))
+                   (value-of (applyv (value-of f) args))))		   
      )
    )
   )
