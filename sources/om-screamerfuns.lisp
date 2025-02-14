@@ -20,7 +20,7 @@
 
 (defun all-membersv-alt (e sequence)
  (let ((sequence-flat (om::flat sequence)))
-  (cond ((listp e) (reduce-chunks #'andv (mapcar #'(lambda (x) (memberv x sequence-flat)) (om::flat e))))
+  (cond ((listp e) (apply #'andv (mapcar #'(lambda (x) (memberv x sequence-flat)) (om::flat e))))
          (t (memberv e sequence-flat)))))
 
 (defun funcallv-rec (fn tree)
@@ -60,33 +60,8 @@ x))
  (assert! (>v d -1))
  y))
 
-(cl:defun nsucc (input n &key step list-padding pad-character)
-(cond
-((null step) (nsucc input n :step (1- n) :list-padding list-padding :pad-character pad-character))
-(t
- (let* ((list (if list-padding
-                  (append input
-                          (make-sequence 'list (* -1 (- (length input)
-                                                        (* n (ceiling (/ (length input) n))))) :initial-element pad-character))
-                input))
-        (length (length list)))
-   (loop for i from 0
-         for j = (* i step)
-         for k = (+ j n)
-         while (< j (- (length list) step))
-         collect (subseq list j (if (<= k length) k length)))))))
-
-(cl:defun reduce-chunks (fn input &key default)
-(cond
-((null input) default)
-((not (listp input)) (reduce-chunks fn (list input) :default default))
-((>= (length input) call-arguments-limit)
- (reduce fn (mapcar #'(lambda (chunk) (apply fn chunk))
-                    (nsucc input call-arguments-limit :step call-arguments-limit))))
-(t (apply fn input))))
-
 (defun sumv (list)
-(reduce-chunks #'+v list :default 0))
+(apply #'+v list))
 
 (defun lists=v (list1 list2) ;&optional symbol-mode)
 (apply #'andv
@@ -111,7 +86,7 @@ x))
              ;             v))
              ;       list))
       (perms (all-values (a-permutation-of list))))
-  (assert! (reduce-chunks
+  (assert! (apply
             #'orv
             (mapcar #'(lambda (p) (lists=v p vars))
                     perms)))
