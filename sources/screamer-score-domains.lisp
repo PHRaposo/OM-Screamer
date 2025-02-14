@@ -25,12 +25,12 @@
 
 ; AUXILIARY FUNCTIONS
 
-(defun positions (input-list input-elem) ;FROM OM-TRISTAN
-  (let ((index 0) res)
-    (dolist (n input-list)
-      (if (equal input-elem n)  (push index res)) ;modified to equal
-      (setq index (1+ index)))
-    (nreverse res)))
+;(defun positions (input-list input-elem) ;FROM OM-TRISTAN (NOT NEEDED ANYMORE)
+;  (let ((index 0) res)
+;    (dolist (n input-list)
+;      (if (equal input-elem n)  (push index res)) ;modified to equal
+;      (setq index (1+ index)))
+;    (nreverse res)))
 
 (defmethod locked-voice? ((self voice))
  (let ((voice-chords (remove-duplicates (flat (mapcar #'lmidic (chords self))))))
