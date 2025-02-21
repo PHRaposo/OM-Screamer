@@ -149,21 +149,22 @@
   (make-cs-measure constraints measure-number))
 
 
- (defmethod! constraint-measures ((constraints t) (measure-number list) (type string) (voices list) (domain string) (rests string))
-  :initvals '(nil (0 1) "one-voice" (0 1) "pitch" "exclude")
-  :indoc '("screamer-score-constraints" "measure number or list of numbers" "string" "list" "string" "string")
+ (defmethod! constraint-measures ((constraints t) (measure-number list) (type string) (voices list) (domain string)) ;(rests string))
+  :initvals '(nil (0 1) "one-voice" (0 1) "pitch") ;"include")
+  :indoc '("screamer-score-constraints" "measure number or list of numbers" "string" "list" "string") ;"string")
   :menuins '((2 (("one-voice" "one-voice") ("harmony" "harmony")))
              (4 (("pitch" "pitch")
                  ("pitch-dur" "pitch-dur")
                  ("pitch-onset" "pitch-onset")
                  ("pitch-dur-onset" "pitch-dur-onset")))
-			 (5 (("include" "include") ("exclude" "exclude"))))  
+			 ;(5 (("include" "include") ("exclude" "exclude"))) ;; Needs work: exclude rests
+			 )
   :doc "Formats the constraint to be applyied to selected measures at the same time. 
   The number of inputs must be the same as the number of voices and measures.
   Ex.: For measures '(0 1 2) and voices (0 1 2), the constraint must have three inputs and will be applied to measure 0 and voice 0, measure 1 and voice 1,
-measure 2 and voice 2. Each input will return all events in those measures."
+measure 2 and voice 2. Each input will return all events in those measures, including rests."
   :icon 486
-  (make-cs-measures constraints measure-number type voices domain rests))
+  (make-cs-measures constraints measure-number type voices domain "include")) ; rests))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; AUXILIARY FUNCTIONS
