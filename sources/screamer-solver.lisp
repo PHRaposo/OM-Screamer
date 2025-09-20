@@ -57,8 +57,8 @@
  <OBJECTIVE-FORM>and<FORM2>: lambda patches with one input (variables only) or two inputs (variables and propagation variables) -> best-value forms."
 
     :menuins '((5 (("one-value" "one-value") ("all-values" "all-values")
-                           ("listener" "listener") ("n-values" "n-values") ("ith-value" "ith-value") ("best-value" "best-value") ))
-                     (10 (("off" nil) ("on" t))) )
+                   ("listener" "listener") ("n-values" "n-values") ("ith-value" "ith-value") ("best-value" "best-value") ))
+               (10 (("off" nil) ("on" t))) )
     :icon 486
 
  (screamer-solution variables
@@ -182,7 +182,7 @@
 	      (s::static-ordering ,(case force-function
 	                                     (0 `#'s::linear-force)
 	                                     (1 `#'s::divide-and-conquer-force)
-                                             (2 `#'s::random-force)))))))
+                                          (2 `#'s::random-force)))))))
 	      (1 `(s::all-values
 			   (map-solutions ',compiled-map-sol
 	              (s::solution  ,(if p-vars `(list ,vars-name ,p-vars-name)
@@ -190,7 +190,7 @@
 	               (s::static-ordering ,(case force-function
 	                                             (0 `#'s::linear-force)
 	                                             (1 `#'s::divide-and-conquer-force)
-                                                     (2 `#'s::random-force)))))))
+                                                  (2 `#'s::random-force)))))))
 	      (2  `(s::print-values
 			    (map-solutions ',compiled-map-sol
 	               (s::solution ,(if p-vars `(list ,vars-name ,p-vars-name)
@@ -198,7 +198,7 @@
 	                (s::static-ordering ,(case force-function
 	                                              (0 `#'s::linear-force)
 	                                              (1 `#'s::divide-and-conquer-force)
-                                                      (2 `#'s::random-force)))))))
+                                                   (2 `#'s::random-force)))))))
 	      (3  `(s::n-values ,n-ith-value
 		  	 (map-solutions ',compiled-map-sol
 	               (s::solution  ,(if p-vars `(list ,vars-name ,p-vars-name)
@@ -206,7 +206,7 @@
 	                (s::static-ordering ,(case force-function
 	                                              (0 `#'s::linear-force)
 	                                              (1 `#'s::divide-and-conquer-force)
-                                                      (2 `#'s::random-force)))))))
+                                                   (2 `#'s::random-force)))))))
 	      (4  `(s::ith-value ,n-ith-value
 		  	 (map-solutions ',compiled-map-sol
 	               (s::solution ,(if p-vars `(list ,vars-name ,p-vars-name)
@@ -214,7 +214,7 @@
 	                (s::static-ordering ,(case force-function
 	                                              (0 `#'s::linear-force)
 	                                              (1 `#'s::divide-and-conquer-force)
-                                                      (2 `#'s::random-force)))))))
+                                                   (2 `#'s::random-force)))))))
 	      (5  `(s::best-value
 			   (map-solutions ',compiled-map-sol
 	            (s::solution ,(if p-vars `(list ,vars-name ,p-vars-name)
@@ -222,7 +222,7 @@
 	             (s::static-ordering ,(case force-function
 	                                   (0 `#'s::linear-force)
 	                                   (1 `#'s::divide-and-conquer-force)
-                                           (2 `#'s::random-force)))))
+                                        (2 `#'s::random-force)))))
 			   ,(cond ((not (null form2))
 	  			      `(apply ',(first compiled-forms) ,(if p-vars `(list ,vars-name ,p-vars-name)
                                                   `(list ,vars-name)))
@@ -252,7 +252,7 @@
 	                       ,(case reorder-force
 	                            (0 `#'s::linear-force)
 	                            (1 `#'s::divide-and-conquer-force)
-                                    (2 `#'s::random-force)))))))
+                                 (2 `#'s::random-force)))))))
 	      (1 `(s::all-values
 			   (map-solutions ',compiled-map-sol
 	            (s::solution  ,(if p-vars `(list ,vars-name ,p-vars-name)
@@ -272,7 +272,7 @@
 	                       ,(case reorder-force
 	                            (0 `#'s::linear-force)
 	                            (1 `#'s::divide-and-conquer-force)
-                                    (2 `#'s::random-force)))))))
+                                 (2 `#'s::random-force)))))))
 	      (2  `(s::print-values
 			   (map-solutions ',compiled-map-sol
 	             (s::solution  ,(if p-vars `(list ,vars-name ,p-vars-name)
@@ -292,7 +292,7 @@
 	                       ,(case reorder-force
 	                            (0 `#'s::linear-force)
 	                            (1 `#'s::divide-and-conquer-force)
-                                    (2 `#'s::random-force)))))))
+                                 (2 `#'s::random-force)))))))
 
 	      (3  `(s::n-values ,n-ith-value
 		   (map-solutions ',compiled-map-sol
@@ -334,7 +334,7 @@
 	                       ,(case reorder-force
 	                            (0 `#'s::linear-force)
 	                            (1 `#'s::divide-and-conquer-force)
-                                    (2 `#'s::random-force)))))))
+                                 (2 `#'s::random-force)))))))
 	      (5  `(s::best-value
 			   (map-solutions ',compiled-map-sol
 	            (s::solution ,(if p-vars `(list ,vars-name ,p-vars-name)
@@ -354,7 +354,7 @@
 	                       ,(case reorder-force
 	                            (0 `#'s::linear-force)
 	                            (1 `#'s::divide-and-conquer-force)
-                                    (2 `#'s::random-force)))))
+                                 (2 `#'s::random-force)))))
 			   ,(cond ((not (null form2))
 	  			      `(apply ',(first compiled-forms) ,(if p-vars `(list ,vars-name ,p-vars-name)
                                                   `(list ,vars-name)) )
@@ -369,8 +369,8 @@
 	   (let* ((,vars-name ,(reclist-vars vars))
 
 	            (,p-vars-name ,(if (functionp compiled-p-vars)
-	                                       `(apply ',compiled-p-vars (list ,vars-name))
-	                                       `(mapcar #'(lambda (cs) (apply cs (list ,vars-name))) ',compiled-p-vars))))
+                                   `(apply ',compiled-p-vars (list ,vars-name))
+                                   `(mapcar #'(lambda (cs) (apply cs (list ,vars-name))) ',compiled-p-vars))))
 	         ,constraints
 
 	         ,p-constraints
@@ -382,8 +382,8 @@
 	   `(let* ((,vars-name ,(reclist-vars vars));===> COUNT FAILURES OFF
 
 	            (,p-vars-name ,(if (functionp compiled-p-vars)
-	                                       `(apply ',compiled-p-vars (list ,vars-name))
-	                                       `(mapcar #'(lambda (cs) (apply cs (list ,vars-name))) ',compiled-p-vars))))
+                                   `(apply ',compiled-p-vars (list ,vars-name))
+                                   `(mapcar #'(lambda (cs) (apply cs (list ,vars-name))) ',compiled-p-vars))))
 	         ,constraints
 
 	         ,p-constraints
@@ -396,16 +396,14 @@
 ;(print scode) ;<== FOR DEBUG
 
   (let ((scs-function (compile (eval `(defun ,(intern (string (gensym "scs-fun-")) :om) ()
-	  						(declare (optimize (speed 3) (safety 0) (debug 0)))
-						        (declare (type ,(type-of vars) ,vars-name))
-							(declare (type ,(type-of p-vars) ,p-vars-name))
+	  						    (declare (optimize (speed 3) (safety 0) (debug 0)))
 		                                ,scode)))) ;==> COMPILED SOLVER FUNCTION
-        (scs-time (list (get-internal-run-time) (get-internal-real-time))))
+        (scs-time (om-timing-start)))
 
  (print "Timing evaluation of screamer-solver...")
 
   (let ((solution (select-solution out (funcall scs-function) (if (member val '(1 3 5)) val nil) p-vars))) ;==> GET THE SOLUTION
-   (print-scs-time scs-time)
+   (om-timing-stop scs-time)
 
    
    solution
@@ -417,11 +415,11 @@
 (defun reclist-vars (vars)
  (labels ((reclist (x)
            (cond ((atom x) x)
-                     ((and (listp x) (every #'atom x))
+                 ((and (listp x) (every #'atom x))
 		       `(list ,.x))
-		     (t `(list ,.(mapcar #'reclist x))))))
+		       (t `(list ,.(mapcar #'reclist x))))))
   (reclist vars)))
-
+  
 (defun map-solutions (funs args)
  (cond ((null funs) args)
        ((atom funs)
@@ -448,124 +446,37 @@
                finally (return results))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;; COMPILE-CONSTRAINT
-
-;;; RETRIEVE THE NAME OF THE PATCH IN LAMBDA MODE
-
-(defun get-current-patch ()
-(handler-bind ((error #'(lambda (c)
-                          (when *msg-error-label-on*
-                            (om-message-dialog (string+ "Error while evaluating the function " "get-current-patch" " : "
-                                                     (om-report-condition c))
-                                               :size (om-make-point 300 200))
-                            (om-abort)))))
-(let* ((interfaces (capi::collect-interfaces 'capi:interface :screen :any :sort-by :visible))
-       (persist (remove nil (mapcar #'(lambda (x)
-	                         (if (equal (class-name (class-of x)) 'editorwindow)
-							     (obj x)))
-				              interfaces))))
-(car
- (loop for el in persist
-	   when (patch-p el)
-	   collect el)))))
-
-(defun get-patch-boxes (patch)
-(handler-bind ((error #'(lambda (c)
-                          (when *msg-error-label-on*
-                            (om-message-dialog (string+ "Error while evaluating the function " "get-patch-boxes" " : "
-                                                     (om-report-condition c))
-                                               :size (om-make-point 300 200))
-                            (om-abort)))))
- (let* ((patchboxes (find-class-boxes (boxes patch) 'omboxabspatch))
-	     (patches (if patchboxes (mapcar #'reference patchboxes) nil)))
-		 (if patches
-			 (list patchboxes (mapcar #'get-patch-boxes patches))
-		      nil))))
-
-(defun find-patch-from-lambda-fn (fn-symb patch-boxes)
- (car
-  (loop for patchbox in patch-boxes
-    when (equal fn-symb (symbol-name (code (reference patchbox))))
-    collect patchbox)))
-
-(defun get-patch-function-name (lambda-patch)
- (symbol-name (second (cadr (third (function-lambda-expression lambda-patch))))))
- 
-(defun find-lambda-patchbox (lambda-fn)
- (handler-bind ((error #'(lambda (c)
-                       (when *msg-error-label-on*
-                         (om-message-dialog (string+ "Error while evaluating the function " "find-lambda-patchbox" " : "
-                                                  (om-report-condition c))
-                                            :size (om-make-point 300 200))
-                         (om-abort)))))
- (let ((expr (function-lambda-expression lambda-fn)))
-  (if (stringp (third expr))
-      (third expr) 						 
- (find-patch-from-lambda-fn
-  (get-patch-function-name lambda-fn)
-   (remove nil (flat (get-patch-boxes (get-current-patch))))))))) 
-
-;;; => ADAPTED FROM OMCS AND CLUSTER-ENGINE
-								  
-(defun make-anon-screamerfun (fn &optional name) ;;; OMCS
- (eval `(defun ,(gensym (if (null name) "anon-fun-" (concatenate 'string name "-"))) ,.(rest fn))))
-
-(defun compile-screamer-constraint (fun) ;;;CE
-(handler-bind ((error #'(lambda (c)
-                       (when *msg-error-label-on*
-                         (om-message-dialog (string+ "Error while evaluating the function " "compile-screamer-constraint" " : "
-                                                  (om-report-condition c))
-                                            :size (om-make-point 300 200))
-                         (om-abort)))))
- (let* ((expr (function-lambda-expression fun))
-        (patchbox (find-lambda-patchbox fun))
-        (patch-name (if (stringp patchbox);<== lambda function documentation
-		                 patchbox 
-						 (if (null patchbox);<== function in lambda mode
-						     (symbol-name (second (cadr (third expr))))
-							 (name (reference patchbox))))));<== patch in lambda mode
-    (if (compiled-function-p fun) ;expr)
-        expr
-    (compile (eval `(defun ,(gensym (if (null patch-name) "anon-fun-" (concatenate 'string patch-name "-"))) ,(function-lambda-list fun)
-		             (apply ,fun (list ,.(function-lambda-list fun))))))
-	;(compile (make-anon-screamerfun expr patch-name))
-	))))
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; OUTPUT OPTIONS
-
-(defun list-of-listp (thing) (and (listp thing) (every #'listp thing)))
-(deftype list-of-lists () '(satisfies list-of-listp))
 
 (defun select-solution (out solution &optional valuation p-variables?)
 (if valuation
     (cond ((or (= valuation 1) (= valuation 3)) ;<== all-values or n-values
                (cond ((null out) (if p-variables? (first (mat-trans solution)) solution))
-			   	      ((and (not (null out)) (listp out))
-					  (progn (om-message-dialog "List of positions as <OUTPUT> is not supported in ALL-VALUES or N-VALUES.")
-					         (om-abort)))
+                     ((and (not (null out)) (listp out))
+                      (progn (om-message-dialog "List of positions as <OUTPUT> is not supported in ALL-VALUES or N-VALUES.")
+                             (om-abort)))
               (t solution)))
 
 	      ((equal valuation 5) ;<== best-value
-                (x-append (select-solution out (first solution) nil p-variables?)
-                                 (second solution)))
-              (t (error "This shouldn't happen!")))
+            (x-append (select-solution out (first solution) nil p-variables?)
+                      (second solution)))
+           (t (error "This shouldn't happen!")))
 
        (cond ((null out) (if p-variables? (first solution) solution))
                   ((and (symbolp out) (equal out :all)) solution)
                   ((and (not (null out))  (listp out) p-variables?)
                    (let ((variables
                            (cond ((null (first out)) nil)
-                                       ((atom (first solution)) (first solution))
-                                        ((equal (first out) :all) (first solution))
-                                        ((listp (first out)) (posn-match (first solution) (first out)))
-                                        (t nil)))
+                                 ((atom (first solution)) (first solution))
+                                 ((equal (first out) :all) (first solution))
+                                 ((listp (first out)) (posn-match (first solution) (first out)))
+                                 (t nil)))
                          (p-variables
                           (cond ((null (second out)) nil)
-                                    ((atom (second solution)) (second solution))
-                                    ((equal (second out) :all) (second solution))
-                                    ((listp (second out)) (posn-match (second solution) (second out)))
-                                    (t nil))))
+                                ((atom (second solution)) (second solution))
+                                ((equal (second out) :all) (second solution))
+                                ((listp (second out)) (posn-match (second solution) (second out)))
+                                (t nil))))
                      (if variables
                          (if p-variables (list variables p-variables) variables)
                        p-variables)))
@@ -573,36 +484,6 @@
                    (posn-match solution out))
                   (t (progn (om-message-dialog "ERROR: the <OUTPUT> should be a symbol :all or nil, or a list with two symbols [ex. (:all nil)] or a list containing two lists of positions [ex. ((0 2) (1 3))]")
                            (om-abort))))))
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;;TIME
-
-(defun seconds->time (s)
- (let* ((ms (* s 1000))
-         (ms (mod ms 3600000))
-         (minutes (floor ms 60000))
-         (ms (mod ms 60000))
-         (seconds (floor ms 1000))
-         (ms (round (mod ms 1000))))
-    (format nil "~2,'0d:~2,'0d.~3,'0d"
-            minutes seconds ms)))
-
-(defun print-scs-time (scs-time)
- (print (format nil
-"
--------------------------------------
-   User time   =    ~A
-   Elapsed time   =    ~A
-------------------------------------- "
-  (seconds->time (float (/ (- (get-internal-run-time) (first scs-time)) internal-time-units-per-second)))
-  (seconds->time (float (/ (- (get-internal-real-time) (second scs-time)) internal-time-units-per-second))))))
-
-;Allocation   =   ~A
-;System time   =   ~A
-;Page faults   ~A
-;Calls to %EVAL   ~A
-;GC time   =   ~A
-;"
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; FORCE-FUNCTION
@@ -617,31 +498,36 @@
   :indoc '("ordering-force-functions" "domain-size, range-size or score-position" "terminate-function" "> or <" "linear-force, divide-and-conquer-force or random-force")
   :doc "Screamer ordering and force-functions"
   :menuins '((0 (("static-ordering linear-force" "static-ordering linear-force")
-                        ("static-ordering divide-and-conquer-force" "static-ordering divide-and-conquer-force")
-                        ("static-ordering random-force" "static-ordering random-force")
-                        ("reorder" "reorder" )))
+                 ("static-ordering divide-and-conquer-force" "static-ordering divide-and-conquer-force")
+                 ("static-ordering random-force" "static-ordering random-force")
+                 ("reorder" "reorder" )))
 
-                   (1 (("domain-size" "domain-size")
-                        ("range-size" "range-size")
-                        ("score-position" "score-position")
-                        ))
+            (1 (("domain-size" "domain-size")
+                ("range-size" "range-size")
+                ("score-position" "score-position")
+               ))
 
-                   (2 (("(declare (ignore x))"  "(declare (ignore x))" )
-                       ("(< x 1e-6)"  "(< x 1e-6)" ) ))
+            (2 (("(declare (ignore x))"  "(declare (ignore x))" )
+                ("(< x 1e-6)"  "(< x 1e-6)" ) ))
 
-                   (3 ((">" ">")
-                       ("<" "<")))
+            (3 ((">" ">")
+                ("<" "<"))
+            )
 
-                   (4 (("linear-force" "linear-force")
-                       ("divide-and-conquer-force" "divide-and-conquer-force")
-                       ("random-force" "random-force")))
-                   )
+            (4 (("linear-force" "linear-force")
+                ("divide-and-conquer-force" "divide-and-conquer-force")
+                ("random-force" "random-force")))
+             )
   :icon 486
 (if (or (equal force-function "static-ordering linear-force")
         (equal force-function "static-ordering divide-and-conquer-force")
         (equal force-function "static-ordering random-force"))
-      force-function
-(list force-function cost-function terminate? order reorder-force-function)))
+    force-function
+    (list force-function
+          cost-function
+          terminate?
+          order
+          reorder-force-function)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; SCREAMER-DOCUMENTATION
@@ -680,17 +566,17 @@
   :indoc '("screamer-variable" "list")
   :doc "Screamer variable"
   :menuins '((0 (("an-integer-betweenv" "an-integer-betweenv")
-                         ("a-member-ofv" "a-member-ofv")
-                         ("a-random-member-ofv" "a-random-member-ofv")
-                         ("an-integerv" "an-integerv")
-                         ("an-integer-abovev" "an-integer-abovev")
-                         ("an-integer-belowv" "an-integer-belowv")
-                         ("a-realv" "a-realv")
-                         ("a-real-abovev" "a-real-abovev")
-                         ("a-real-belowv" "a-real-belowv")
-                         ("a-real-betweenv" "a-real-betweenv")
-                         ("a-numberv" "a-numberv")
-                         ("a-booleanv" "a-booleanv")
+                 ("a-member-ofv" "a-member-ofv")
+                 ("a-random-member-ofv" "a-random-member-ofv")
+                 ("an-integerv" "an-integerv")
+                 ("an-integer-abovev" "an-integer-abovev")
+                 ("an-integer-belowv" "an-integer-belowv")
+                 ("a-realv" "a-realv")
+                 ("a-real-abovev" "a-real-abovev")
+                 ("a-real-belowv" "a-real-belowv")
+                 ("a-real-betweenv" "a-real-betweenv")
+                 ("a-numberv" "a-numberv")
+                 ("a-booleanv" "a-booleanv")
                   ))
                    )
   :icon 486
@@ -713,45 +599,45 @@
   :indoc '("integer" "screamer-variable" "list")
   :doc "List of screamer variables"
   :menuins '((1 (("an-integer-betweenv" "an-integer-betweenv")
-                         ("a-member-ofv" "a-member-ofv")
-                         ("a-random-member-ofv" "a-random-member-ofv")
-                         ("an-integerv" "an-integerv")
-                         ("an-integer-abovev" "an-integer-abovev")
-                         ("an-integer-belowv" "an-integer-belowv")
-                         ("a-realv" "a-realv")
-                         ("a-real-abovev" "a-real-abovev")
-                         ("a-real-belowv" "a-real-belowv")
-                         ("a-real-betweenv" "a-real-betweenv")
-                         ("a-numberv" "a-numberv")
-                         ("a-booleanv" "a-booleanv")
+                 ("a-member-ofv" "a-member-ofv")
+                 ("a-random-member-ofv" "a-random-member-ofv")
+                 ("an-integerv" "an-integerv")
+                 ("an-integer-abovev" "an-integer-abovev")
+                 ("an-integer-belowv" "an-integer-belowv")
+                 ("a-realv" "a-realv")
+                 ("a-real-abovev" "a-real-abovev")
+                 ("a-real-belowv" "a-real-belowv")
+                 ("a-real-betweenv" "a-real-betweenv")
+                 ("a-numberv" "a-numberv")
+                 ("a-booleanv" "a-booleanv")
                   ))
                    )
   :icon 486
-(make-lists-ofv n-vars variables args))
+(make-lists-of-variables n-vars variables args))
 
-(defmethod! list-of-lists-ofv ((n-vars list) (variables string) &optional args)
+(defmethod! list-of-lists-ofvs ((n-vars list) (variables string) &optional args)
   :initvals '((3 4 3) "an-integer-betweenv" (0 10))
   :indoc '("list" "screamer-variable" "list")
   :doc "List of lists of screamer variables"
   :menuins '((1 (("an-integer-betweenv" "an-integer-betweenv")
-                         ("a-member-ofv" "a-member-ofv")
-                         ("a-random-member-ofv" "a-random-member-ofv")
-                         ("an-integerv" "an-integerv")
-                         ("an-integer-abovev" "an-integer-abovev")
-                         ("an-integer-belowv" "an-integer-belowv")
-                         ("a-realv" "a-realv")
-                         ("a-real-abovev" "a-real-abovev")
-                         ("a-real-belowv" "a-real-belowv")
-                         ("a-real-betweenv" "a-real-betweenv")
-                         ("a-numberv" "a-numberv")
-                         ("a-booleanv" "a-booleanv")
+                 ("a-member-ofv" "a-member-ofv")
+                 ("a-random-member-ofv" "a-random-member-ofv")
+                 ("an-integerv" "an-integerv")
+                 ("an-integer-abovev" "an-integer-abovev")
+                 ("an-integer-belowv" "an-integer-belowv")
+                 ("a-realv" "a-realv")
+                 ("a-real-abovev" "a-real-abovev")
+                 ("a-real-belowv" "a-real-belowv")
+                 ("a-real-betweenv" "a-real-betweenv")
+                 ("a-numberv" "a-numberv")
+                 ("a-booleanv" "a-booleanv")
                   ))
                    )
   :icon 486
 (mapcar #'(lambda (x)
-(make-lists-ofv x variables args)) n-vars))
+(make-lists-of-variables x variables args)) n-vars))
 
-(defun make-lists-ofv (n var &optional args)
+(defun make-lists-of-variables (n var &optional args)
  (cond
    ((equal var "an-integer-betweenv") (om?::list-of-integers-betweenv n (first args) (second args)))
    ((equal var "a-member-ofv") (om?::list-of-members-ofv n args))

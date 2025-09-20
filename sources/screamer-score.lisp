@@ -51,17 +51,25 @@
   :icon 486
 
  (setf *screamer-score-midi-approx* m-approx)
- (setf s::*all-screamer-score-variables* nil)
+ (setf s::*all-screamer-score-variables* nil) 
+ (setf s::*dependencies* nil)
+ (setf *screamer-score-random?* random?)
 
 (let* ((all-domains (build-all-domains poly-object domains m-approx random?))
 	    scs-time)
 	   
 (if *print-screamer-score-time?*
-   (progn (setq scs-time (list (get-internal-run-time) (get-internal-real-time)))
+   (progn (setq scs-time (om-timing-start))
         (print "Timing evaluation of screamer-score..."))
    (setq scs-time nil))
+      
+(setf s::*all-screamer-score-variables* (remove nil (flat (chords (var-domain all-domains)))))
 
- (setf s::*all-screamer-score-variables* (flat (chords (var-domain all-domains))))
+(setf  *screamer-score-notes* (pitch (var-domain all-domains)))
+
+(setf *screamer-score-chords* (chords (var-domain all-domains)))
+
+(setf *screamer-score-chords-on-beat* (chords-on-beat (var-domain all-domains)))
 
 ; ====> FOR DEBUG <======================================= ;
 (if *screamer-score-debug*
@@ -76,16 +84,17 @@
 	 (if (s::variable? x)
      (s::attach-noticer!
       #'(lambda()
-   (when (s::bound? x)
-   (print (position x s::*all-screamer-score-variables*))
-   ;(print (s::value-of x))
+   (when (s::ground? x)
+   (format *om-stream* "VARIABLE ~A, POSITION ~A~%"
+    x (position x s::*all-screamer-score-variables*))
+   
    ))
       x)
  )) s::*all-screamer-score-variables*)
 (print "NOTICERS-ATTACHED!")))
 
 ; ====================================================== ;
-
+ 
     (if (screamer-score-constraint-p score-constraints)
        (apply-screamer-score-constraint score-constraints all-domains)
        (mapcar #'(lambda (constraint)
@@ -97,26 +106,38 @@
 (if *screamer-score-debug*
     (print "FUNCTIONS APPLIED: OK!"))
 
+ (setf s::*all-screamer-score-variables*
+  (loop for el in s::*all-screamer-score-variables*
+        collect (if (s::variable-dependencies el)
+                    (x-append (s::variable-dependencies el) el)
+                    el)))
+                  
 ; ====================================================== ;
 			  
  (let ((solution (screamer-score-solution all-domains force-function)))
 
-  (setf s::*all-screamer-score-variables* nil) 
+  
+  (setf s::*all-screamer-score-variables* nil)
+  (setf s::*dependencies* nil)
+  (setf  *screamer-score-notes* nil)
+  (setf *screamer-score-chords* nil)
+  (setf *screamer-score-chords-on-beat* nil)
   (setf *screamer-score-midi-approx* nil)
-  (if *print-screamer-score-time?* (print-scs-time scs-time))
+  (setf *screamer-score-random?* nil)
+  (if *print-screamer-score-time?* (om-timing-stop scs-time))
   (test-solution solution (voices poly-object))	  
  ))) 
      
 (defun screamer-score-solution (all-domains force)
  (let ((variables-domain (var-domain all-domains))
-	   (force-function force))	   
+       (force-function force)) 
  (if *print-screamer-score-failures?*
   (s::count-scs-failures
    (block one-value
     (screamer::for-effects
      (return-from one-value
     (first
-   (s::solution (list-all-slots variables-domain)
+   (s::solution (list (pitch variables-domain)) ;(append  (list (pitch variables-domain) (list screamer::*dependencies*))) ;(list-all-slots variables-domain)
    (cond ((equal force-function "static-ordering linear-force") (s::static-ordering #'s::linear-force))
          ((equal force-function "static-ordering divide-and-conquer-force") (s::static-ordering #'s::divide-and-conquer-force))
          ((equal force-function "static-ordering random-force") (s::static-ordering #'s::random-force))
@@ -144,7 +165,7 @@
                (screamer::for-effects
                 (return-from one-value
 	    (first
-	    (s::solution (list-all-slots variables-domain)
+	    (s::solution (list (pitch variables-domain)) ;(append (list (pitch variables-domain)) (list screamer::*dependencies*)) ;(list-all-slots variables-domain)
 	    (cond ((equal force-function "static-ordering linear-force") (s::static-ordering #'s::linear-force))
 	          ((equal force-function "static-ordering divide-and-conquer-force") (s::static-ordering #'s::divide-and-conquer-force))
 	          ((equal force-function "static-ordering random-force") (s::static-ordering #'s::random-force))
@@ -174,5 +195,3 @@
 	   )))) 
 	);<==end if
 	)) ;end-let-defun)
-	
-

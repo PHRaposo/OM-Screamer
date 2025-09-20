@@ -30,32 +30,36 @@
 ;Variable definiton with files to load
 ;--------------------------------------------------
 
-(defvar *screamer-files* nil)
-(setf  *screamer-files* (list
+(defvar *om-screamer-files* nil)
+(setf  *om-screamer-files* (list
 			 (om::om-relative-path '("sources") "fun-button")
-		         (om::om-relative-path '("sources") "om-backtrack-additions")
-                         (om::om-relative-path '("sources" "screamer-plus") "screamer-plus")
-                         (om::om-relative-path '("sources" "screamer-plus") "screamer-plus-additions")
-                         (om::om-relative-path '("sources") "package")
-                         (om::om-relative-path '("sources") "om-screamerfuns")
-                         (om::om-relative-path '("sources") "screamer-additions")
-                         (om::om-relative-path '("sources" "pc-set-theory") "SCs-data")
-                         (om::om-relative-path '("sources" "pc-set-theory") "normal-order-data")
-                         (om::om-relative-path '("sources" "pc-set-theory") "all-SCs")
-                         (om::om-relative-path '("sources" "pc-set-theory") "pc-set-theory")
-                         (om::om-relative-path '("sources" "pc-set-theory") "normal-order")
-                         (om::om-relative-path '("sources") "screamer-solver")
-                         (om::om-relative-path '("sources") "screamer-score-classes")
-                         (om::om-relative-path '("sources") "screamer-score-domains")
-                         (om::om-relative-path '("sources") "screamer-score-constraints")
-                         (om::om-relative-path '("sources") "screamer-score")
-                         (om::om-relative-path '("sources") "constraint-utils")
-                          ))
+             (om::om-relative-path '("sources") "om-backtrack-additions")
+             (om::om-relative-path '("sources" "screamer-plus") "screamer-patch")
+             (om::om-relative-path '("sources" "screamer-plus") "package")
+             (om::om-relative-path '("sources" "screamer-plus") "screamer-plus")
+             (om::om-relative-path '("sources" "screamer-plus") "lists")
+             (om::om-relative-path '("sources" "screamer-plus") "sequences")
+             (om::om-relative-path '("sources" "screamer-plus") "sets")
+             (om::om-relative-path '("sources" "screamer-plus") "arrays")
+             (om::om-relative-path '("sources" "screamer-plus") "objects")
+             (om::om-relative-path '("sources") "screamer-additions")
+             (om::om-relative-path '("sources") "package")
+             (om::om-relative-path '("sources") "om-screamerfuns")
+             (om::om-relative-path '("sources" "pc-set-theory") "all-SCs")
+             (om::om-relative-path '("sources" "pc-set-theory") "pc-set-theory")
+             (om::om-relative-path '("sources" "pc-set-theory") "normal-order") 
+             (om::om-relative-path '("sources") "om-interface")             
+             (om::om-relative-path '("sources") "screamer-solver")
+             (om::om-relative-path '("sources") "screamer-score-classes")
+             (om::om-relative-path '("sources") "screamer-score-domains")
+             (om::om-relative-path '("sources") "screamer-score-constraints")
+             (om::om-relative-path '("sources") "screamer-score")             
+              ))
 
 ;--------------------------------------------------
 ;Loading files
 ;--------------------------------------------------
-(mapc #'compile&load *screamer-files*)
+(mapc #'compile&load *om-screamer-files*)
 
 ;--------------------------------------------------
 ;Fill library
@@ -64,8 +68,8 @@
 
 (fill-library '(("Propagation" nil nil (best-value solution static-ordering linear-force divide-and-conquer-force random-force reorder domain-size range-size order) nil)
 	            ("Pc-set-theory"
-				   (("SCs" nil nil (om?::SC-name om?::SC+off om?::SCs-card om?::SC-info om?::sub/supersets om?::SC-subsets om?::normal-order) nil)
-				    ("constraints" nil nil (om?::set-classpv? om?::sub-setpv? om?::member-of-scv? om?::normal-orderv) nil)
+				   (("SCs" nil nil (SC-name SC+off SCs-card SC-info sub/supersets SC-subsets normal-order) nil)
+				    ("constraints" nil nil (set-classpv? sub-setpv? member-of-scv? normal-orderv) nil)
 				   ) Nil Nil Nil)
 
  		       ("Screamer-Solver"
@@ -74,7 +78,7 @@
 				   ("variables" nil nil (screamer-variable list-ofvs list-of-lists-ofv list-of-chords-inv) nil)
 				   ("functions" nil nil (apply-contv) nil)
   				   ("constraints"
-					(("general" nil nil (om?::assert!-all-differentv) nil)) nil nil nil)
+					(("general" nil nil (screamer::assert!-all-differentv) nil)) nil nil nil)
 				   ("utils" nil nil (om?::all-rotations) nil)
  					 ) Nil Nil Nil)
 
@@ -88,11 +92,7 @@
 		           (("primitives" nil nil (s::an-integer-between s::a-member-of s::fail) nil)
 				    ("variables" nil nil (s::a-member-ofv s::an-integerv s::an-integer-abovev s::an-integer-belowv s::an-integer-betweenv
 										  s::a-realv s::a-real-abovev s::a-real-belowv s::a-real-betweenv s::a-numberv s::a-booleanv s::make-variable) nil)
-				    ("assert!" nil nil (s::assert! s::assert!-integerpv s::assert!-notv-integerpv s::assert!-realpv s::assert!-notv-realpv
-										s::assert!-numberpv s::assert!-notv-numberpv s::assert!-booleanpv s::assert!-notv-booleanpv
-										s::assert!-=v2 s::assert!-<=v2 s::assert!-<v2 s::assert!-/=v2 s::assert!-memberv s::assert!-notv-memberv
-										s::assert!-equalv s::assert!-notv-equalv s::assert!-=v s::assert!-<v s::assert!-<=v s::assert!->v
-										s::assert!->=v s::assert!-/=v) nil)
+				    ("assert!" nil nil (s::assert! ) nil)
 				    ("type-restrictions" nil nil (s::numberpv s::realpv s::integerpv s::booleanpv s::memberv) nil)
 		            ("boolean" nil nil (s::andv s::orv s::notv) nil)
 		            ("numeric" nil nil (s::<v s::<=v s::>v s::>=v s::=v s::/=v s::+v s::-v s::*v s::/v s::minv s::maxv s::=v2 s::<=v2 s::<v2 s::/=v2 ) nil)
@@ -102,10 +102,10 @@
 	 		       ("Screamer-Plus"
 	 		           (("primitives" nil nil (screamer+::a-subset-of screamer+::a-partition-of screamer+::members-ofv screamer+::not-equalv) nil)
 					    ("variables" nil nil (screamer+::a-listv screamer+::a-consv screamer+::a-symbolv screamer+::a-stringv
-						                      screamer+::a-typed-varv) nil)
-	 				    ("type-restrictions" nil nil (screamer+::listpv screamer+::conspv screamer+::symbolpv screamer+::stringpv screamer+::typepv) nil)
+						                      ) nil)
+	 				    ("type-restrictions" nil nil (screamer+::listpv screamer+::conspv screamer+::symbolpv screamer+::stringpv) nil)
 	 		            ("boolean" nil nil (screamer+::impliesv) nil)
-	 		            ("expression" nil nil (screamer+::ifv screamer+::make-equal) nil)
+	 		            ("expression" nil nil (screamer+::ifv-rec screamer+::make-equal) nil)
 						("lists" nil nil (screamer+::carv screamer+::cdrv screamer+::consv screamer+::firstv screamer+::secondv screamer+::thirdv
 							                screamer+::fourthv screamer+::nthv screamer+::subseqv screamer+::lengthv screamer+::appendv
 							                screamer+::make-listv screamer+::all-differentv) nil)
@@ -117,9 +117,7 @@
                                                                                          screamer+::noteveryv screamer+::notanyv screamer+::at-leastv screamer+::at-mostv screamer+::exactlyv 
                                                                                          screamer+::constraint-fn) nil)
 						;("stream-output" nil nil (screamer+::formatv) nil)
-						("functions" nil nil (s::funcallgv) nil)
-						("additions" nil nil (screamer+::interval-memberv screamer+::interval-notv-memberv screamer+::abs-interval-memberv screamer+::abs-interval-notv-memberv screamer+::hard-memberv
-							screamer+::mod-interval-memberv screamer+::mod-interval-notv-memberv) nil)
+						("functions" nil nil (screamer+::funcallgv) nil)
 	 					) Nil Nil Nil)
 
                 ;("FOLDER" Nil Nil (package::FUNCTION) Nil)
@@ -139,8 +137,9 @@ Includes:
 
   LISP LIBRARIES:
 
-* SCREAMER-PLUS ~A by Simon White
-  Copyright 1998-2000 University of Aberdeen
+* SCREAMER-PLUS ~A 
+Based on the original version by Simon White
+Current version by Paulo Henrique Raposo (2025)
 
 * Code excerpts by Killian Sprotte"
  ?::*screamer+-version*))

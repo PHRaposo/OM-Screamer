@@ -1,0 +1,78 @@
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Changes Log:
+;;; ------------
+;;; 02/04/1998          First version.
+;;; 23/09/1998          Added 'carefully' macro
+;;; 07/10/1998          Consistent with draft TR "Constraint Handling in Common
+;;;                     LISP"
+;;; 10/11/1998          Added not-equalv, which has improved propagation
+;;;                     properties over (notv (equalv ))
+;;; 19/02/1999          Fixed bug in somev, everyv, not-anyv, not-everyv
+;;;                     (My use of 'push' on the local variable had meant
+;;;                     that it retained its value from one call to the next.
+;;;                     This disturbed the search for solutions.)
+;;; 11/03/1999          Added new versions of variables-in and apply-substitution
+;;;                     which cope with arrays and objects as well as conses
+;;; 18/03/1999          Added extra case in nthv which constrains the index if
+;;;                     z and the list become bound first.
+;;; 19/03/1999          Added eqv and funcallgv
+;;; 22/03/1999          Simplified and bugfixed at-mostv and at-leastv
+;;;                     Added setq-domains
+;;; 19/05/1999          Changed definition of constraint-fn slightly, so
+;;;                     that it returns a function definition, rather than
+;;;                     a closure, if possible
+;;; 30/07/1999          Improved commenting, so that the propagation powers
+;;;                     of each function is clear. Added restv.
+;;;                     Changed package concept to be compatible with CLtL2
+;;;                     Now the SCREAMER+ package holds SCREAMER+/SCREAMER
+;;; 02/08/1999          Extended the type concept of SCREAMER. Now a variable
+;;;                     can be known to be of any type
+;;; 05/09/1999          Repaired bug in ifv
+;;; 17/02/2000          Changed defpackage so that symbol names are consistent
+;;;                     across packages.
+;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; -----------
+;;; 11/08/2024 	       Substituted all DEFMACRO for SCREAMER::DEFMACRO-COMPILE-TIME (phraposo)
+;;;
+;;; 12/08/2024         Changed definition of CONSTRAINT-FN:
+;;; 		           Included SCREAMER::VALID-FUNCTION-NAME test. (phraposo)
+;;;
+;;; 02/09/2024         Removed macro CAREFULLY (not working!)
+;;;
+;;; 07/07/2025         Added experimental macro CONDV, a constraint-aware version of COND,
+;;;                    after IFV. (phraposo)
+;;;
+;;; 07/07/2025         Fixed bug in CAREFULLY and CAREFULLY-EVALUATE macros: now use handler-case
+;;;                    and screamer::defmacro-compile-time for compilation safety and portability. 
+;;;                    (phraposo)
+;;;
+;;; 08/07/2025         Added CONDV-RESTRICTED macro, a restricted version of CONDV that ensures
+;;;                    the result is a member of the possible final values of the clauses.(phraposo)
+;;;
+;;; 03/08/2025        Added a new condition in Z noticer for CARV: (not (enumerated-domain-p el)).
+;;;                   This is documented in LENGTHV function:
+;;;                   "The (not (enumerated-domain-p el)) condition seems to be necessary
+;;;                    because of a problem in SCREAMER which disallows, say,
+;;;                   (head one) | (head two) to be unified with the variable ([1] [2])".
+;;;
+;;; 04/08/2025        Added a new condition in Z noticer for CDRV: (not (enumerated-domain-p el)).
+;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;
+;;; 05/09/2025       Full redesign of the library based on Screamer 4.0.1 and update of the terms
+;;;                  of use and license. 
+;;;
+;;; 16/09/2025       New file "screamer-plus-tests.lisp" with tests from screamer-plus.pdf.
+;;;                  Documentation of main differences.
+;;;
+;;;                  Added slot-equal to avoid infinite loops. Included both IFV and IFV-REC. 
+;;;                  Added new tests for MY-MEMBERV (from original documentation).
+;;;
+;;;                 Tested on the following LISP implementations:
+;;;                  - SBCL 2.5.8
+;;;                  - Allegro Common LISP 11.0
+;;;                  - LispWorks 8.0.1
+;;;                  - Clozure Common LISP 1.13
+;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
