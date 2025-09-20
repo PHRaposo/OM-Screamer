@@ -39,7 +39,7 @@ logic programming languages such as CHiP and CLP(R). Furthermore, Screamer is
 ### This library requires OM-Backtrack 2.
 
 
-# [Download OM-Backtrack 2.0](https://github.com/PHRaposo/OM-Backtrack/archive/refs/heads/V2.0.zip)
+# [Download OM-Backtrack 2.0](https://github.com/PHRaposo/OM-Backtrack-2/archive/refs/heads/main.zip)
 
 
 
