@@ -15,8 +15,8 @@ Includes:
   LISP LIBRARIES:
 
 
-* SCREAMER-PLUS 0.1 by Simon White
-  Copyright 1998-2000 University of Aberdeen
+* SCREAMER-PLUS 0.2.0 based on the original version by Simon White
+  Copyright Paulo Henrique Raposo (2025)
 
 
 * Code excerpts by Killian Sprotte
@@ -35,13 +35,8 @@ logic programming languages such as CHiP and CLP(R). Furthermore, Screamer is
  fully integrated with Common Lisp. Screamer programs can coexist and
  interoperate with other extensions to as CLIM and Iterate.
 
-##### Changes in Pc-Set-Theory: (in-progress)
 
-
-##### Changes in Screamer: (in-progress)
-
-
-### This library requires OM-Backtrack.
+### This library requires OM-Backtrack 2.
 
 
 # [Download OM-Backtrack 2.0](https://github.com/PHRaposo/OM-Backtrack/archive/refs/heads/V2.0.zip)

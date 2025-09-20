@@ -19,43 +19,68 @@
 ;; SOFTWARE.
 
 (IN-PACKAGE :CL-USER)
-(SCREAMER:DEFINE-SCREAMER-PACKAGE :om-screamer
+(SCREAMER+:DEFINE-SCREAMER-PLUS-PACKAGE :om-screamer
  (:nicknames :om?)
- (:use :cl :screamer+)
+ (:use :cl)
  )
 (IN-PACKAGE :om-screamer)
 
-(in-package :om)
+;; FROM OPENMUSIC
 
-;; GLOBAL VARIABLES
+(defmacro while (test &body body)
+  (let ((testlab (gensym))
+        (toplab (gensym)))
+    `(tagbody
+       (go ,testlab)
+      ,toplab
+      (progn ,@body)
+      ,testlab
+      (when ,test (go ,toplab)))))
 
-(defvar *screamer-score-midi-approx* nil)
-(setf *screamer-score-midi-approx* nil)
+(defmacro newl (lst elem) `(push ,elem ,lst))
 
-(defvar *screamer-score-debug* nil)
-(setf  *screamer-score-debug* nil)
+(defmacro nextl (lst &optional symb)
+(if symb
+  `(setq ,symb (pop ,lst))
+  `(pop ,lst) ))
+  
+(cl::defun rev-flat (lst)  
+(let ((l ()))
+  (while lst
+         (if (not (consp (car lst)))
+           (newl l (nextl lst))
+           (setq l (nconc (rev-flat (nextl lst)) l))))
+  l ))
 
-(defvar *print-screamer-score-failures?* nil)
- (setf *print-screamer-score-failures?* nil)
+(cl::defun lo-flat (list) 
+(cond ((atom list) list)
+      ((atom (car list)) (cons (car list) (lo-flat (cdr list))))
+      ((atom (caar list)) (apply 'append list))
+      (t (cons (lo-flat (car list)) (lo-flat (cdr list))))))
 
-(defun set-print-score-fails (bool)
- (setf *print-screamer-score-failures?* bool))
+(cl::defun flat-low (list) 
+(lo-flat list))
 
-(defvar *print-screamer-score-time?* nil)
- (setf *print-screamer-score-time?* nil)
+(cl::defun flat-once (list)
+(if (consp (car list))
+  (apply 'append list) list))
 
-(defun set-screamer-score-print-time (bool)
- (setf *print-screamer-score-time?* bool))
+(cl::defun flat-one (list)
+(loop for item in list
+      append (list! item)))
 
-(defun set-debug (bool)
- (setf *screamer-score-debug* bool)
- (if *screamer-score-debug*
-     (progn 
-         (setf *print-screamer-score-failures?* t)
-         (setf *print-screamer-score-time?* t)
-         "SCREAMER-SCORE DEBUG: ON.")
-	 (progn 
-		 (setf *print-screamer-score-failures?* nil)
-                (setf *print-screamer-score-time?* nil)
-                "SCREAMER-SCORE DEBUG: OFF.")
- ))
+(cl::defun n-flat-one (list level)
+(let ((rep list))
+  (loop for i from 1 to level do
+        (setf rep (flat-one rep)))
+  rep))
+
+(cl::defun flat (lst &optional (level nil))
+    (cond
+     ((null level) (nreverse (rev-flat lst)))
+     ((= level 0) lst)
+     ((and (integerp level) (plusp level))
+      (n-flat-one lst level))
+     (t lst)))
+
+(cl::defun list! (thing) (if (listp thing) thing (list thing)))
