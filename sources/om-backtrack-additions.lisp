@@ -213,12 +213,10 @@
          `',(reference self))
         ((equal (allow-lock self) "l")
          (progn (dialog-message (string+ "no method is defined for inputs in box " (name self)))
-	             (om-abort)))
-         ((equal (allow-lock self) "#")
-           (setf (value self) `(function ,screamerfun)))		 
+	             (om-abort)))		 
         (t `(,screamerfun ,.(mapcar #'cdr (decode self)))
 	    ))))
-     
+
 ;; ========================================================== ;;
 ;; TODO: (IF NEEDED)
 #|
@@ -359,4 +357,3 @@
 :doc "OM equivalent of CONDV macro." 
 :icon 486 
 (declare (ignore form forms)))
-

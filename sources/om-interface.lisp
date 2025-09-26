@@ -103,17 +103,12 @@
                          (om-abort)))))
  (let ((expr (function-lambda-expression lambda-fn)))
   (cond  ((stringp (third expr)) (third expr))
-         ((not (listp (cadr (third expr)))) (string (gensym "anon-fun-")))	 
+         ((not (listp (cadr (third expr)))) (string (gensym "anon-fun-")))
          (t (find-patch-from-lambda-fn
              (get-patch-function-name lambda-fn)
               (remove nil (flat (get-patch-boxes (get-current-patch))))))))))
 
-;;; => ADAPTED FROM OMCS AND CLUSTER-ENGINE
-								  
-(defun make-anon-screamerfun (fn &optional name) ;;; OMCS
- (eval `(defun ,(gensym (if (null name) "anon-fun-" (concatenate 'string name "-"))) ,.(rest fn))))
-
-(defun compile-screamer-constraint (fun) ;;;CE
+(defun compile-screamer-constraint (fun)
 (handler-bind ((error #'(lambda (c)
                        (when *msg-error-label-on*
                          (om-message-dialog (string+ "Error while evaluating the function " "compile-screamer-constraint" " : "
@@ -127,17 +122,40 @@
                         (if (null patchbox);<== function in lambda mode
                             (symbol-name (second (cadr (third expr))))
                             (name (reference patchbox))))));<== patch in lambda mode
-    (if (compiled-function-p fun) ;expr)
-        expr
-    (compile (eval `(defun ,(gensym (if (null patch-name) "anon-fun-" (concatenate 'string patch-name "-"))) ,(function-lambda-list fun)
-		             (apply ,fun (list ,.(function-lambda-list fun))))))
-	;(compile (make-anon-screamerfun expr patch-name))
-	))))
+    (if (compiled-function-p fun)
+         expr
+        (compile (eval `(defun ,(gensym (if (null patch-name) "anon-fun-" (concatenate 'string patch-name "-"))) ,(function-lambda-list fun)
+		                     (apply ,fun (list ,.(function-lambda-list fun))))))))))
+
+;; BACKTRACK CONSTRAINTS (OLD)
+(defun compile-screamer-backtrack-constraint (fun)
+  (handler-bind ((error #'(lambda (c)
+                            (when *msg-error-label-on*
+                              (om-message-dialog (string+ "Error while evaluating the function "
+                                                          "compile-screamer-backtrack-constraint"
+                                                          " : "
+                                                          (om-report-condition c))
+                                                 :size (om-make-point 300 200))
+                              (om-abort)))))
+    (let* ((expr (function-lambda-expression fun))
+           (patchbox (find-lambda-patchbox fun))
+           (patch-name (if (stringp patchbox) ;<== lambda function documentation
+                           patchbox
+                           (if (null patchbox) ;<== function in lambda mode
+                               (symbol-name (second (cadr (third expr))))
+                               (name (reference patchbox))))) ;<== patch in lambda mode
+           (lambda-list (loop for x from 1 to (length (function-lambda-list fun))
+                             collect (intern (string (gensym)) :om))))
+      (compile
+       (eval
+        `(defun ,(gensym (if (null patch-name)
+                             "backtrack-anon-fun-"
+                             (concatenate 'string patch-name "-backtrack-")))
+           ,lambda-list (om?::any-fn ,fun ,@lambda-list)))))))
 
 ;; LIST-OF-LISTP / LIST-OF-LISTS
 (defun list-of-listp (thing) (and (listp thing) (every #'listp thing)))
 (deftype list-of-lists () '(satisfies list-of-listp))
-
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;TIME
@@ -250,51 +268,58 @@
 ; APPLY-CONTV
 
 (defmethod! apply-contv ((cs function) (mode string) (recursive? string) (vars t))
-:initvals '(nil "atom" "off" nil)
-:indoc '("patch in lambda mode" "string" "string" "list of variables" )
-:menuins '((1 (("atom" "atom") ("list" "list")))
-                 (2 (("off" "off") ("n-inputs" "n-inputs") ("car-cdr" "car-cdr") ("growing" "growing")))
-                )
-:doc "Applies constraint recursively to list of variables."
-:icon 486
- (handler-bind ((error #'(lambda (c)
-                          (when *msg-error-label-on*
-                            (om-message-dialog (string+ "Error while evaluating the function " 
-								                (if (stringp (function-name cs))
-												    (let ((patch? (find-lambda-patchbox cs)))
-													 (if patch? 
-														 (name (reference patch?))
-														 (get-patch-function-name cs)))
-													(symbol-name (function-name cs))) 
-														" : "
-                                                     (om-report-condition c))
-                                               :size (om-make-point 300 200))
-                            (om-abort)))))
-(cond ((equal mode "atom")
-	   (om?::assert!-deep-mapcar cs cs vars))
-
-          ((equal mode "list")
-           (cond
-
-           ((equal recursive? "n-inputs")
-           (mapcar #'(lambda (x)
-		          (screamer::assert! (apply cs x)))
-            (split-domain-list1 (length vars) (length (function-lambda-list cs)) vars)))
-
-           ((equal recursive? "car-cdr")
-			(mapcar #'(lambda (x)
-		          (screamer::assert! (funcall cs (first x) (second x))))
-							    (mk-car-cdr vars)))
-
-           ((equal recursive? "growing")
-		    (mapcar #'(lambda (x)
-			 (screamer::assert! (funcall cs x))) (mk-growing vars)))
-
-           (t (screamer::assert! (apply cs (list vars))))
-          ))
-
-         (t (progn (om-message-dialog "ERROR!") (om-abort)))))
- )
+  :initvals '(nil "atom" "off" nil)
+  :indoc '("patch in lambda mode" "string" "string" "list of variables" )
+  :menuins '((1 (("atom" "atom") ("list" "list")))
+             (2 (("off" "off") ("n-inputs" "n-inputs") ("car-cdr" "car-cdr") ("growing" "growing"))))
+  :doc "Applies constraint recursively to list of variables."
+  :icon 486
+  (handler-bind
+      ((error #'(lambda (c)
+                  (when *msg-error-label-on*
+                    (om-message-dialog
+                     (string+
+                      "Error while evaluating the function "
+                      (cond
+                        ((stringp (third (function-lambda-expression cs)))
+                         (third (function-lambda-expression cs)))
+                        ((stringp (function-name cs))
+                         (let ((patch? (find-lambda-patchbox cs)))
+                           (if patch?
+                               (name (reference patch?))
+                               (get-patch-function-name cs))))
+                        (t (symbol-name (function-name cs))))
+                      " : "
+                      (om-report-condition c))
+                     :size (om-make-point 300 200))
+                    (om-abort)))))
+    (cond
+      ((equal mode "atom")
+       (om?::assert!-deep-mapcar cs cs vars))
+      ((equal mode "list")
+       (cond
+         ((equal recursive? "n-inputs")
+          (mapcar #'(lambda (x)
+                      (screamer::assert!
+                       (apply cs x)))
+                  (split-domain-list1 (length vars) (length (function-lambda-list cs)) vars)))
+         ((equal recursive? "car-cdr")
+          (mapcar #'(lambda (x)
+                      (screamer::assert!
+                       (funcall cs (first x) (second x))))
+                  (mk-car-cdr vars)))
+         ((equal recursive? "growing")
+          (mapcar #'(lambda (x)
+                      (screamer::assert!
+                       (funcall cs x)))
+                  (mk-growing vars)))
+         (t
+          (screamer::assert!
+           (apply cs (list vars))))))
+      (t
+       (progn
+         (om-message-dialog "Error while evaluating the function APPLY-CONTV: Unknown mode.")
+         (om-abort))))))
 
 (defmethod! om-assert! ((x screamer::variable))
 :initvals '( t ) 
@@ -423,10 +448,11 @@
 (defmethod! mod12v ((var screamer::variable))
 :icon 480
 (if (s::variable-list? var)
-    (?::mapcarv #'(lambda (x) (s::funcallv #'mod x 12)) var)
-    (s::funcallv #'mod var 12)))
-    
-	
+    (let ((z (?::mapcarv #'(lambda (x) (s::funcallv #'mod x 12)) var)))
+     z)
+    (let ((z (s::funcallv #'mod var 12)))
+      z)))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; MIDI
 
@@ -920,3 +946,5 @@ of cardinality card."
 	  (if (every #'screamer::bound? input)
 	      (list! (om?::get-n-ord input))
         (om?::n-ordv-pcs input))))
+
+

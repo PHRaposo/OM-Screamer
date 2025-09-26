@@ -63,7 +63,7 @@
         (print "Timing evaluation of screamer-score..."))
    (setq scs-time nil))
       
-(setf s::*all-screamer-score-variables* (remove nil (flat (chords (var-domain all-domains)))))
+(setf s::*all-screamer-score-variables* (remove-if #'(lambda (x) (or (null x) (screamer::bound? x))) (flat (chords (var-domain all-domains)))))
 
 (setf  *screamer-score-notes* (pitch (var-domain all-domains)))
 

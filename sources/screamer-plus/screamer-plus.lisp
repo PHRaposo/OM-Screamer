@@ -245,7 +245,7 @@ a lambda function is constructed and returned.
  (otherwise (error "The argument for SUMV must be a list or a LISTV" x)))))
 
 ;; compatibility note
-;; This section contains or original functions from original Screamer-Plus or
+;; This section contains or functions from original Screamer-Plus or
 ;; adaptations of them, keeped here for backward compatibility.
 ;; Some of them are deprecated.
 

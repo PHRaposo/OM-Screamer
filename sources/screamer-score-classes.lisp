@@ -52,8 +52,8 @@
 
 (defmethod set-cs ((constraint function) (self cs-one-voice) &optional cs-mode)
  (let ((compiled-constraint (fdefinition (if (string-equal "backtrack" cs-mode)
- 	                                         (compile-screamer-backtrack-constraint constraint)
-											 (compile-screamer-constraint constraint)))))
+ 	                                           (compile-screamer-backtrack-constraint constraint)										 
+                                             (compile-screamer-constraint constraint)))))
   (set-constraint compiled-constraint self)))
 
 (defmethod make-cs-one-voice ((cs function)(input string)(voices list)(domain string) (rests string)(percentage-mode string)(percentage t) (cs-mode string))
@@ -98,7 +98,7 @@
 (defmethod set-cs ((constraint function) (self cs-harmony) &optional cs-mode)
  (let ((compiled-constraint (fdefinition (if (string-equal "backtrack" cs-mode)
  	                                         (compile-screamer-backtrack-constraint constraint)
-											 (compile-screamer-constraint constraint)))))
+                       (compile-screamer-constraint constraint)))))
   (set-constraint compiled-constraint self)))
 
 (defmethod make-cs-harmony ((cs function)(input string)(voice-select string)(voices list)(domain string)(rests string)(beats string)(percentage-mode string)(percentage t) (cs-mode string))
