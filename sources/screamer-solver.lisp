@@ -395,9 +395,9 @@
 
 ;(print scode) ;<== FOR DEBUG
 
-  (let ((scs-function (compile (eval `(defun ,(intern (string (gensym "scs-fun-")) :om) ()
-	  						    (declare (optimize (speed 3) (safety 0) (debug 0)))
-		                                ,scode)))) ;==> COMPILED SOLVER FUNCTION
+  (let ((scs-function (compile nil `(lambda ()
+	  						  (declare (optimize (speed 3) (safety 0) (debug 0) (space 0)))
+		                            ,scode))) ;==> COMPILED SOLVER FUNCTION
         (scs-time (om-timing-start)))
 
  (print "Timing evaluation of screamer-solver...")
