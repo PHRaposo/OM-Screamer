@@ -25,13 +25,6 @@
 
 ; AUXILIARY FUNCTIONS
 
-#|(defun positions (input-list input-elem) ;FROM OM-TRISTAN
-  (let ((index 0) res)
-    (dolist (n input-list)
-      (if (equal input-elem n)  (push index res)) ;modified to equal
-      (setq index (1+ index)))
-    (nreverse res)))|#
-
 (defmethod locked-voice? ((self voice))
  (let ((voice-chords (remove-duplicates (flat (mapcar #'lmidic (chords-with-grace self))))))
   (not (and (or (null (first voice-chords)) (= 6000 (first voice-chords)))
@@ -39,9 +32,10 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; GRACE NOTES 18/06/2025 (IN-PROGRESS!)
+;; UPDATED 27/09/2025
 
 (defun get-all-chords-with-grace (self)
- (let ((all-chords (remove-if #'cont-chord-p (get-all-chords self))))
+ (let ((all-chords (remove-if #'cont-chord-p (flat (get-all-chords self)))))
   (flat (loop for chord-rest in all-chords
               collect (if (gnotes chord-rest)
                           (x-append (glist (gnotes chord-rest))
@@ -49,45 +43,13 @@
                           chord-rest)))))
  
  (defun chords-with-grace (self)
- (let ((all-chords (remove-if #'cont-chord-p (get-all-chords self))))
+ (let ((all-chords (remove-if #'cont-chord-p (flat (get-all-chords self)))))
   (remove-if #'rest-p (flat (loop for chord-rest in all-chords
                                   collect (if (gnotes chord-rest)
                                               (x-append (glist (gnotes chord-rest))
                                                          chord-rest)
                                                chord-rest))))))
  
-(defun get-all-onsets-grace (onsets-domain ratios-domain) 
- (let (graces
-       res)
-  (loop for onsets in onsets-domain
-        for ratios in ratios-domain
-        do (loop for onset in onsets
-                 for ratio in ratios
-                 if (zerop ratio)
-                 collect onset into gnotes
-                 else
-                 do (pushnew onset res)
-                 finally (let* ((grace-onsets (remove-duplicates gnotes))
-                                (grace-length (loop for gonset in grace-onsets collect (length (member-pos gonset gnotes)))))
-                           (push (mapcar #'x-append grace-length grace-onsets) graces))))
- 
- (if (or (null graces) (every #'null graces))
-  ;;==> NO GRACE NOTES 
-     (sort-list res)
-  ;;==> GRACE NOTES 
-    (let* ((all-graces-onsets (remove-duplicates (mapcar #'second (flat-once graces))))
-        (max-occur (loop for gonset in all-graces-onsets
-                         collect (loop for glen in (flat-once graces) 
-                                   when (= gonset (second glen))
-                                   collect (first glen) into lens
-                                   finally (return (repeat-n gonset (list-max lens)))))))
-    (sort-list (x-append res (flat max-occur))))
-   )))
-  
-(defun get-chords-ratios-grace (all-onsets ratios-domain) ; NEW GRACE NOTES 23/06/2025 <==
- (let ((last-offset (last-elem (sort-list (remove-duplicates (flat (mapcar #'(lambda (x) (dx->x 0 (om-abs x))) ratios-domain)))))))
- (x->dx (x-append all-onsets last-offset))))
-
  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
  
 (defun new-domain-pitch-dur (voices domains mcs-approx random?) ;<== NEW 12/09/2024
@@ -136,86 +98,82 @@
                             (chords (om?::list-of-midi-chords-inv chords-correct-length mcs-approx voice-domain random?)))
                                          (loop for ratio in ratios
                                                   collect (if (minusp ratio)
-                                                                (list nil ratio)
-                                                                (list (pop chords) ratio))))))))
+                                                              (list nil ratio)
+                                                              (list (pop chords) ratio))))))))
 
 (defun get-measure-rest-places (measure)
  (let ((tree (list '? (list (tree measure)))))
   (get-rest-places tree)))
 
+(defparameter *grace-epsilon* 1/1000) ;<== GRACE-NOTES (27/09/2025)
+
+(defun get-chords-ratios-grace (all-onsets offsets-domain) ;<== NEW GRACE NOTES 27/09/2025
+ (let ((all-offsets (remove-duplicates (sort-list (flat offsets-domain)))))
+  (x->dx (cons (car all-onsets) all-offsets))))
+
 (defun ratios2onsets (ratios)
-(butlast (dx->x 0 (om-abs ratios))))
-#|(let ((temp (dx->x 0 (om-abs ratios))) ;==> NEW VERSION: GRACE NOTES 22/06/2025
-        graces res)
-  (loop for dx in temp
-        for ratio in ratios
-        if (zerop ratio)
-        do (push ratio graces)
-        else 
-        do (if graces
-               (let* ((n-graces (arithm-ser 1 (length graces) 1))
-                      (graces-onsets (om- dx (om/ n-graces 512))))
-                (push (x-append dx graces-onsets) res)
-                (setf graces nil))
-                (push dx res)))
-   (nreverse (flat res))))|#
+ (if (some #'zerop ratios)
+    ;;GRACE-NOTES (27/09/2025)
+    (let ((onsets (list 0))
+          (n-graces 0))
+    (dolist (r ratios)
+      (cond  ((zerop r)
+              (incf n-graces)
+              (setf (car onsets) (- (car onsets) *grace-epsilon*)))
+            (t (when (> n-graces 0)
+              (dotimes (i n-graces)
+              (push (+ *grace-epsilon* (car onsets)) onsets))
+              (setf n-graces 0))
+            (push (+ (car onsets) (abs r)) onsets))))
+    (butlast (nreverse onsets)))
+    ;;NO GRACE-NOTES
+  (butlast (dx->x 0 (om-abs ratios)))))
+
+(defun ratios2offsets (ratios)
+(if (some #'zerop ratios)
+    ;;GRACE-NOTES (27/09/2025)
+    (let ((offsets (list 0))
+          (n-graces 0))
+    (dolist (r ratios)
+      (cond  ((zerop r)
+              (incf n-graces)
+              (setf (car offsets) (- (car offsets) *grace-epsilon*)))
+            (t (when (> n-graces 0)
+              (dotimes (i n-graces)
+              (push (+ *grace-epsilon* (car offsets)) offsets))
+              (setf n-graces 0))
+            (push (+ (car offsets) (abs r)) offsets))))
+    (cdr (nreverse offsets)))
+    ;;NO GRACE-NOTES
+     (cdr (dx->x 0 (om-abs ratios)))))
+
+(defun repeat-pitches-until-offset (onsets offsets pitches times &optional accumulator)
+  "For each time in TIMES, return the pitch that is sounding (onset ≤ time < offset).
+If offsets/pitches run out before times, push NIL for that voice."
+  (cond
+    ((null times) (nreverse accumulator))
+    ((or (null onsets) (null offsets) (null pitches))
+     (repeat-pitches-until-offset onsets offsets pitches (cdr times) (cons nil accumulator)))
+    (t
+     (let ((time (car times))
+           (current-onset (car onsets))
+           (current-offset (car offsets))
+           (current-pitch (car pitches)))
+       (cond
+         ((and (<= current-onset time) (< time current-offset))
+          ;; Pitch is sounding at this time
+          (repeat-pitches-until-offset onsets offsets pitches (cdr times)
+                                       (cons current-pitch accumulator)))
+         ((< time current-onset)
+          ;; Time is before the next note starts
+          (repeat-pitches-until-offset onsets offsets pitches (cdr times)
+                                       (cons nil accumulator)))
+         (t
+          ;; Move to next note (time >= current-offset)
+          (repeat-pitches-until-offset (cdr onsets) (cdr offsets) (cdr pitches) times accumulator)))))))
 
 (defun ratios2notes-posn (ratios)
 (arithm-ser 0 (1- (length ratios)) 1))
-
-(defun posn-in-onsets-list (voice-onsets-posn all-onsets)
-(posn-in-onsets-list-internal voice-onsets-posn all-onsets nil))
-
-(defun posn-in-onsets-list-internal (voice-onsets-posn all-onsets accumul)
-;(print (format nil "ALL-ONSETS: ~a" all-onsets))
-;(print (format nil "DURS: ~a" (first voice-onsets-posn)))
-;(print (format nil "DUR: ~a" (car (first voice-onsets-posn))))
-;(print (format nil "POSITION: ~a" (car (second voice-onsets-posn))))
-;(print (format nil "OFFSET: ~a" (car (third voice-onsets-posn))))
-;(print (format nil "CURR-ONSET: ~a" (car all-onsets)))
-;(print (format nil "RESULTS: ~a" (reverse accumul)))
-;(print (format nil "ONSET - CURR-ONSET = ~a" (- (car (first voice-onsets-posn)) (car all-onsets))))
-;;NOTE: voice-onset-posn
-;;first = DURATION
-;;second = POSITIONS
-;;third = OFFSETS (NEW)
-(if all-onsets
-   (cond
-	   ((null (first (third voice-onsets-posn)))
-	   (posn-in-onsets-list-internal (x-append (list nil)
-                                               (list nil) 
-											   (list nil))
-                                                 (cdr all-onsets)
-                                                 (x-append (list nil) accumul)))
-	;((= 1 (length (second voice-onsets-posn)) )
-    ;(posn-in-onsets-list-internal voice-onsets-posn
-    ;                                             (cdr all-onsets)
-    ;                                             (x-append (first (second voice-onsets-posn)) accumul)))
-
-   ((< (first all-onsets) (first (third voice-onsets-posn)));(second (first voice-onsets-posn)))
-    (posn-in-onsets-list-internal voice-onsets-posn
-                                                     (cdr all-onsets)
-                                                 (x-append (first (second voice-onsets-posn)) accumul)))
-
-  ((= (first all-onsets) (first (third voice-onsets-posn)));(second (first voice-onsets-posn)))
-     (posn-in-onsets-list-internal (x-append (list (cdr (first voice-onsets-posn)))
-                                             (list (cdr (second voice-onsets-posn)))  
-											 (list (cdr (third voice-onsets-posn))))
-                                                     (cdr all-onsets)
-                                                 (x-append (second (second voice-onsets-posn)) accumul)))
-   
-   ;; ==> GRACE NOTES (NEW - 22.06.2025)                                             
-   (t  (posn-in-onsets-list-internal (x-append (list (cdr (first voice-onsets-posn)))
-                                             (list (cdr (second voice-onsets-posn)))  
-											 (list (cdr (third voice-onsets-posn))))
-                                                    (cdr all-onsets)
-                                                 (x-append (second (second voice-onsets-posn)) accumul)))
-    )
-												
-
-	(reverse accumul))
-
-	)
 
 (defun remove-rest-posn (rest-places positions)
  (remove-if #'(lambda (x) (member x rest-places)) positions))
@@ -244,6 +202,27 @@
        offbeats
 	  (posn-match chords first-beats-posn))))
 
+(defun ratios-with-graces (ratios)
+(if (some #'zerop ratios)
+    ;; GRACE-NOTES (27/09/2025)
+    (let ((new-ratios (list 0))
+          (n-graces 0))
+    (dolist (r ratios)
+      (cond  ((zerop r)
+              (incf n-graces)
+              (setf (car new-ratios)
+                    (if (minusp (car new-ratios))
+                        (+ (car new-ratios) *grace-epsilon*)
+                        (- (car new-ratios) *grace-epsilon*))))
+            (t (when (> n-graces 0)
+              (dotimes (i n-graces)
+              (push *grace-epsilon* new-ratios))
+              (setf n-graces 0))
+            (push r new-ratios))))
+    (nreverse new-ratios))
+    ;; NO GRACE-NOTES
+    ratios))
+
 (defun build-ratios-domain (pitch-durs-domain)
    (handler-bind ((error #'(lambda (c)
                              (when *msg-error-label-on*
@@ -253,7 +232,9 @@
                                (om-abort)))))
 
  (let* ((ratios (mapcar #'(lambda (x) (mapcar #'second x)) pitch-durs-domain))
-        (sums (mapcar #'(lambda (x) (apply #'+ (om-abs (flat x)))) ratios))
+        (sums (mapcar #'(lambda (x)
+                         (apply #'+ (om-abs (ratios-with-graces (flat x)))))
+                      ratios))
 		(max-sum (list-max (flat sums))))
   (loop for voice-ratios in ratios
 	    for voice-sum in sums
@@ -272,18 +253,18 @@
 					(mapcar #'round (pop voice-domains))
 					(mapcar #'float (pop voice-domains))))))
 
-(defun chords-length-by-measure (voices) ;<== 10/10/2024
+(defun chords-length-by-measure (voices) ;<== GRACE-NOTES 27/09/2025
  (let* ((v-mes (loop for voice in voices collect (get-measures voice)))
        (mes-ratios  (mat-trans (loop for vm in v-mes
                          collect (loop for mes in vm
                                              collect (tree2ratio (list '? (list (tree mes))))))))
        (mes-all-onsets (loop for measure in mes-ratios 
                              collect (let* ((onsets (loop for vr in measure
-                                                          when vr collect (butlast (dx->x 0 (om-abs vr))))))
+                                                          when vr collect (ratios2onsets vr))))
                                        (when onsets 
                                          (remove-duplicates 
                                         (sort-list 
-                                         (flat onsets))))))))                    
+                                         (flat onsets))))))))                   
 (mapcar #'length mes-all-onsets)))
  
 (defun correct-pitch-dur-onset-domains (voices-list)
@@ -297,8 +278,7 @@
 
 ;; NEEDS WORK: GRACE-BEATS
 ;; INCLUDE/EXCLUDE GRACE-NOTES
-;; NEW DOMAIN SLOTS
-;; MEASURE-DOMAIN (DOMAINS NEEDS WORK!!!)									   
+;; NEW DOMAIN SLOTS (GRACE-BEATS, ETC...)								   
 (defun build-variables-domain (voices domains mcs-approx random?)
    (handler-bind ((error #'(lambda (c)
                              (when *msg-error-label-on*
@@ -306,23 +286,23 @@
                                                         (om-report-condition c))
                                                   :size (om-make-point 300 200))
                                (om-abort)))))
-
  (let* ((pitch-durs-domain (new-domain-pitch-dur voices (list! domains) mcs-approx random?));<== NEW 12/09/2024 ;==> list-of-lists of pitch-variables/durations(ratio)
         (midics-domain (build-midics-domain voices pitch-durs-domain (list! domains) mcs-approx));<== NEW 12/09/2024		 
-		(ratios-domain (build-ratios-domain pitch-durs-domain));(mapcar #'(lambda (x) (mapcar #'second x)) pitch-durs-domain));==> list-of-lists of ratios  
+		    (ratios-domain (build-ratios-domain pitch-durs-domain));==> list-of-lists of ratios  
         (pitch-variables (mapcar #'(lambda (x) (mapcar #'first x)) pitch-durs-domain)) ;==> list-of-lists of pitches [midics for locked-voices, nil for rests and screamer (a-member-ofv domain) for open-voices]
         (pitch-durs-domain (loop for ratios in ratios-domain  
                                  for pitches in pitch-variables
                                  collect (mat-trans (list pitches ratios))))
         (pitch-variables (mapcar #'(lambda (x) (mapcar #'first x)) pitch-durs-domain))
         (onsets-domain (mapcar #'ratios2onsets ratios-domain)) ;==> list-of-lists of onsets
+        (offsets-domain (mapcar #'ratios2offsets ratios-domain)) ;==> list-of-lists of offsets
         (notes-positions (mapcar #'ratios2notes-posn ratios-domain)) ;==> list-of-lists of notes positions
-        (all-onsets (get-all-onsets-grace onsets-domain ratios-domain))  ; ==> NEW - GET-ALL-ONSETS-GRACE 22/06/2025 <==
-                   ;(sort-list (remove-duplicates (flat onsets-domain))))) ;==> all-onsets from all-voices
-        (notes-positions-in-onsets-list (mapcar #'(lambda (input)
-                                                    (posn-in-onsets-list input all-onsets))
-										  (mapcar #'list ratios-domain notes-positions (mapcar #'om+ (om-abs ratios-domain) onsets-domain)))) ;;;=> list-of-lists of positions for each pitch in onsets lists, repeating long notes.
-        (pitch-variables-all-onsets (mapcar #'posn-match pitch-variables notes-positions-in-onsets-list)) ;==> list of pitches repeating long notes.
+        (all-onsets (sort-list (remove-duplicates (flat onsets-domain)))) ;==> all-onsets from all-voices (WITH GRACE-NOTES - 27/09/2025)
+        ;; NEW (27/09/2025) - GRACE NOTES (REPEAT-PITCHES-UNTIL-OFFSET: USES ONSETS OFFSETS AND PITCHES)
+        (pitch-variables-all-onsets (loop for pitches in pitch-variables
+                                          for onsets in onsets-domain
+                                          for offsets in offsets-domain
+                                          collect (repeat-pitches-until-offset onsets offsets pitches all-onsets))) ;==> list-of-lists of pitches repeating long notes.                                   
         (beats-and-offbeats (get-beats-offbeats voices all-onsets pitch-variables-all-onsets)) ;==> FIRST (ON-BEATS) ==> SECOND (OFF-BEATS) ==> THIRD (FIRST BEATS)
         (chords-on-beats (mapcar #'flat ;==> list of chords on-beats
                             (remove-if #'(lambda (x) (or (not (some #'s::variable? (flat x)))
@@ -331,19 +311,8 @@
         (chords-off-beats (mapcar #'flat ;==> list of chords off-beats
                            (remove-if #'(lambda (x) (or (not (some #'s::variable? (flat x)))
                                                         (some #'null (remove nil (flat x)))))
-                          (second beats-and-offbeats))))
-                          ;; IN-PROGRESS: REMOVES ON-BEAT VARIABLES FROM OFF-BEAT LIST?
-                          ;; 
-                          #|(let ((offbeats (mapcar #'flat ;==> list of chords off-beats
-                                      (remove-if #'(lambda (x) (or (not (some #'s::variable? (flat x)))
-                                                                   (some #'null (remove nil (flat x)))))
-                                     (second beats-and-offbeats)))))
-                            (loop for chord in offbeats 
-                            collect (loop for variable in chord
-                                          collect (if (member variable (flat chords-on-beats) :test #'equal)
-                                                       nil
-                                                       variable)))))|#                                                                                 
-		(chords-first-beats (mapcar #'flat ;==> list of chords first beats
+                          (second beats-and-offbeats))))                                                                           
+		    (chords-first-beats (mapcar #'flat ;==> list of chords first beats
                              (remove-if #'(lambda (x) (or (not (some #'s::variable? (flat x)))
                                                           (some #'null (remove nil (flat x)))))
                               (third beats-and-offbeats))))
@@ -351,35 +320,33 @@
 				              collect (loop for ratio in ratios
 								  	        for x from 0
 											when (minusp ratio)
-											collect x))) ;; <== NEW (07/09/2024
-        ;; (mapcar #'get-rest-places voices)) ;==> rests positions
+											collect x))) ;; <== NEW (07/09/2024)
         (pitch-positions-without-rests (mapcar #'remove-rest-posn rest-positions notes-positions)) ;==> only notes positions
         (pitch-variables-without-rests (mapcar #'posn-match pitch-variables pitch-positions-without-rests)) ;==> only pitch/var without rests
         (all-chords (mat-trans pitch-variables-all-onsets)) ;<== INCLUDE RESTS
-	    (all-chords-without-rests ;==> list-of-lists of chords for all voices (nil for rests and lists for domains in "chords" mode)
+	      (all-chords-without-rests ;==> list-of-lists of chords for all voices (nil for rests and lists for domains in "chords" mode)
           (remove-if #'(lambda (x) (or (not (some #'s::variable? (flat x)))
                                        (some #'null (remove nil (flat x)))))
             all-chords)) ;<== NO RESTS
-        (chords-ratios (get-chords-ratios-grace all-onsets ratios-domain)); ==> NEW - GRACE NOTES 22/06/2025 <==
-                       ;(print (x->dx (sort-list (remove-duplicates (flat (mapcar #'(lambda (x) (dx->x 0 (om-abs x))) ratios-domain)))))))
-        (pitch-dur-chords (mapcar #'list all-chords chords-ratios)) ;; <== NEW (04/09/2024) ==================
+        (chords-ratios (get-chords-ratios-grace all-onsets offsets-domain)) ;==> NEW - GRACE NOTES 27/09/2025 <==
+        (pitch-dur-chords (mapcar #'list all-chords chords-ratios)) ;; <== NEW (04/09/2024) ==========================|
         (pitch-dur-chords-without-rests (mapcar #'list all-chords-without-rests chords-ratios))	
         (pitch-onset-chords (mapcar #'list (mat-trans pitch-variables-all-onsets) all-onsets))  
-	    (pitch-onset-chords-without-rests (remove-if #'(lambda (x) (or (not (some #'s::variable? (flat (first x))))  
+	      (pitch-onset-chords-without-rests (remove-if #'(lambda (x) (or (not (some #'s::variable? (flat (first x))))  
                                                           (some #'null (remove nil (flat (first x))))))
 						               pitch-onset-chords))            
         (pitch-dur-onset-chords (loop for pitch-durs in pitch-dur-chords   
                                   for pitch-onset in pitch-onset-chords       
-                                  collect (list (first pitch-onset) (second pitch-durs) (second pitch-onset)))) ;<===
+                                  collect (list (first pitch-onset) (second pitch-durs) (second pitch-onset)))) ;<====|
         (pitch-dur-onset-chords-without-rests (loop for pitch-durs in pitch-dur-chords-without-rests   
                                   for pitch-onset in pitch-onset-chords-without-rests      
-                                  collect (list (first pitch-onset) (second pitch-durs) (second pitch-onset)))) ;<===
+                                  collect (list (first pitch-onset) (second pitch-durs) (second pitch-onset)))) ;<====|
         (pitch-onset-domain (mapcar #'(lambda (x y) (mapcar #'(lambda (input1 input2) (if (listp input1) (x-append (list input1) input2) (x-append input1 input2))) x y)) pitch-variables onsets-domain))
         (pitch-dur-onset-domain (mapcar #'(lambda (x y) (mapcar #' x-append x y)) pitch-durs-domain onsets-domain))
         (pitch-dur-without-rests (correct-pitch-dur-onset-domains pitch-durs-domain))
         (pitch-onset-without-rests (correct-pitch-dur-onset-domains pitch-onset-domain))
         (pitch-dur-onset-without-rests (correct-pitch-dur-onset-domains pitch-dur-onset-domain))
-		)        
+		    )
  (make-variables-domain
 	   pitch-variables-without-rests
 	   pitch-variables
@@ -410,70 +377,60 @@
                                                         (om-report-condition c))
                                                   :size (om-make-point 300 200))
                                (om-abort)))))
-
 (let* ((measures (mapcar #'get-measures voices))
 	     (measures-matrix (if (list-of-listp measures) (mat-trans measures) (mapcar #'list measures)))
 	     (notes-length-by-measure (mat-trans
-                                                         (mapcar #'(lambda (m-mat)
+                                 (mapcar #'(lambda (m-mat)
 	                                                 ;(if (list-of-listp measures)
-													      (mapcar #'(lambda (x)
-														             (if (null x);==> included for different number of measures between voices
-														                  0
-													                     (length (flat (mapcar #'lmidic (chords x))))))
-															 m-mat)
-                                                                                                              )
-														 ; (length (lmidic (chords m-mat)))))
-	                                               measures-matrix)))
+													                 (mapcar #'(lambda (x)
+														                          (if (null x);==> included for different number of measures between voices
+														                               0
+													                               (length (flat (mapcar #'lmidic (chords-with-grace x))))))
+															                     m-mat))
+														                      ; (length (lmidic (chords m-mat)))))
+	                                      measures-matrix)))
              (notes-rests-length-by-measure (mat-trans
-                                                         (mapcar #'(lambda (m-mat)
-													      (mapcar #'(lambda (x)
-														             (if (null x);==> included for different number of measures between voices
-														                  0
-                                                                                                                                 (length (flat (remove-if #'cont-chord-p (get-all-chords x)))))  )       
-															 m-mat)
-                                                                                                              )
-	                                               measures-matrix)))
+                                             (mapcar #'(lambda (m-mat)
+                                              (mapcar #'(lambda (x)
+                                                        (if (null x);==> included for different number of measures between voices
+                                                              0
+                                                            (length (flat (remove-if #'cont-chord-p (get-all-chords-with-grace x))))))      
+															                        m-mat))
+	                                                   measures-matrix)))
 	     (pitch-domains (mapcar #'(lambda (notes-domain notes-length) (group-list notes-domain notes-length 'linear))  (pitch vars-domain) notes-length-by-measure))
-		 (pitch-include (mapcar #'(lambda (notes-domain notes-length) (group-list notes-domain notes-length 'linear))  (pitch-include vars-domain) notes-rests-length-by-measure))
-		 (pitch-dur-domains (mapcar #'(lambda (notes-domain notes-length) (group-list notes-domain notes-length 'linear))  (pitch-dur vars-domain) notes-length-by-measure))
+		   (pitch-include (mapcar #'(lambda (notes-domain notes-length) (group-list notes-domain notes-length 'linear))  (pitch-include vars-domain) notes-rests-length-by-measure))
+		   (pitch-dur-domains (mapcar #'(lambda (notes-domain notes-length) (group-list notes-domain notes-length 'linear))  (pitch-dur vars-domain) notes-length-by-measure))
 	     (pitch-onset-domains (mapcar #'(lambda (notes-domain notes-length) (group-list notes-domain notes-length 'linear))  (pitch-onset vars-domain) notes-length-by-measure))
 	     (pitch-dur-onset-domains (mapcar #'(lambda (notes-domain notes-length) (group-list notes-domain notes-length 'linear))  (pitch-dur-onset vars-domain) notes-length-by-measure))
 	     (pitch-dur-include (mapcar #'(lambda (notes-domain notes-length) (group-list notes-domain notes-length 'linear))  (pitch-dur-include vars-domain) notes-rests-length-by-measure))
 	     (pitch-onset-include (mapcar #'(lambda (notes-domain notes-length) (group-list notes-domain notes-length 'linear))  (pitch-onset-include vars-domain) notes-rests-length-by-measure))
 	     (pitch-dur-onset-include (mapcar #'(lambda (notes-domain notes-length) (group-list notes-domain notes-length 'linear))  (pitch-dur-onset-include vars-domain) notes-rests-length-by-measure))
 	     (chords-length-by-measure (chords-length-by-measure voices));<== 10/10/2024
-                                        ;(loop for mes in (mat-trans notes-length-by-measure)
-                                        ;                          collect (list-max mes)))
-                                        ;(mapcar #'(lambda (x) (length (remove-duplicates (flat x))))
-	                                                  ;(mat-trans (loop for part in pitch-onset-domains
-	                                                  ;                           for x = (loop for measure in part
-	                                                  ;                                         collect (mapcar #'second measure))
-	                                                  ;                           collect x))))
-	   (chords-all-onsets (group-list (mat-trans (pitch-vars-all-onsets vars-domain)) chords-length-by-measure 'linear)) ;<==WITH RESTS
+	     (chords-all-onsets (group-list (mat-trans (pitch-vars-all-onsets vars-domain)) chords-length-by-measure 'linear)) ;<==WITH RESTS
 	   ;===============================================================================================================================
-	   (chords-domains (loop for measure in chords-all-onsets
+	     (chords-domains (loop for measure in chords-all-onsets
 	                         collect (loop for chord in measure
                                                  when (not (null (remove nil (flat chord))))
                                                  collect chord))) ;<== 10/10/2024 ==> NO-RESTS
 	   ;===============================================================================================================================
   	   (pitch-dur-onset-chords (group-list (chords-pitch-dur-onset vars-domain) (mapcar #'length chords-domains)  'linear)); <== FIX (24/11/2024) || chords-length-by-measure 'linear)) 
-	   (pitch-dur-chords (group-list (chords-pitch-dur vars-domain) (mapcar #'length chords-domains) 'linear)) ; <== (24/11/2024) || chords-length-by-measure 'linear)) 
-	   (pitch-onset-chords (group-list (chords-pitch-onset vars-domain) (mapcar #'length chords-domains)  'linear)) ; <== (24/11/2024) || chords-length-by-measure 'linear))
-	   (pitch-dur-onset-chords-include (group-list (chords-pitch-dur-onset-include vars-domain) chords-length-by-measure 'linear)) 
-	   (pitch-dur-chords-include (group-list (chords-pitch-dur-include vars-domain)  chords-length-by-measure 'linear)) 
-	   (pitch-onset-chords-include (group-list (chords-pitch-onset-include vars-domain) chords-length-by-measure 'linear))
-	   (chords-on-beat (let ((on-beat-chords (chords-on-beat vars-domain))) ; <== 10/10/2024
-	                    (loop for mes in chords-domains
-							  collect (loop for chord in mes
-								            when (member chord on-beat-chords :test #'equal)
-											collect chord))))
- 	   (chords-off-beat (let ((off-beat-chords (chords-off-beat vars-domain))) ; <== 10/10/2024
- 	                    (loop for mes in chords-domains
- 							  collect (loop for chord in mes
- 								            when (member chord off-beat-chords :test #'equal)
- 											collect chord))))											
+	     (pitch-dur-chords (group-list (chords-pitch-dur vars-domain) (mapcar #'length chords-domains) 'linear)) ; <== (24/11/2024) || chords-length-by-measure 'linear)) 
+	     (pitch-onset-chords (group-list (chords-pitch-onset vars-domain) (mapcar #'length chords-domains)  'linear)) ; <== (24/11/2024) || chords-length-by-measure 'linear))
+	     (pitch-dur-onset-chords-include (group-list (chords-pitch-dur-onset-include vars-domain) chords-length-by-measure 'linear)) 
+	     (pitch-dur-chords-include (group-list (chords-pitch-dur-include vars-domain)  chords-length-by-measure 'linear)) 
+	     (pitch-onset-chords-include (group-list (chords-pitch-onset-include vars-domain) chords-length-by-measure 'linear))
+	     (chords-on-beat (let ((on-beat-chords (chords-on-beat vars-domain))) ; <== 10/10/2024
+	                      (loop for mes in chords-domains
+                              collect (loop for chord in mes
+                                            when (member chord on-beat-chords :test #'equal)
+                                            collect chord))))
+ 	    (chords-off-beat (let ((off-beat-chords (chords-off-beat vars-domain))) ; <== 10/10/2024
+ 	                      (loop for mes in chords-domains
+ 							                collect (loop for chord in mes
+ 								                            when (member chord off-beat-chords :test #'equal)
+ 											                      collect chord))))										
 	   (chords-1st-beat (loop for mes in chords-domains ; <== 10/10/2024
-		   	                  collect (list (car mes))))															   						   
+		   	                    collect (list (car mes))))															   						   
 	   (midics-domain (midics-domain vars-domain)))
 
 (loop for pitch in (mat-trans pitch-domains)

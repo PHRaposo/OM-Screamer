@@ -24,15 +24,12 @@
 ;;; SCREAMER-SCORE
 
 (defun update-pitches (voice-object solution)
- (make-instance 'voice
-      :tree (tree voice-object)
-      :tempo (tempo voice-object)
-      :legato (legato voice-object)
-      :ties (ties voice-object)
-      :chords (om* solution 100)))
+ ;; needs work: currently all parameters from chords are lost 
+ ;; (velocities, MIDI channels, etc...)
+ (set-obj-pitch voice-object (om* 100 solution)))
 
 (defun test-solution (solution voices)
- (if (null solution)
+ (if (or (null solution) (screamer::variables-in solution))
      (progn (om-message-dialog "UNABLE TO FIND A SOLUTION." ) (om-beep) (om-abort))
   (make-instance 'poly :voices (mapcar #'update-pitches voices solution))))
 

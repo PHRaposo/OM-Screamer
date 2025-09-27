@@ -175,10 +175,11 @@ measure 2 and voice 2. Each input will return all events in those measures, incl
             (midics-profiles-all bpfs voices midics pitch-domain approx)))))
 
 (defun ratios-to-ms (ratios tempo)
-  (let* ((whole-note (/ 240000 tempo))
+  (let* ((ratios-with-grace (ratios-with-graces ratios))
+         (whole-note (/ 240000 tempo))
          (ratios-to-ms (mapcar #'(lambda (x)
                                    (coerce x 'double-float))
-                               (om* whole-note ratios))))
+                               (om* whole-note ratios-with-grace))))
     (dx->x 0 ratios-to-ms)))
 
 (defun scale-bpf-time (ratios bpf)
