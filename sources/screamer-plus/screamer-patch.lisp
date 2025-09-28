@@ -109,7 +109,7 @@ LIST, CONS, ARRAY, STRING and SYMBOL.")
     (cons        (and (consp y) (equal x y)))
     (string      (and (stringp y) (string= x y)))
     (hash-table  (and (hash-table-p y) (equalp x y)))
-    (standard-object  (standard-object-equal x y))
+    (standard-object  (and (objectp y) (standard-object-equal x y)))
     (t           (eql x y)))))
 
 (eval-when (:compile-toplevel :load-toplevel :execute)
