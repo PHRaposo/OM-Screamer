@@ -32,7 +32,7 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; GRACE NOTES 18/06/2025 (IN-PROGRESS!)
-;; UPDATED 27/09/2025
+;; UPDATED 27/09/2025 | 29/09/2025 ==> (*grace-epsilon* = 1/512, collect original ratios (with zeros))
 
 (defun get-all-chords-with-grace (self)
  (let ((all-chords (remove-if #'cont-chord-p (flat (get-all-chords self)))))
@@ -105,11 +105,24 @@
  (let ((tree (list '? (list (tree measure)))))
   (get-rest-places tree)))
 
-(defparameter *grace-epsilon* 1/1000) ;<== GRACE-NOTES (27/09/2025)
+(defparameter *grace-epsilon* 1/1024) ;<== GRACE-NOTES (27/09/2025)
 
 (defun get-chords-ratios-grace (all-onsets offsets-domain) ;<== NEW GRACE NOTES 27/09/2025
- (let ((all-offsets (remove-duplicates (sort-list (flat offsets-domain)))))
-  (x->dx (cons (car all-onsets) all-offsets))))
+ (let* ((all-offsets (remove-duplicates (sort-list (flat offsets-domain))))
+        (chords-ratios-graces (x->dx (cons (car all-onsets) all-offsets)))
+        (n-graces 0)
+        (res '()))
+  (dolist (r chords-ratios-graces)
+   (cond ((= r *grace-epsilon*)
+          (incf n-graces)
+          (when (car res)
+           (setf (car res) (+ (car res) *grace-epsilon*))))
+         (t (when (> n-graces 0)
+              (dotimes (i n-graces)
+                (push 0 res)) ; COLLECT ORIGINAL RATIOS (WITH ZEROS)
+              (setf n-graces 0))
+            (push r res))))
+  (nreverse res)))
 
 (defun ratios2onsets (ratios)
  (if (some #'zerop ratios)
@@ -233,9 +246,10 @@ If offsets/pitches run out before times, push NIL for that voice."
 
  (let* ((ratios (mapcar #'(lambda (x) (mapcar #'second x)) pitch-durs-domain))
         (sums (mapcar #'(lambda (x)
-                         (apply #'+ (om-abs (ratios-with-graces (flat x)))))
+                         (apply #'+ (om-abs (flat x))))
+                         ;(apply #'+ (om-abs (ratios-with-graces (flat x)))))
                       ratios))
-		(max-sum (list-max (flat sums))))
+		    (max-sum (list-max (flat sums))))
   (loop for voice-ratios in ratios
 	    for voice-sum in sums
 	    collect (if (< voice-sum max-sum)
