@@ -137,12 +137,10 @@ The constraint f can be any LISP function."
  (apply #'?::listv x))
 
 (defun listv-memberv (listv lists)
- (let ((z (a-booleanv))
-       (booleans '()))
-  (dolist (lst lists)
-   (push (listv-equalv listv lst) booleans))
-(assert! (eqv z (apply #'orv booleans)))
- z))
+ (let ((z (if (screamer::variable? listv)
+              listv
+              (list-elements-ofv listv))))
+  (memberv z lists)))
 
 (defun equalv-lists (l1 l2)
  (equalv (apply #'?::listv l1) (apply #'?::listv l2)))

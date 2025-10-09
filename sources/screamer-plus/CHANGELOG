@@ -75,4 +75,10 @@
 ;;;                  - LispWorks 8.0.1
 ;;;                  - Clozure Common LISP 1.13
 ;;;
+;;; 09/10/2025      Modified CARV, CDRV, LENGTHV, CONSV and LISTV to improve propagation.
+;;;                 Added new rules (CAR-RULE-UP, CAR-RULE-DOWN, etc.) 
+;;;                 Imported set-enumerated-domain!, restrict-enumerated-domain!, variable?,
+;;;                 run-noticers, variablize and generic-equal from Screamer.
+;;;                 TODO: add more rules to other functions (NTHV, FIRSTV, SECONDV, MAPCARV, etc.)
+;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

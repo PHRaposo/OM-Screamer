@@ -59,7 +59,13 @@
     :value-of
     :deep-bound?
     :deep-value-of
-    :attach-noticer!)
+    :attach-noticer!
+    :generic-equal
+    :variable?
+    :set-enumerated-domain!
+    :restrict-enumerated-domain!
+    :run-noticers
+    :variablize)
  (:export
     :define-screamer-plus-package
     :impliesv

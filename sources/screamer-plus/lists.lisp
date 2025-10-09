@@ -42,21 +42,77 @@
 
 (in-package :screamer+)
 
+(defun car-rule-up (x z)
+ (when (and (variable? (deep-value-of x))
+            (not (eq (variable-enumerated-domain x) t))
+            (variable? (deep-value-of z)))        
+      (if (not (eq (variable-enumerated-domain z) t))
+          (let ((car-domain (remove-duplicates (mapcar #'car (variable-enumerated-domain x)) :test #'generic-equal)))
+           (if (set-enumerated-domain!
+                z (remove-if-not #'(lambda (element) (member element car-domain
+                                                            :test #'generic-equal))
+                                 (variable-enumerated-domain z)))
+              (run-noticers z)))
+          (let ((domain (mapcar #'car (variable-enumerated-domain x))))
+           (restrict-enumerated-domain! z domain)))))
+
+(defun car-rule-down (z x)
+ (when (and (variable? (deep-value-of x))
+            (variable? (deep-value-of z))
+            (not (eq (variable-enumerated-domain z) t))
+            (not (eq (variable-enumerated-domain x) t)))
+      (let ((car-domain (variable-enumerated-domain z)))
+        (if (set-enumerated-domain!
+            x (remove-if-not #'(lambda (element) (member (car element) car-domain
+                                                          :test #'generic-equal))
+                            (variable-enumerated-domain x)))
+          (run-noticers x)))))
+     
 (defun carv (x)
   (let ((x (value-of x)))
     (typecase x
       (list (car x))
       (screamer::variable
        (let ((z (funcallv #'car x)))
+        (attach-noticer! #'(lambda () (car-rule-up x z)) x)
+        (attach-noticer! #'(lambda () (car-rule-down z x)) z :dependencies (list x))
          z))
       (otherwise (error "Cannot take CARV of ~A~%" x)))))
 
+(defun cdr-rule-up (x z)
+  (when (and (variable? (deep-value-of x))
+             (not (eq (variable-enumerated-domain x) t))
+             (variable? (deep-value-of z)))
+    (if (not (eq (variable-enumerated-domain z) t))
+        (let ((cdr-domain (remove-duplicates (mapcar #'cdr (variable-enumerated-domain x)) :test #'generic-equal)))
+          (if (set-enumerated-domain!
+               z (remove-if-not #'(lambda (element) (member element cdr-domain
+                                                            :test #'generic-equal))
+                                (variable-enumerated-domain z)))
+              (run-noticers z)))
+        (let ((domain (mapcar #'cdr (variable-enumerated-domain x))))
+          (restrict-enumerated-domain! z domain)))))
+
+(defun cdr-rule-down (z x)
+  (when (and (variable? (deep-value-of x))
+             (variable? (deep-value-of z))
+             (not (eq (variable-enumerated-domain z) t))
+             (not (eq (variable-enumerated-domain x) t)))
+    (let ((cdr-domain (variable-enumerated-domain z)))
+      (if (set-enumerated-domain!
+           x (remove-if-not #'(lambda (element) (member (cdr element) cdr-domain
+                                                        :test #'generic-equal))
+                            (variable-enumerated-domain x)))
+          (run-noticers x)))))
+
 (defun cdrv (x)
   (let ((x (value-of x)))
-    (typecase x 
+    (typecase x
       (list (cdr x))
       (screamer::variable
        (let ((z (funcallv #'cdr x)))
+         (attach-noticer! #'(lambda () (cdr-rule-up x z)) x)
+         (attach-noticer! #'(lambda () (cdr-rule-down z x)) z :dependencies (list x))
          z))
       (otherwise (error "Cannot take CDRV of ~A~%" x)))))
 
@@ -69,13 +125,68 @@
          z))
       (otherwise (error "Cannot take RESTV of ~A~%" x)))))
 
- (defun consv (x y)
- (let* ((z (funcallv #'cons (value-of x) (value-of y)))
-        (carv (carv z))
-        (cdrv (cdrv z)))
-  (assert! (equalv carv x))
-  (assert! (equalv cdrv y))
-   z))
+(defun cons-rule-up (x y z)
+ (when (and (domain-size (list x y))
+            (<= (domain-size (list x y)) *maximum-discretization-range*)
+            (or (variable? (deep-value-of x))
+                (variable? (deep-value-of y)))
+            (not (eq (variable-enumerated-domain x) t))
+            (not (eq (variable-enumerated-domain y) t))
+            (variable? (deep-value-of z)))
+    (if (not (eq (variable-enumerated-domain z) t))
+        (let ((cons-domain (all-values (solution (cons x y) (static-ordering #'linear-force)))))
+          (if (set-enumerated-domain!
+               z (remove-if-not #'(lambda (element) (member element cons-domain
+                                                            :test #'generic-equal))
+                                (variable-enumerated-domain z)))
+              (run-noticers z)))
+        (let ((domain (all-values (solution (cons x y) (static-ordering #'linear-force)))))
+          (restrict-enumerated-domain! z domain)))))
+
+(defun cons-rule-down (z x y)
+  (when (and (or (variable? (deep-value-of x))
+                 (variable? (deep-value-of y)))
+             (not (eq (variable-enumerated-domain z) t)))
+   (when (variable? (deep-value-of x))
+    (if (not (eq (variable-enumerated-domain x) t))
+        (let ((car-z-domain (remove-duplicates (mapcar #'car (variable-enumerated-domain z))
+                                            :test #'generic-equal)))
+         (if (set-enumerated-domain!
+              x (remove-if-not
+                            #'(lambda (element)
+                                (member element car-z-domain
+                                        :test #'generic-equal))
+                            (variable-enumerated-domain x)))
+              (run-noticers x)))
+        (let ((car-z-domain (mapcar #'car (variable-enumerated-domain z))))
+          (restrict-enumerated-domain! x car-z-domain))))
+    (when (variable? (deep-value-of y))
+    (if (not (eq (variable-enumerated-domain y) t))
+        (let ((cdr-z-domain (remove-duplicates (mapcar #'cdr (variable-enumerated-domain z))
+                                            :test #'generic-equal)))
+         (if (set-enumerated-domain!
+              y (remove-if-not
+                            #'(lambda (element)
+                                (member element cdr-z-domain
+                                        :test #'generic-equal))
+                            (variable-enumerated-domain y)))
+              (run-noticers y)))
+        (let ((cdr-z-domain (mapcar #'cdr (variable-enumerated-domain z))))
+         (restrict-enumerated-domain! y cdr-z-domain))))))
+
+(defun consv2 (x y)
+ (let* ((x (variablize x))
+        (y (variablize y))
+        (z (funcallv #'cons x y)))
+    (attach-noticer! #'(lambda () (cons-rule-up x y z)) x)
+    (attach-noticer! #'(lambda () (cons-rule-up x y z)) y)
+    (attach-noticer! #'(lambda () (cons-rule-down z x y)) z :dependencies (list x y))
+    z))
+
+(defun consv (x y)
+  (if (consp y)
+      (consv2 x (consv (car y) (cdr y)))
+      (consv2 x y)))
 
 (defun nthv (n lst)
   (let ((n (value-of n))
@@ -187,14 +298,42 @@
           z))
       (otherwise (error "Cannot take TENTHV of ~A.~%" x)))))
 
+(defun length-rule-up (x z)
+  (when (and (variable? (deep-value-of x))
+             (not (eq (variable-enumerated-domain x) t))
+             (variable? (deep-value-of z)))
+    (if (not (eq (variable-enumerated-domain z) t))
+        (let ((length-domain (remove-duplicates (mapcar #'length (variable-enumerated-domain x)))))
+          (if (set-enumerated-domain!
+               z (remove-if-not #'(lambda (element) (member element length-domain :test #'=))
+                                (variable-enumerated-domain z)))
+              (run-noticers z)))
+        (let ((domain (mapcar #'length (variable-enumerated-domain x))))
+          (restrict-enumerated-domain! z domain)))))
+
+(defun length-rule-down (z x)
+  (when (and (variable? (deep-value-of x))
+             (variable? (deep-value-of z))
+             (not (eq (variable-enumerated-domain z) t))
+             (not (eq (variable-enumerated-domain x) t)))
+    (let ((length-domain (variable-enumerated-domain z)))
+      (if (set-enumerated-domain!
+           x (remove-if-not #'(lambda (element) (member (length element) length-domain :test #'=))
+                            (variable-enumerated-domain x)))
+          (run-noticers x)))))
+
 (defun lengthv (x)
   (let ((x (value-of x)))
-  (typecase x 
-    (list (length x))
-    (screamer::variable 
-     (let ((z (funcallv #'length x)))
-      z))
-    (otherwise (error "Cannot take LENGTHV of ~A.~%" x)))))
+    (typecase x
+      (list (length x))
+      (screamer::variable
+       (let ((z (funcallv #'length x)))
+         (assert! (andv (integerpv z) 
+                        (>=v z 0)))
+         (attach-noticer! #'(lambda () (length-rule-up x z)) x)
+         (attach-noticer! #'(lambda () (length-rule-down z x)) z :dependencies (list x))
+         z))
+      (otherwise (error "Cannot take LENGTHV of ~A~%" x)))))
 
 (defun nthcdrv (n lst)
   (let ((n (value-of n))
@@ -334,12 +473,14 @@ if and only if all corresponding elements are equal. Returns the boolean variabl
                 (applyv #'maplist arguments))))
     z))
 
-(defun listv (&rest elements)
-  (let* ((elements (mapcar #'value-of elements))
-         (z (if (deep-bound? elements)
-                (apply #'list elements)
-                (applyv #'list elements))))
-  z))
+(defun listv-internal (x)
+  (cond
+    ((null x) nil)
+    ((consp x) (consv2 (listv-internal (car x)) (listv-internal (cdr x))))
+    (t x)))
+
+(defun listv (&rest args)
+ (listv-internal args))
 
 (defun appendv (&rest lists)
   (let* ((z (if (deep-bound? lists)
