@@ -123,8 +123,8 @@
   (setf *screamer-score-random?* nil)
   (if *print-screamer-score-time?* (om-timing-stop scs-time))
   (test-solution solution (voices poly-object))	  
- ))) 
-     
+ )))
+
 (defun screamer-score-solution (all-domains force)
  (let ((variables-domain (var-domain all-domains))
        (force-function force)) 

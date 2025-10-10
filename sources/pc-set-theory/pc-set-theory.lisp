@@ -177,7 +177,9 @@
 ; ============ ;
 
 (defun fnv (vars)
- (let* ((variables-mod12v (mapcar #'(lambda (el) (funcallv #'mod el 12)) vars))
+ (let* ((variables-mod12v (mapcar #'(lambda (el)
+                                     (funcallv #'mod el 12))
+                                  vars))
         (no-dupv (remove-duplicatesv variables-mod12v :test #'=))
         (sortedv (sortv no-dupv #'<))
         (fnv (carv (funcallv #'gethash sortedv *all-possible-chroma-subsets-hash*))))
