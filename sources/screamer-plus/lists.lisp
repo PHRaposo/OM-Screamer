@@ -116,14 +116,7 @@
          z))
       (otherwise (error "Cannot take CDRV of ~A~%" x)))))
 
-(defun restv (x)
-  (let ((x (value-of x)))
-    (typecase x 
-      (list (rest x))
-      (screamer::variable
-       (let ((z (funcallv #'rest x)))
-         z))
-      (otherwise (error "Cannot take RESTV of ~A~%" x)))))
+(defun restv (x) (cdrv x))
 
 (defun cons-rule-up (x y z)
  (when (and (domain-size (list x y))
@@ -188,115 +181,14 @@
       (consv2 x (consv (car y) (cdr y)))
       (consv2 x y)))
 
-(defun nthv (n lst)
-  (let ((n (value-of n))
-        (lst (value-of lst)))
-    (cond ((or (variable? n) (variable? lst))
-           (let ((z (funcallv #'nth n lst)))
-            (assert! (listpv lst))
-            (assert! (integerpv n))
-            z))
-          ((listp lst) (nth n lst))
-          (t (error "Cannot take NTHV ~A of ~A.~%" n lst)))))
+(defun listv-internal (x)
+  (cond
+    ((null x) nil)
+    ((consp x) (consv2 (listv-internal (car x)) (listv-internal (cdr x))))
+    (t x)))
 
-(defun firstv (x)
-  (let ((x (value-of x)))
-    (typecase x 
-      (list (first x))
-      (screamer::variable
-        (let ((z (funcallv #'first x)))
-          z))
-      (otherwise (error "Cannot take FIRSTV of ~A.~%" x)))))
-
-(defun secondv (x)
-  (let ((x (value-of x)))
-    (typecase x 
-      (list (second x))
-      (screamer::variable
-        (let ((z (funcallv #'second x)))
-          (assert! (listpv x))
-          z))
-      (otherwise (error "Cannot take SECONDV of ~A.~%" x)))))
-
-(defun thirdv (x)
-  (let ((x (value-of x)))
-    (typecase x 
-      (list (third x))
-      (screamer::variable
-        (let ((z (funcallv #'third x)))
-          (assert! (listpv x))
-          z))
-      (otherwise (error "Cannot take THIRDV of ~A.~%" x)))))
-
-(defun fourthv (x)
-  (let ((x (value-of x)))
-    (typecase x 
-      (list (fourth x))
-      (screamer::variable
-        (let ((z (funcallv #'fourth x)))
-          (assert! (listpv x))
-          z))
-      (otherwise (error "Cannot take FOURTHV of ~A.~%" x)))))
-
-(defun fifthv (x)
-  (let ((x (value-of x)))
-    (typecase x 
-      (list (fifth x))
-      (screamer::variable
-        (let ((z (funcallv #'fifth x)))
-          (assert! (listpv x))
-          z))
-      (otherwise (error "Cannot take FIFTHV of ~A.~%" x)))))
-
-(defun sixthv (x)
-  (let ((x (value-of x)))
-    (typecase x 
-      (list (sixth x))
-      (screamer::variable
-        (let ((z (funcallv #'sixth x)))
-          (assert! (listpv x))
-          z))
-      (otherwise (error "Cannot take SIXTHV of ~A.~%" x)))))
-
-(defun seventhv (x)
-  (let ((x (value-of x)))
-    (typecase x 
-      (list (seventh x))
-      (screamer::variable
-        (let ((z (funcallv #'seventh x)))
-          (assert! (listpv x))
-          z))
-      (otherwise (error "Cannot take SEVENTHV of ~A.~%" x)))))
-
-(defun eighthv (x)
-  (let ((x (value-of x)))
-    (typecase x 
-      (list (eighth x))
-      (screamer::variable
-        (let ((z (funcallv #'eighth x)))
-          (assert! (listpv x))
-          z))
-      (otherwise (error "Cannot take EIGHTHV of ~A.~%" x)))))
-
-(defun ninthv (x)
-  (let ((x (value-of x)))
-    (typecase x 
-      (list (ninth x))
-      (screamer::variable
-        (let ((z (funcallv #'ninth x)))
-          (assert! (listpv x))
-         z))
-      (otherwise (error "Cannot take NINTHV of ~A.~%" x)))))
-
-(defun tenthv (x)
-  (let ((x (value-of x))) 
-    (typecase x 
-      (list (tenth x))
-      (screamer::variable
-        (let ((z (funcallv #'tenth x)))
-          (assert! (listpv x))
-          z))
-      (otherwise (error "Cannot take TENTHV of ~A.~%" x)))))
+(defun listv (&rest args)
+ (listv-internal args))
 
 (defun length-rule-up (x z)
   (when (and (variable? (deep-value-of x))
@@ -335,17 +227,180 @@
          z))
       (otherwise (error "Cannot take LENGTHV of ~A~%" x)))))
 
-(defun nthcdrv (n lst)
-  (let ((n (value-of n))
-        (lst (value-of lst)))
-    (assert! (integerpv n))
-    (cond ((or (variable? n) (variable? lst))
-           (let ((z (funcallv #'nthcdr n lst)))
-           (assert! (listpv lst))
-           (assert! (integerpv n))
-            z))
-          ((listp lst) (nthcdr n lst))
-          (t (error "Cannot take NTHCDRV ~A of ~A.~%" n lst)))))
+(defun nth-rule-up (n x z)
+  (when (and (domain-size (list n x))
+             (<= (domain-size (list n x)) *maximum-discretization-range*)
+             (or (variable? (deep-value-of n))
+                 (variable? (deep-value-of x)))
+             (variable? (deep-value-of z)))
+    (let* ((x-domain (variable-enumerated-domain x))
+           (n-domain (variable-enumerated-domain n))
+           (new-z-domain (let ((results '()))
+                          (dolist (x-element x-domain results)
+                            (dolist (n-element n-domain)
+                              (pushnew (nth n-element x-element) results))))))
+      (if (not (eq (variable-enumerated-domain z) t))
+          (when (set-enumerated-domain!
+                   z (remove-if-not
+                      #'(lambda (element)
+                        (member element new-z-domain :test #'generic-equal))
+                      (variable-enumerated-domain z)))
+              (run-noticers z))
+          (restrict-enumerated-domain! z new-z-domain)))))
+
+(defun nth-rule-down (z n x)
+  (when (and (or (variable? (value-of n))
+                 (variable? (deep-value-of x)))
+             (not (eq (variable-enumerated-domain z) t)))             
+  (let* ((z-domain (variable-enumerated-domain z)))
+   (when (and (variable? (value-of n))
+              (not (eq (variable-enumerated-domain x) t)))
+    (if (not (eq (variable-enumerated-domain n) t))
+        (let ((new-n-domain (remove-if-not
+                             #'(lambda (n-element)
+                                 (some #'(lambda (x-element)
+                                            (member (nth n-element x-element) z-domain :test #'generic-equal))
+                                       (variable-enumerated-domain x)))
+                             (variable-enumerated-domain n))))
+          (when (set-enumerated-domain! n new-n-domain)
+            (run-noticers n)))
+        (restrict-enumerated-domain! n domain)))
+    (when (and (variable? (deep-value-of x))
+                (not (eq (variable-enumerated-domain n) t)))
+          (if (not (eq (variable-enumerated-domain x) t))
+              (let ((new-x-domain (remove-if-not
+                                   #'(lambda (x-element)
+                                       (some #'(lambda (n-element)
+                                                  (member (nth n-element x-element) z-domain :test #'generic-equal))
+                                             (variable-enumerated-domain n)))
+                                   (variable-enumerated-domain x))))
+                (when (set-enumerated-domain! x new-x-domain)
+                  (run-noticers x)))
+              (restrict-enumerated-domain! x new-x-domain))))))
+
+(defun nthv (n x)
+ (let ((x (value-of x))
+       (n (value-of n)))
+ (if (and (bound? n)
+          (or (listp x) (deep-bound? x)))
+      (nth (value-of n) (deep-value-of x))
+      (let* ((n (variablize n))
+             (x (typecase x
+                 (screamer::variable x)
+                 (list (apply #'listv x))
+                 (t (error "Cannot take NTHV ~A of ~A.~%" n x))))
+             (z (funcallv #'nth n x)))
+       (unless (bound? n)
+        (assert! (andv (>=v n 0)
+                       (<=v n (-v (lengthv x) 1)))))
+       (attach-noticer! #'(lambda () (nth-rule-up n x z)) n)
+       (attach-noticer! #'(lambda () (nth-rule-up n x z)) x)
+       (attach-noticer! #'(lambda () (nth-rule-down z n x)) z :dependencies (list n x))
+       z))))
+
+(defun firstv (x) (carv x))
+
+(defun secondv (x) (nthv 1 x))
+
+(defun thirdv (x) (nthv 2 x))
+
+(defun fourthv (x) (nthv 3 x))
+
+(defun fifthv (x) (nthv 4 x))
+
+(defun sixthv (x) (nthv 5 x))
+
+(defun seventhv (x) (nthv 6 x))
+
+(defun eighthv (x) (nthv 7 x))
+
+(defun ninthv (x) (nthv 8 x))
+
+(defun tenthv (x) (nthv 9 x))
+
+(defun nthcdr-rule-up (n x z)
+  (when (and (domain-size (list n x))
+             (<= (domain-size (list n x)) *maximum-discretization-range*)
+             (or (variable? (deep-value-of n))
+                 (variable? (deep-value-of x)))
+             (variable? (deep-value-of z)))
+    (let* ((x-domain (variable-enumerated-domain x))
+           (n-domain (variable-enumerated-domain n))
+           (new-z-domain
+             (let ((results '()))
+               (dolist (x-element x-domain results)
+                 (dolist (n-element n-domain)
+                   (pushnew (nthcdr n-element x-element) results :test #'generic-equal))))))
+      (if (not (eq (variable-enumerated-domain z) t))
+          (when (set-enumerated-domain!
+                 z (remove-if-not
+                    (lambda (element)
+                      (member element new-z-domain :test #'generic-equal))
+                    (variable-enumerated-domain z)))
+            (run-noticers z))
+          (restrict-enumerated-domain! z new-z-domain)))))
+
+(defun nthcdr-rule-down (z n x)
+  (when (and (or (variable? (value-of n))
+                 (variable? (deep-value-of x)))
+             (not (eq (variable-enumerated-domain z) t)))
+    (let ((z-domain (variable-enumerated-domain z)))
+      (when (and (variable? (value-of n))
+                 (not (eq (variable-enumerated-domain x) t)))
+        (if (not (eq (variable-enumerated-domain n) t))
+            (let ((new-n-domain
+                    (remove-if-not
+                      #'(lambda (n-element)
+                        (some #'(lambda (x-element)
+                                (member (nthcdr n-element x-element) z-domain :test #'generic-equal))
+                              (variable-enumerated-domain x)))
+                      (variable-enumerated-domain n))))
+              (when (set-enumerated-domain! n new-n-domain)
+                (run-noticers n)))
+            (restrict-enumerated-domain!
+             n (mapcar #'(lambda (x-element)
+                          (remove-if-not #'(lambda (n-element)
+                                            (member (nthcdr n-element x-element) z-domain :test #'generic-equal))
+                                         (variable-enumerated-domain n)))
+                       (variable-enumerated-domain x)))))
+      (when (and (variable? (deep-value-of x))
+                 (not (eq (variable-enumerated-domain n) t)))
+        (if (not (eq (variable-enumerated-domain x) t))
+            (let ((new-x-domain
+                    (remove-if-not #'(lambda (x-element)
+                                      (some #'(lambda (n-element)
+                                               (member (nthcdr n-element x-element) z-domain :test #'generic-equal))
+                                            (variable-enumerated-domain n)))
+                                   (variable-enumerated-domain x))))
+              (when (set-enumerated-domain! x new-x-domain)
+                (run-noticers x)))
+            (restrict-enumerated-domain!
+             x (mapcar #'(lambda (n-element)
+                          (remove-if-not #'(lambda (x-element)
+                                            (member (nthcdr n-element x-element) z-domain :test #'generic-equal))
+                                         (variable-enumerated-domain x)))
+                      (variable-enumerated-domain n))))))))
+
+(defun nthcdrv (n x)
+ (let ((x (value-of x))
+       (n (value-of n)))
+  (if (and (bound? n)
+           (or (listp x) (deep-bound? x)))
+      (nthcdr (value-of n) (deep-value-of x))
+      (let* ((n (variablize n))
+             (x (typecase x
+                  (screamer::variable x)
+                  (list (apply #'listv x))
+                  (t (error "Cannot take NTHCDRV ~A of ~A.~%" n x))))
+             (z (funcallv #'nthcdr n x)))
+        (unless (bound? n)
+          (assert! (andv (integerpv n)
+                         (>=v n 0)
+                         (<=v n (lengthv x)))))
+        (attach-noticer! #'(lambda () (nthcdr-rule-up n x z)) n)
+        (attach-noticer! #'(lambda () (nthcdr-rule-up n x z)) x)
+        (attach-noticer! #'(lambda () (nthcdr-rule-down z n x)) z :dependencies (list n x))
+        z))))
 
 (defun listv-equalv (x y)
 "An enhanced version of EQUALV for lists that works with both logic variables and lists.
@@ -472,15 +527,6 @@ if and only if all corresponding elements are equal. Returns the boolean variabl
                 (apply #'maplist arguments)
                 (applyv #'maplist arguments))))
     z))
-
-(defun listv-internal (x)
-  (cond
-    ((null x) nil)
-    ((consp x) (consv2 (listv-internal (car x)) (listv-internal (cdr x))))
-    (t x)))
-
-(defun listv (&rest args)
- (listv-internal args))
 
 (defun appendv (&rest lists)
   (let* ((z (if (deep-bound? lists)

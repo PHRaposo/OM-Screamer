@@ -81,4 +81,9 @@
 ;;;                 run-noticers, variablize and generic-equal from Screamer.
 ;;;                 TODO: add more rules to other functions (NTHV, FIRSTV, SECONDV, MAPCARV, etc.)
 ;;;
+;;; 11/10/2025      Modified NTHV function and added rules (NTHV-RULE-UP and NTHV-RULE-DOWN).
+;;;                 Modified RESTV, FIRSTV, SECONDV, etc.. to use NTHV.
+;;;                 Modified NTHCDRV function and added rules (NTHCDR-RULE-UP and NTHCDR-RULE-DOWN).
+;;;                 Added test for NTHCDRV in primordial-plus.lisp.
+;;; 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
