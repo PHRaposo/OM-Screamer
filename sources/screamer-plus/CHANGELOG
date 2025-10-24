@@ -86,4 +86,6 @@
 ;;;                 Modified NTHCDRV function and added rules (NTHCDR-RULE-UP and NTHCDR-RULE-DOWN).
 ;;;                 Added test for NTHCDRV in primordial-plus.lisp.
 ;;; 
+;;; 20/10/2025      Added CONSV-INTERNAL function to improve propagation in CONSV.
+;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

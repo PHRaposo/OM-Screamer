@@ -176,10 +176,18 @@
     (attach-noticer! #'(lambda () (cons-rule-down z x y)) z :dependencies (list x y))
     z))
 
+(defun consv-internal (x y)
+ (cond ((atom x)
+        (if (atom y)
+            (consv2 x y)
+            (consv2 x (consv (car y) (cdr y)))))
+       ((atom y)
+        (consv2 (consv (car x) (cdr x)) y))
+       (t (consv2 (consv (car x) (cdr x))
+                  (consv (car y) (cdr y))))))
+
 (defun consv (x y)
-  (if (consp y)
-      (consv2 x (consv (car y) (cdr y)))
-      (consv2 x y)))
+ (consv-internal (value-of x) (value-of y)))
 
 (defun listv-internal (x)
   (cond
