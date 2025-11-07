@@ -88,4 +88,7 @@
 ;;; 
 ;;; 20/10/2025      Added CONSV-INTERNAL function to improve propagation in CONSV.
 ;;;
+;;; 07/11/2025      Fixed NTH-RULE-DOWN: propagates correctly from Z and X to N.
+;;;                 Removed propagation from Z and N to X.
+;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

@@ -272,7 +272,16 @@
                              (variable-enumerated-domain n))))
           (when (set-enumerated-domain! n new-n-domain)
             (run-noticers n)))
-        (restrict-enumerated-domain! n domain)))
+        ;; Compute valid indices: all integers N such that (nth N x-element) member z-domain
+        ;; for some x-element in x-domain
+        (let ((x-domain (variable-enumerated-domain x))
+              (valid-indices '()))
+          (dolist (x-element x-domain)
+            (dotimes (i (length x-element))
+              (when (member (nth i x-element) z-domain :test #'generic-equal)
+                (pushnew i valid-indices))))
+          (when valid-indices
+            (restrict-enumerated-domain! n valid-indices)))))
     (when (and (variable? (deep-value-of x))
                 (not (eq (variable-enumerated-domain n) t)))
           (if (not (eq (variable-enumerated-domain x) t))
@@ -283,8 +292,7 @@
                                              (variable-enumerated-domain n)))
                                    (variable-enumerated-domain x))))
                 (when (set-enumerated-domain! x new-x-domain)
-                  (run-noticers x)))
-              (restrict-enumerated-domain! x new-x-domain))))))
+                  (run-noticers x))))))))
 
 (defun nthv (n x)
  (let ((x (value-of x))
