@@ -475,7 +475,7 @@ calls, atoms) is left for TRANSFORM-ASSERT! to handle normally."
       ((equal funname 'cpatch)
        (let ((newbox (omNG-make-new-boxcall
                       (make-instance 'ConstraintPatchAbs
-                                     :name (mk-unique-name scroller "my-cpatch")
+                                     :name (mk-unique-name scroller "mycpatch")
                                      :icon 180210)
                       pos
                       (mk-unique-name scroller "mycpatch"))))
@@ -485,7 +485,7 @@ calls, atoms) is left for TRANSFORM-ASSERT! to handle normally."
       ((equal funname 'clisp)
        (let ((newbox (omNG-make-new-boxcall
                       (make-instance 'ConstraintLispPatchAbs
-                                     :name (mk-unique-name scroller "my-clisp")
+                                     :name (mk-unique-name scroller "myclisp")
                                      :icon 180123)
                       pos
                       (mk-unique-name scroller "myclisp"))))
