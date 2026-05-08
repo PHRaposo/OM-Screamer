@@ -38,7 +38,7 @@
     :initvals '(nil nil nil nil nil "one-value" nil "static-ordering linear-force" nil nil nil nil nil)
 
     :indoc '("variable or list" "propagation-variables<lambda-patch>" "constraint<lambda-patch> or list"
-		"propagation-constraints<lambda-patch>" "constraints-all<lambda-patch>"  "one-value, all-values, listener, n-values, ith-value or best-value"
+        "propagation-constraints<lambda-patch>" "constraints-all<lambda-patch>"  "one-value, all-values, listener, n-values, ith-value or best-value"
                 "integer" "ordering-force-functions" "map-solutions<lambda-patch>" "list" "symbol t or nil" "<lambda-patch>"  "<lambda-patch>")
 
     :doc "Screamer Constraint Solver
@@ -103,301 +103,301 @@
                  (fdefinition (compile-screamer-constraint map-s))
                  (mapcar #'(lambda (x) (fdefinition (compile-screamer-constraint x))) map-s))))
          (compiled-forms ;==> BEST-VALUE FORMS
-		 (if obj-form
-		     (if form2
-		         (mapcar #'(lambda (x) (fdefinition (compile-screamer-constraint x))) (list obj-form form2))
-		   	 (fdefinition (compile-screamer-constraint obj-form)))
-		      nil))
-		 (vars-name (intern (string (gensym "vars")) :om)) ;==> NAME FOR VARIABLES (SYMBOL)
-		 (p-vars-name (intern (string (gensym "p-vars")) :om)) ;==> NAME FOR PROPAGATION VARIABLES (SYMBOL)
-		 (constraints ;==> CONSTRAINTS CODE
-		    (if compiled-constraints
-		     (if (functionp compiled-constraints)
-		         `(apply ',compiled-constraints (list ,vars-name))
-		         `(mapcar #'(lambda (cs) (apply cs (list ,vars-name))) ',compiled-constraints))
-		        nil ))
-	    (p-constraints ;==> P-CONSTRAINTS CODE
-	      (if compiled-p-constraints
-	         (if (functionp compiled-p-constraints)
-	          `(apply ',compiled-p-constraints (list ,p-vars-name))
-	          `(mapcar #'(lambda (cs) (apply cs (list ,p-vars-name))) ',compiled-p-constraints))
-	        nil ))
-	    (constraints-all ;==> CONSTRAINTS-ALL CODE
-	      (if compiled-constraints-all
-	         (if (functionp compiled-constraints-all)
-	          `(apply ',compiled-constraints-all (list ,vars-name ,p-vars-name))
-	          `(mapcar #'(lambda (cs) (apply cs (list ,vars-name ,p-vars-name))) ',compiled-constraints-all))
-	        nil ))
-	    (val (cond ((equal valuation "one-value") 0)
-	                 ((equal valuation "all-values") 1)
-	                 ((equal valuation "listener") 2)
-	                 ((equal valuation "n-values") 3)
-	                 ((equal valuation "ith-value") 4)
-	                 ((equal valuation "best-value") 5)
-			         (t (progn (om-message-dialog "UNKNOWN VALUATION OPTION!") (om-abort)))))
-	   (n-ith-value n-ith)
-	   (ordering ;==> ORDERING
-		(let ((ord (first (string-to-list ordering-force))))
-	     (cond ((equal "static-ordering" ord) 0)
-		       ((equal "reorder" (first ord)) 1)
-		       (t 0))))
-	  (force-function ;==> FORCE-FUNCTION FOR STATIC-ORDERING
-	   (if (= 1 ordering)
-		    nil
-		   (let ((force (second (string-to-list ordering-force))))
-		    (cond ((equal "linear-force" force) 0)
-		          ((equal "divide-and-conquer-force" force) 1)
-		          ((equal "random-force" force) 2)
-		          (t 0)))))
+         (if obj-form
+             (if form2
+                 (mapcar #'(lambda (x) (fdefinition (compile-screamer-constraint x))) (list obj-form form2))
+             (fdefinition (compile-screamer-constraint obj-form)))
+              nil))
+         (vars-name (intern (string (gensym "vars")) :om)) ;==> NAME FOR VARIABLES (SYMBOL)
+         (p-vars-name (intern (string (gensym "p-vars")) :om)) ;==> NAME FOR PROPAGATION VARIABLES (SYMBOL)
+         (constraints ;==> CONSTRAINTS CODE
+            (if compiled-constraints
+             (if (functionp compiled-constraints)
+                 `(apply ',compiled-constraints (list ,vars-name))
+                 `(mapcar #'(lambda (cs) (apply cs (list ,vars-name))) ',compiled-constraints))
+                nil ))
+        (p-constraints ;==> P-CONSTRAINTS CODE
+          (if compiled-p-constraints
+             (if (functionp compiled-p-constraints)
+              `(apply ',compiled-p-constraints (list ,p-vars-name))
+              `(mapcar #'(lambda (cs) (apply cs (list ,p-vars-name))) ',compiled-p-constraints))
+            nil ))
+        (constraints-all ;==> CONSTRAINTS-ALL CODE
+          (if compiled-constraints-all
+             (if (functionp compiled-constraints-all)
+              `(apply ',compiled-constraints-all (list ,vars-name ,p-vars-name))
+              `(mapcar #'(lambda (cs) (apply cs (list ,vars-name ,p-vars-name))) ',compiled-constraints-all))
+            nil ))
+        (val (cond ((equal valuation "one-value") 0)
+                     ((equal valuation "all-values") 1)
+                     ((equal valuation "listener") 2)
+                     ((equal valuation "n-values") 3)
+                     ((equal valuation "ith-value") 4)
+                     ((equal valuation "best-value") 5)
+                     (t (progn (om-message-dialog "UNKNOWN VALUATION OPTION!") (om-abort)))))
+       (n-ith-value n-ith)
+       (ordering ;==> ORDERING
+        (let ((ord (first (string-to-list ordering-force))))
+         (cond ((equal "static-ordering" ord) 0)
+               ((equal "reorder" (first ord)) 1)
+               (t 0))))
+      (force-function ;==> FORCE-FUNCTION FOR STATIC-ORDERING
+       (if (= 1 ordering)
+            nil
+           (let ((force (second (string-to-list ordering-force))))
+            (cond ((equal "linear-force" force) 0)
+                  ((equal "divide-and-conquer-force" force) 1)
+                  ((equal "random-force" force) 2)
+                  (t 0)))))
           (cost-function (if (= ordering 1) ;==>  REORDER COST-FUNCTION
                              (cond ((equal "domain-size" (second ordering-force)) 0)
- 	                           ((equal "range-size" (second ordering-force)) 1)
- 	                           ((equal "score-position" (second ordering-force)) 2)
- 	                           (t 0)) nil))
+                               ((equal "range-size" (second ordering-force)) 1)
+                               ((equal "score-position" (second ordering-force)) 2)
+                               (t 0)) nil))
           (terminate? (if (= ordering 1) ;==> REORDER TERMINATE?
-		          (cond ((equal "(declare (ignore x))" (third ordering-force)) 0)
+                  (cond ((equal "(declare (ignore x))" (third ordering-force)) 0)
                                 ((equal "(< x 1e-6)" (third ordering-force)) 1)
-			        ((functionp (third ordering-force)) 2)
+                    ((functionp (third ordering-force)) 2)
                                 (t 0)) nil))
           (order (if (= ordering 1) ;==> REORDER ORDER
-		     (cond ((equal ">" (fourth ordering-force)) 0)
-			   ((equal "<" (fourth ordering-force)) 1)
-	                   (t 0)) nil))
+             (cond ((equal ">" (fourth ordering-force)) 0)
+               ((equal "<" (fourth ordering-force)) 1)
+                       (t 0)) nil))
           (reorder-force (if (= ordering 1) ;==> REORDER FORCE-FUNCTION
-	                     (cond ((equal "linear-force" (fifth ordering-force)) 0)
-				   ((equal "divide-and-conquer-force" (fifth ordering-force)) 1)
-				   ((equal "random-force" (fifth ordering-force)) 2)
-	                           (t 0)) nil))
+                         (cond ((equal "linear-force" (fifth ordering-force)) 0)
+                   ((equal "divide-and-conquer-force" (fifth ordering-force)) 1)
+                   ((equal "random-force" (fifth ordering-force)) 2)
+                               (t 0)) nil))
           (terminate?-fn (if (and (= ordering 1) (functionp (third ordering-force))) ;==> REORDER COMPILED TERMINATE?-FUNCTION
-			          (fdefinition (compile-screamer-constraint (third ordering-force)))
-			   	   nil))
+                      (fdefinition (compile-screamer-constraint (third ordering-force)))
+                   nil))
           (solution-code ;==> CODE FOR SCREAMER VALUATION AND SOLUTION
-	   (case ordering
-	    (0 ;==>  STATIC-ORDERING
-	     (case val
-	      (0 `(s::one-value
-			  (map-solutions ',compiled-map-sol
-	       (s::solution ,(if p-vars `(list ,vars-name ,p-vars-name)
+       (case ordering
+        (0 ;==>  STATIC-ORDERING
+         (case val
+          (0 `(s::one-value
+              (map-solutions ',compiled-map-sol
+           (s::solution ,(if p-vars `(list ,vars-name ,p-vars-name)
                                                   vars-name)
-	      (s::static-ordering ,(case force-function
-	                                     (0 `#'s::linear-force)
-	                                     (1 `#'s::divide-and-conquer-force)
+          (s::static-ordering ,(case force-function
+                                         (0 `#'s::linear-force)
+                                         (1 `#'s::divide-and-conquer-force)
                                           (2 `#'s::random-force)))))))
-	      (1 `(s::all-values
-			   (map-solutions ',compiled-map-sol
-	              (s::solution  ,(if p-vars `(list ,vars-name ,p-vars-name)
+          (1 `(s::all-values
+               (map-solutions ',compiled-map-sol
+                  (s::solution  ,(if p-vars `(list ,vars-name ,p-vars-name)
                                                   vars-name)
-	               (s::static-ordering ,(case force-function
-	                                             (0 `#'s::linear-force)
-	                                             (1 `#'s::divide-and-conquer-force)
+                   (s::static-ordering ,(case force-function
+                                                 (0 `#'s::linear-force)
+                                                 (1 `#'s::divide-and-conquer-force)
                                                   (2 `#'s::random-force)))))))
-	      (2  `(s::print-values
-			    (map-solutions ',compiled-map-sol
-	               (s::solution ,(if p-vars `(list ,vars-name ,p-vars-name)
+          (2  `(s::print-values
+                (map-solutions ',compiled-map-sol
+                   (s::solution ,(if p-vars `(list ,vars-name ,p-vars-name)
                                                   vars-name)
-	                (s::static-ordering ,(case force-function
-	                                              (0 `#'s::linear-force)
-	                                              (1 `#'s::divide-and-conquer-force)
+                    (s::static-ordering ,(case force-function
+                                                  (0 `#'s::linear-force)
+                                                  (1 `#'s::divide-and-conquer-force)
                                                    (2 `#'s::random-force)))))))
-	      (3  `(s::n-values ,n-ith-value
-		  	 (map-solutions ',compiled-map-sol
-	               (s::solution  ,(if p-vars `(list ,vars-name ,p-vars-name)
+          (3  `(s::n-values ,n-ith-value
+             (map-solutions ',compiled-map-sol
+                   (s::solution  ,(if p-vars `(list ,vars-name ,p-vars-name)
                                                   vars-name)
-	                (s::static-ordering ,(case force-function
-	                                              (0 `#'s::linear-force)
-	                                              (1 `#'s::divide-and-conquer-force)
+                    (s::static-ordering ,(case force-function
+                                                  (0 `#'s::linear-force)
+                                                  (1 `#'s::divide-and-conquer-force)
                                                    (2 `#'s::random-force)))))))
-	      (4  `(s::ith-value ,n-ith-value
-		  	 (map-solutions ',compiled-map-sol
-	               (s::solution ,(if p-vars `(list ,vars-name ,p-vars-name)
+          (4  `(s::ith-value ,n-ith-value
+             (map-solutions ',compiled-map-sol
+                   (s::solution ,(if p-vars `(list ,vars-name ,p-vars-name)
                                                   vars-name)
-	                (s::static-ordering ,(case force-function
-	                                              (0 `#'s::linear-force)
-	                                              (1 `#'s::divide-and-conquer-force)
+                    (s::static-ordering ,(case force-function
+                                                  (0 `#'s::linear-force)
+                                                  (1 `#'s::divide-and-conquer-force)
                                                    (2 `#'s::random-force)))))))
-	      (5  `(s::best-value
-			   (map-solutions ',compiled-map-sol
-	            (s::solution ,(if p-vars `(list ,vars-name ,p-vars-name)
+          (5  `(s::best-value
+               (map-solutions ',compiled-map-sol
+                (s::solution ,(if p-vars `(list ,vars-name ,p-vars-name)
                                                   vars-name)
-	             (s::static-ordering ,(case force-function
-	                                   (0 `#'s::linear-force)
-	                                   (1 `#'s::divide-and-conquer-force)
+                 (s::static-ordering ,(case force-function
+                                       (0 `#'s::linear-force)
+                                       (1 `#'s::divide-and-conquer-force)
                                         (2 `#'s::random-force)))))
-			   ,(cond ((not (null form2))
-	  			      `(apply ',(first compiled-forms) ,(if p-vars `(list ,vars-name ,p-vars-name)
+               ,(cond ((not (null form2))
+                      `(apply ',(first compiled-forms) ,(if p-vars `(list ,vars-name ,p-vars-name)
                                                   `(list ,vars-name)))
-	                  `(apply ',(second compiled-forms) ,(if p-vars `(list ,vars-name ,p-vars-name)
+                      `(apply ',(second compiled-forms) ,(if p-vars `(list ,vars-name ,p-vars-name)
                                                   `(list ,vars-name)) ))
-					  (t `(apply ',compiled-forms ,(if p-vars `(list ,vars-name ,p-vars-name)
+                      (t `(apply ',compiled-forms ,(if p-vars `(list ,vars-name ,p-vars-name)
                                                   `(list ,vars-name)))))))
-		))
-	  (1 ;==> REORDER
-	     (case val
-	      (0  `(s::one-value
-			   (map-solutions ',compiled-map-sol
-	       (s::solution ,(if p-vars `(list ,vars-name ,p-vars-name)
+        ))
+      (1 ;==> REORDER
+         (case val
+          (0  `(s::one-value
+               (map-solutions ',compiled-map-sol
+           (s::solution ,(if p-vars `(list ,vars-name ,p-vars-name)
                                                   vars-name)
-	      (s::reorder ,(case cost-function
-	                            (0 `#'s::domain-size)
-	                            (1 `#'s::range-size)
-	                            (2 `#'s::score-position)
-								)
-	                       ,(case terminate?
-	                            (0 `#'(lambda (x) (declare (ignore x)) nil))
-	                            (1 `#'(lambda (x) (< x 1e-6)))
-				    (2 `#'(lambda (x) (apply ',terminate?-fn (list x)))))
-	                       ,(case order
-	                            (0 `#'>)
-	                            (1 `#'<))
-	                       ,(case reorder-force
-	                            (0 `#'s::linear-force)
-	                            (1 `#'s::divide-and-conquer-force)
+          (s::reorder ,(case cost-function
+                                (0 `#'s::domain-size)
+                                (1 `#'s::range-size)
+                                (2 `#'s::score-position)
+                                )
+                           ,(case terminate?
+                                (0 `#'(lambda (x) (declare (ignore x)) nil))
+                                (1 `#'(lambda (x) (< x 1e-6)))
+                    (2 `#'(lambda (x) (apply ',terminate?-fn (list x)))))
+                           ,(case order
+                                (0 `#'>)
+                                (1 `#'<))
+                           ,(case reorder-force
+                                (0 `#'s::linear-force)
+                                (1 `#'s::divide-and-conquer-force)
                                  (2 `#'s::random-force)))))))
-	      (1 `(s::all-values
-			   (map-solutions ',compiled-map-sol
-	            (s::solution  ,(if p-vars `(list ,vars-name ,p-vars-name)
+          (1 `(s::all-values
+               (map-solutions ',compiled-map-sol
+                (s::solution  ,(if p-vars `(list ,vars-name ,p-vars-name)
                                                   vars-name)
-	      (s::reorder ,(case cost-function
-	                            (0 `#'s::domain-size)
-	                            (1 `#'s::range-size)
-	                            (2 `#'s::score-position)
-				    )
-	                       ,(case terminate?
-	                            (0 `#'(lambda (x) (declare (ignore x)) nil))
-	                            (1 `#'(lambda (x) (< x 1e-6)))
-				    (2 `#'(lambda (x) (apply ',terminate?-fn (list x)))))
-	                       ,(case order
-	                            (0 `#'>)
-	                            (1 `#'<))
-	                       ,(case reorder-force
-	                            (0 `#'s::linear-force)
-	                            (1 `#'s::divide-and-conquer-force)
+          (s::reorder ,(case cost-function
+                                (0 `#'s::domain-size)
+                                (1 `#'s::range-size)
+                                (2 `#'s::score-position)
+                    )
+                           ,(case terminate?
+                                (0 `#'(lambda (x) (declare (ignore x)) nil))
+                                (1 `#'(lambda (x) (< x 1e-6)))
+                    (2 `#'(lambda (x) (apply ',terminate?-fn (list x)))))
+                           ,(case order
+                                (0 `#'>)
+                                (1 `#'<))
+                           ,(case reorder-force
+                                (0 `#'s::linear-force)
+                                (1 `#'s::divide-and-conquer-force)
                                  (2 `#'s::random-force)))))))
-	      (2  `(s::print-values
-			   (map-solutions ',compiled-map-sol
-	             (s::solution  ,(if p-vars `(list ,vars-name ,p-vars-name)
+          (2  `(s::print-values
+               (map-solutions ',compiled-map-sol
+                 (s::solution  ,(if p-vars `(list ,vars-name ,p-vars-name)
                                                   vars-name)
-	             (s::reorder ,(case cost-function
-	                                (0 `#'s::domain-size)
-	                                (1 `#'s::range-size)
-	                                (2 `#'s::score-position)
-					)
-	                       ,(case terminate?
-	                            (0 `#'(lambda (x) (declare (ignore x)) nil))
-	                            (1 `#'(lambda (x) (< x 1e-6)))
-				    (2 `#'(lambda (x) (apply ',terminate?-fn (list x)))))
-	                       ,(case order
-	                            (0 `#'>)
-	                            (1 `#'<))
-	                       ,(case reorder-force
-	                            (0 `#'s::linear-force)
-	                            (1 `#'s::divide-and-conquer-force)
+                 (s::reorder ,(case cost-function
+                                    (0 `#'s::domain-size)
+                                    (1 `#'s::range-size)
+                                    (2 `#'s::score-position)
+                    )
+                           ,(case terminate?
+                                (0 `#'(lambda (x) (declare (ignore x)) nil))
+                                (1 `#'(lambda (x) (< x 1e-6)))
+                    (2 `#'(lambda (x) (apply ',terminate?-fn (list x)))))
+                           ,(case order
+                                (0 `#'>)
+                                (1 `#'<))
+                           ,(case reorder-force
+                                (0 `#'s::linear-force)
+                                (1 `#'s::divide-and-conquer-force)
                                  (2 `#'s::random-force)))))))
 
-	      (3  `(s::n-values ,n-ith-value
-		   (map-solutions ',compiled-map-sol
-	               (s::solution  ,(if p-vars `(list ,vars-name ,p-vars-name)
+          (3  `(s::n-values ,n-ith-value
+           (map-solutions ',compiled-map-sol
+                   (s::solution  ,(if p-vars `(list ,vars-name ,p-vars-name)
                                                   vars-name)
-	             (s::reorder ,(case cost-function
-	                                (0 `#'s::domain-size)
-	                                (1 `#'s::range-size)
-	                                (2 `#'s::score-position)
-					)
-	                       ,(case terminate?
-	                            (0 `#'(lambda (x) (declare (ignore x)) nil))
-	                            (1 `#'(lambda (x) (< x 1e-6)))
-				    (2 `#'(lambda (x) (apply ',terminate?-fn (list x)))))
-	                       ,(case order
-	                            (0 `#'>)
-	                            (1 `#'<))
-	                       ,(case reorder-force
-	                            (0 `#'s::linear-force)
-	                            (1 `#'s::divide-and-conquer-force)
+                 (s::reorder ,(case cost-function
+                                    (0 `#'s::domain-size)
+                                    (1 `#'s::range-size)
+                                    (2 `#'s::score-position)
+                    )
+                           ,(case terminate?
+                                (0 `#'(lambda (x) (declare (ignore x)) nil))
+                                (1 `#'(lambda (x) (< x 1e-6)))
+                    (2 `#'(lambda (x) (apply ',terminate?-fn (list x)))))
+                           ,(case order
+                                (0 `#'>)
+                                (1 `#'<))
+                           ,(case reorder-force
+                                (0 `#'s::linear-force)
+                                (1 `#'s::divide-and-conquer-force)
                                     (2 `#'s::random-force)))))))
 
-	      (4  `(s::ith-value ,n-ith-value
-		   (map-solutions ',compiled-map-sol
-	               (s::solution  ,(if p-vars `(list ,vars-name ,p-vars-name)
+          (4  `(s::ith-value ,n-ith-value
+           (map-solutions ',compiled-map-sol
+                   (s::solution  ,(if p-vars `(list ,vars-name ,p-vars-name)
                                                   vars-name)
-	             (s::reorder ,(case cost-function
-	                                (0 `#'s::domain-size)
-	                                (1 `#'s::range-size)
-	                                (2 `#'s::score-position)
-					)
-	                       ,(case terminate?
-	                            (0 `#'(lambda (x) (declare (ignore x)) nil))
-	                            (1 `#'(lambda (x) (< x 1e-6)))
-				    (2 `#'(lambda (x) (apply ',terminate?-fn (list x)))))
-	                       ,(case order
-	                            (0 `#'>)
-	                            (1 `#'<))
-	                       ,(case reorder-force
-	                            (0 `#'s::linear-force)
-	                            (1 `#'s::divide-and-conquer-force)
+                 (s::reorder ,(case cost-function
+                                    (0 `#'s::domain-size)
+                                    (1 `#'s::range-size)
+                                    (2 `#'s::score-position)
+                    )
+                           ,(case terminate?
+                                (0 `#'(lambda (x) (declare (ignore x)) nil))
+                                (1 `#'(lambda (x) (< x 1e-6)))
+                    (2 `#'(lambda (x) (apply ',terminate?-fn (list x)))))
+                           ,(case order
+                                (0 `#'>)
+                                (1 `#'<))
+                           ,(case reorder-force
+                                (0 `#'s::linear-force)
+                                (1 `#'s::divide-and-conquer-force)
                                  (2 `#'s::random-force)))))))
-	      (5  `(s::best-value
-			   (map-solutions ',compiled-map-sol
-	            (s::solution ,(if p-vars `(list ,vars-name ,p-vars-name)
+          (5  `(s::best-value
+               (map-solutions ',compiled-map-sol
+                (s::solution ,(if p-vars `(list ,vars-name ,p-vars-name)
                                                   vars-name)
-	             (s::reorder ,(case cost-function
-	                                (0 `#'s::domain-size)
-	                                (1 `#'s::range-size)
-	                                (2 `#'s::score-position)
-					)
-	                       ,(case terminate?
-	                            (0 `#'(lambda (x) (declare (ignore x)) nil))
-	                            (1 `#'(lambda (x) (< x 1e-6)))
-				    (2 `#'(lambda (x) (apply ',terminate?-fn (list x)))))
-	                       ,(case order
-	                            (0 `#'>)
-	                            (1 `#'<))
-	                       ,(case reorder-force
-	                            (0 `#'s::linear-force)
-	                            (1 `#'s::divide-and-conquer-force)
+                 (s::reorder ,(case cost-function
+                                    (0 `#'s::domain-size)
+                                    (1 `#'s::range-size)
+                                    (2 `#'s::score-position)
+                    )
+                           ,(case terminate?
+                                (0 `#'(lambda (x) (declare (ignore x)) nil))
+                                (1 `#'(lambda (x) (< x 1e-6)))
+                    (2 `#'(lambda (x) (apply ',terminate?-fn (list x)))))
+                           ,(case order
+                                (0 `#'>)
+                                (1 `#'<))
+                           ,(case reorder-force
+                                (0 `#'s::linear-force)
+                                (1 `#'s::divide-and-conquer-force)
                                  (2 `#'s::random-force)))))
-			   ,(cond ((not (null form2))
-	  			      `(apply ',(first compiled-forms) ,(if p-vars `(list ,vars-name ,p-vars-name)
+               ,(cond ((not (null form2))
+                      `(apply ',(first compiled-forms) ,(if p-vars `(list ,vars-name ,p-vars-name)
                                                   `(list ,vars-name)) )
-	                             `(apply ',(second compiled-forms) ,(if p-vars `(list ,vars-name ,p-vars-name)
+                                 `(apply ',(second compiled-forms) ,(if p-vars `(list ,vars-name ,p-vars-name)
                                                   `(list ,vars-name)) ))
-		              (t `(apply ',compiled-forms ,(if p-vars `(list ,vars-name ,p-vars-name)
+                      (t `(apply ',compiled-forms ,(if p-vars `(list ,vars-name ,p-vars-name)
                                                   `(list ,vars-name)) )))))
-	       ))))
-	(scode ;==> SOLVER CODE
-	 (if count-fail? ;===> COUNT FAILURES ON
-	 `(s::count-scs-failures
-	   (let* ((,vars-name ,(reclist-vars vars))
+           ))))
+    (scode ;==> SOLVER CODE
+     (if count-fail? ;===> COUNT FAILURES ON
+     `(s::count-scs-failures
+       (let* ((,vars-name ,(reclist-vars vars))
 
-	            (,p-vars-name ,(if (functionp compiled-p-vars)
+                (,p-vars-name ,(if (functionp compiled-p-vars)
                                    `(apply ',compiled-p-vars (list ,vars-name))
                                    `(mapcar #'(lambda (cs) (apply cs (list ,vars-name))) ',compiled-p-vars))))
-	         ,constraints
+             ,constraints
 
-	         ,p-constraints
+             ,p-constraints
 
-		     ,constraints-all
+             ,constraints-all
 
-	         ,solution-code))
+             ,solution-code))
 
-	   `(let* ((,vars-name ,(reclist-vars vars));===> COUNT FAILURES OFF
+       `(let* ((,vars-name ,(reclist-vars vars));===> COUNT FAILURES OFF
 
-	            (,p-vars-name ,(if (functionp compiled-p-vars)
+                (,p-vars-name ,(if (functionp compiled-p-vars)
                                    `(apply ',compiled-p-vars (list ,vars-name))
                                    `(mapcar #'(lambda (cs) (apply cs (list ,vars-name))) ',compiled-p-vars))))
-	         ,constraints
+             ,constraints
 
-	         ,p-constraints
+             ,p-constraints
 
-		     ,constraints-all
+             ,constraints-all
 
-	         ,solution-code)))
-		)
+             ,solution-code)))
+        )
 
 ;(print scode) ;<== FOR DEBUG
 
   (let ((scs-function (compile nil `(lambda ()
-	  						  (declare (optimize (speed 3) (safety 0) (debug 0) (space 0)))
-		                            ,scode))) ;==> COMPILED SOLVER FUNCTION
+                              (declare (optimize (speed 3) (safety 0) (debug 0) (space 0)))
+                                    ,scode))) ;==> COMPILED SOLVER FUNCTION
         (scs-time (om-timing-start)))
 
  (print "Timing evaluation of screamer-solver...")
@@ -407,7 +407,7 @@
 
    
    solution
-	)
+    )
    )
   )
  )
@@ -416,8 +416,8 @@
  (labels ((reclist (x)
            (cond ((atom x) x)
                  ((and (listp x) (every #'atom x))
-		       `(list ,.x))
-		       (t `(list ,.(mapcar #'reclist x))))))
+               `(list ,.x))
+               (t `(list ,.(mapcar #'reclist x))))))
   (reclist vars)))
   
 (defun map-solutions (funs args)
@@ -430,7 +430,7 @@
              results))) 
        ((listp funs)
         (let ((results nil))
-	 (loop for fun in funs
+     (loop for fun in funs
                if (null results)
                do (if fun 
                       (let ((new-results (apply fun (list args))))
@@ -457,7 +457,7 @@
                              (om-abort)))
               (t solution)))
 
-	      ((equal valuation 5) ;<== best-value
+          ((equal valuation 5) ;<== best-value
             (x-append (select-solution out (first solution) nil p-variables?)
                       (second solution)))
            (t (error "This shouldn't happen!")))
@@ -490,9 +490,9 @@
 
 (defmethod! force-function ((force-function string)
                              &key (cost-function "domain-size")
-	                              (terminate? "(declare (ignore x))")
-	                              (order ">" )
-	                              (reorder-force-function "linear-force"))
+                                  (terminate? "(declare (ignore x))")
+                                  (order ">" )
+                                  (reorder-force-function "linear-force"))
 
   :initvals '("static-ordering linear-force" "domain-size" "(declare (ignore x))" ">" "linear-force")
   :indoc '("ordering-force-functions" "domain-size, range-size or score-position" "terminate-function" "> or <" "linear-force, divide-and-conquer-force or random-force")

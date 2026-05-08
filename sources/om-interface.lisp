@@ -33,8 +33,8 @@
          (setf *print-screamer-score-failures?* t)
          (setf *print-screamer-score-time?* t)
          "SCREAMER-SCORE DEBUG: ON.")
-	 (progn 
-		 (setf *print-screamer-score-failures?* nil)
+     (progn 
+         (setf *print-screamer-score-failures?* nil)
                 (setf *print-screamer-score-time?* nil)
                 "SCREAMER-SCORE DEBUG: OFF.")))
 
@@ -64,13 +64,13 @@
                             (om-abort)))))
 (let* ((interfaces (capi::collect-interfaces 'capi:interface :screen :any :sort-by :visible))
        (persist (remove nil (mapcar #'(lambda (x)
-	                         (if (equal (class-name (class-of x)) 'editorwindow)
-							     (obj x)))
-				              interfaces))))
+                             (if (equal (class-name (class-of x)) 'editorwindow)
+                                 (obj x)))
+                              interfaces))))
 (car
  (loop for el in persist
-	   when (patch-p el)
-	   collect el)))))
+       when (patch-p el)
+       collect el)))))
 
 (defun get-patch-boxes (patch)
 (handler-bind ((error #'(lambda (c)
@@ -80,10 +80,10 @@
                                                :size (om-make-point 300 200))
                             (om-abort)))))
  (let* ((patchboxes (find-class-boxes (boxes patch) 'omboxabspatch))
-	      (patches (if patchboxes (mapcar #'reference patchboxes) nil)))
-		 (if patches
-			 (list patchboxes (mapcar #'get-patch-boxes patches))
-		      nil))))
+          (patches (if patchboxes (mapcar #'reference patchboxes) nil)))
+         (if patches
+             (list patchboxes (mapcar #'get-patch-boxes patches))
+              nil))))
 
 (defun find-patch-from-lambda-fn (fn-symb patch-boxes)
  (car
@@ -118,14 +118,14 @@
  (let* ((expr (function-lambda-expression fun))
         (patchbox (find-lambda-patchbox fun))
         (patch-name (if (stringp patchbox);<== lambda function documentation
-		                     patchbox 
+                             patchbox 
                         (if (null patchbox);<== function in lambda mode
                             (symbol-name (second (cadr (third expr))))
                             (name (reference patchbox))))));<== patch in lambda mode
     (if (compiled-function-p fun)
-         expr
+        fun
         (compile (eval `(defun ,(gensym (if (null patch-name) "anon-fun-" (concatenate 'string patch-name "-"))) ,(function-lambda-list fun)
-		                     (apply ,fun (list ,.(function-lambda-list fun))))))))))
+                             (apply ,fun (list ,.(function-lambda-list fun))))))))))
 
 ;; BACKTRACK CONSTRAINTS (OLD)
 (defun compile-screamer-backtrack-constraint (fun)
@@ -254,7 +254,7 @@
 
 (defun mk-car-cdr (vars);==> CARD-CDR ((0 (1 2 3 4 5)) (1 (2 3 4 5)) (2 (3 4 5)) ...)
  (let* ((apply-length (1- (length vars)))
-	    (posn (loop for x from 0 to (1- apply-length)
+        (posn (loop for x from 0 to (1- apply-length)
           for y = (list x (arithm-ser (1+ x) apply-length 1))
  collect y)))
  (posn-match vars (reverse posn))))
@@ -397,13 +397,13 @@
  (if (= 1 (length (remove nil (flat var-list))))
       nil
   (let* ((flat-list (remove nil (flat var-list)))
-  	     (positions (arithm-ser 0 (1- (length flat-list)) 1))
-		 (all-comb-posn (om?::asc-permutations positions 2))
-		 (all-perms (mapcar #'(lambda (x) (posn-match flat-list x)) all-comb-posn)))
+         (positions (arithm-ser 0 (1- (length flat-list)) 1))
+         (all-comb-posn (om?::asc-permutations positions 2))
+         (all-perms (mapcar #'(lambda (x) (posn-match flat-list x)) all-comb-posn)))
  (mapcar #'(lambda (vars)
   (screamer::-v (first vars) (second vars)))
   all-perms))))
- 
+
 ; -----------------------------------------
 ; OM+V / OM-V / OM*V / OM/V / MOD12V / MC->PCV / OM-ABSV
 
@@ -417,7 +417,7 @@
 
 (defmethod! om-absv ((var screamer::variable))
 :icon 480
-(if (s::variable-list? var)
+(if (s::known? (s::notv (s::numberpv var)))
     (?::mapcarv #'(lambda (x) (om?::absv x)) var)
     (om?::absv var)))
     
@@ -432,7 +432,7 @@
 
 (defmethod! modv ((var screamer::variable)(d integer))
 :icon 480
-(if (s::variable-list? var)
+(if (s::known? (s::notv (s::numberpv var)))
     (?::mapcarv #'(lambda (x) (s::funcallv #'mod x d)) var)
     (s::funcallv #'mod var d)))
    
@@ -447,7 +447,7 @@
 
 (defmethod! mod12v ((var screamer::variable))
 :icon 480
-(if (s::variable-list? var)
+(if (s::known? (s::notv (s::numberpv var)))
     (let ((z (?::mapcarv #'(lambda (x) (s::funcallv #'mod x 12)) var)))
      z)
     (let ((z (s::funcallv #'mod var 12)))
@@ -469,13 +469,13 @@
 (defmethod! m->pcv ((var screamer::variable))
 :initvals '(60) :indoc '("variable, number or list")
 :icon 479
- (if (s::variable-list? var)
+ (if (s::known? (s::notv (s::numberpv var)))
      (?::mapcarv #'om?::a-midi->pcv var)
      (om?::a-midi->pcv var)))
  
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-	
+    
 (defmethod! mc->pcv ((n integer))
 :initvals '(6000) :indoc '("variable, number or list")
 :icon 479
@@ -489,7 +489,7 @@
 (defmethod! mc->pcv ((var screamer::variable))
 :initvals '(6000) :indoc '("variable, number or list")
 :icon 479
- (if (s::variable-list? var)
+ (if (s::known? (s::notv (s::numberpv var)))
      (?::mapcarv #'om?::a-mc->pcv var)
      (om?::a-mc->pcv var)))
 
@@ -563,14 +563,6 @@
 :icon 486
 (?::make-equal x y)
  t)
-
-(defmethod! omifv ((test t) (action t) &optional else)
-   :numouts 1 
-   :initvals '(nil nil nil) 
-   :indoc '("IFV" "THENV" "ELSEV")
-   :doc "IFV <test> THENV <action> ELSEV <else>." 
-   :icon 486
- (screamer+::ifv test action else))
  
 ; -----------------------------------------
 
@@ -691,7 +683,7 @@
                 t-var)))
 (simple-bpf-from-list (om* t-var 1000)
                                   c0)))
-								  
+                                  
 ; VOICE-MERGER
 
 (defun voice-merger-internal (list accumul)
@@ -932,7 +924,7 @@ of cardinality card."
 (if (equal mode "midic")
     (list! (om?::get-n-ord (mc->pcv input)))
     (list! (om?::get-n-ord input))))
-	
+    
 (defmethod! normal-orderv ((input t) (mode string))  
   :initvals '(t "midi") 
   :indoc '("list of midicents or pitch classes" "pcs or midics") 
@@ -943,8 +935,8 @@ of cardinality card."
     (if (every #'screamer::bound? input)
         (list! (om?::get-n-ord (m->pcv input)))
         (om?::n-ordv input))
-	  (if (every #'screamer::bound? input)
-	      (list! (om?::get-n-ord input))
+      (if (every #'screamer::bound? input)
+          (list! (om?::get-n-ord input))
         (om?::n-ordv-pcs input))))
 
 

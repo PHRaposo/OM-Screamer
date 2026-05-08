@@ -1,25 +1,6 @@
 ;;;; -*- mode: common-lisp;   common-lisp-style: modern;    coding: utf-8; -*-
 ;;;;
-;;;; Screamer-Plus: A modernized constraint logic programming library for Common Lisp
-;;;;
-;;;; Screamer-Plus is an extension of constraint propagation in Screamer,
-;;;; built upon a fundamental redesign of the core functions `funcallv` and `applyv`
-;;;; introduced in version 4.0.1 of Screamer.
-;;;;
-;;;; This new foundation enables automatic constraint propagation, eliminating the
-;;;; need for manual noticers and simplifying function/macro definitions.
-;;;; As a result, many of the macros and functions originally found in Screamer-Plus
-;;;; (by Simon White) — such as `CARV`, `CDRV`, `IFV`, and others — have been
-;;;; entirely rewritten or reimagined with cleaner semantics and greater efficiency.
-;;;;
-;;;; Some function names and general ideas are inspired by the original Screamer-Plus
-;;;; by Simon White, but all code in this package is original unless otherwise noted.”
-;;;;
-;;;; Contributions, feedback, and extensions are welcome.
-;;;;
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;;;
-;;;; Copyright (c) 2025 Paulo Henrique Raposo
+;;;; Copyright (c) 2026 Paulo Henrique Raposo
 ;;;;
 ;;;; Permission is hereby granted, free of charge, to any person obtaining a copy of
 ;;;; this software and associated documentation files (the "Software"), to deal in
@@ -45,27 +26,8 @@
 (defvar *screamer+-version* "0.2.0" ;(asdf:component-version (asdf:find-system :screamer-plus))
   "The version of Screamer-Plus which is loaded.")
 
-(defmacro define-screamer-plus-package (defined-package-name &body options)
-  "Convenience wrapper around DEFPACKAGE. Passes its argument directly
-to DEFPACKAGE, and automatically injects two additional options:
-
-    \(:shadowing-import-from :screamer :defun :multiple-value-bind :y-or-n-p)
-    \(:use :cl :screamer :screamer+)"
-  `(defpackage ,defined-package-name
-     ,@options
-     (:shadowing-import-from :screamer :defun :multiple-value-bind :y-or-n-p)
-     (:use :cl :screamer :screamer+)))
-
-(defvar *maximum-domain-size* 100
+(defvar *enumeration-limit* 100
  "Specifies the maximum number of elements permitted in variable enumerated domain.")
-
-(defun slot-names-of (obj)
- (mapcar #'(lambda(x) (slot-value x 'CLOS::NAME))
-        (clos::class-slots (class-of obj))))
-
-(defun objectp (var)
-  "Determines whether a variable is a standard CLOS object or not"
-  (typep var 'standard-object))
 
 (defun eqv (x y)
   "Original from Screamer-Plus, by Simon White.
@@ -107,133 +69,91 @@ to DEFPACKAGE, and automatically injects two additional options:
        (warn "~s failed: ~a" ',form e)
        nil)))
 
+
+;;; Fixes from Simon White original:
+;;;   - No (assert! (booleanpv c)): CL IF semantics, any non-NIL is truthy
+;;;   - Uses (value-of c) instead of (equal (value-of c) t) in noticer
+;;;   - Adds :dependencies on output variable
+;;;   - Supports recursive calls (THEN/ELSE evaluated only when condition commits)
+
 (defmacro-compile-time ifv (condition then &optional else)
-  "If CONDITION is KNOWN? to be NOT EQUAL NIL, THEN is returned. Note that the
- value of CONDITION does not need to be a BOOLEAN.
-
-  If CONDITION is KNOWN? to be false, ELSE is returned.
-
-  Otherwise returns a variable Z which is constrained to be the value of THEN
-  if CONDITION later becomes bound to not NIL, or the value of ELSE if CONDITION
-  later becomes bound to NIL.
-
-  All arguments (CONDITION THEN ELSE) are evaluated at runtime, so recursive calls
-  can cause infinite loops."
   (let ((g-cond (gensym "COND"))
-        (g-then (gensym "THEN"))
-        (g-else (gensym "ELSE")))
-    `(let ((,g-cond ,condition)
-           (,g-then ,then)
-           (,g-else ,else))
-       (cond ((known? (notv (equalv ,g-cond nil))) (value-of ,g-then))
-             ((known?-false ,g-cond) (value-of ,g-else))
-             (t (funcallv (lambda (cond then else)
-                            (if cond then else))
-                          ,g-cond ,g-then ,g-else))))))
+        (g-z (gensym "Z")))
+    `(let ((,g-cond ,condition))
+       (cond
+         ;; Condition already bound: evaluate immediately
+         ((bound? ,g-cond)
+          (if (value-of ,g-cond) ,then ,else))
+         ;; Condition known non-NIL through propagation
+         ((known? (notv (equalv ,g-cond nil)))
+          ,then)
+         ;; Unknown: defer via noticer
+         (t (let ((,g-z (make-variable)))
+              (attach-noticer!
+               #'(lambda ()
+                   (when (bound? ,g-cond)
+                     (if (value-of ,g-cond)
+                         (assert!-equalv ,g-z ,then)
+                         (assert!-equalv ,g-z ,else))))
+               ,g-cond)
+              (attach-noticer! #'(lambda nil) ,g-z :dependencies (list ,g-cond))
+              ,g-z))))))
 
-(defmacro-compile-time ifv-rec (condition then &optional else)
- "Redesigned from original Screamer-Plus.
+;;; CONDV - Constraint-aware COND.
+;;; Same fixes as IFV: no booleanpv, CL IF semantics, :dependencies.
 
- This version keeps the semantics of original IFV and allows recursive calls.
- 
- If condition is BOUND? and not NIL, a variable Z is returned which is
- constrained to be the value of THEN.
- 
- If CONDITION is BOUND? and NIL, Z is constrained to be the value of ELSE.
- 
- If CONDITION is not BOUND?, a variable Z is returned which is constrained
- to be the value of THEN if CONDITION later becomes bound to not NIL, or
- the value of ELSE if CONDITION later becomes bound to NIL.
- "
-  (let ((gcond (gensym "COND"))
-        (z (gensym "Z")))
-    `(let ((,gcond ,condition))
-      (if (known? (notv (equalv ,gcond nil)))
-          ,then
-          (let ((,z (make-variable)))
-            (attach-noticer!
-             #'(lambda ()
-                (when (deep-bound? ,gcond)
-                 (assert!-equalv ,z (funcallv (lambda (condition then else)
-                                               (if condition then else))
-                                                ,gcond ,then ,else))))
-              ,gcond)
-             (attach-noticer! #'(lambda nil ) ,z :dependencies (list ,gcond))
-            ,z)))))
-
- (defmacro-compile-time condv (&rest clauses)
-  "Screamer version of Common LISP COND macro."
-  (let* ((last-clause (car (last clauses)))
-         (final-clauses (if (and (consp last-clause) (eq (first last-clause) 't))
-                             clauses
-                             (append clauses '((t nil)))))
-          (gsyms (mapcar (lambda (_) (declare (ignorable _)) (gensym "CONDV")) final-clauses))
-          (bodies (mapcar (lambda (clause)
-                            (let ((body (cdr clause)))
-                              (if (or (null body)
-                                      (and (= (length body) 1)
-                                            (null (first body))))
-                                   nil
-                                 `(progn ,@body))))
-                          final-clauses))
-          (known-cond-clauses
-            (mapcar (lambda (gsym clause body)
-                     (unless (and (consp clause) (eq (first clause) 't))
-                      `((known?-true ,gsym) ,body)))
-                    gsyms final-clauses bodies))
-          (funcallv-cond-clauses
-            (mapcar (lambda (gsym body)
-                      `(,gsym ,body))
-                    gsyms bodies)))
-      `(let ,(mapcar #'list gsyms (mapcar #'first final-clauses))
-        (cond
-          ,@(remove nil known-cond-clauses)
-          (t (funcallv
-              (lambda ,gsyms
-                (cond ,@funcallv-cond-clauses))
-              ,@gsyms))))))
+(defmacro-compile-time condv (&rest clauses)
+  (let ((g-clauses (gensym "CLAUSES")))
+    `(let ((,g-clauses (list ,@(mapcar (lambda (clause)
+                                         `(list ,@(mapcar #'identity clause)))
+                                       clauses))))
+       (labels ((condv-helper (clauses)
+                  (if (null clauses)
+                      nil
+                      (let* ((test (caar clauses))
+                             (form (cadar clauses)))
+                        (cond
+                          ;; Literal T: always true
+                          ((eq test t) form)
+                          ;; Bound: evaluate immediately
+                          ((bound? test)
+                           (if (value-of test)
+                               form
+                               (condv-helper (cdr clauses))))
+                          ;; Known non-NIL through propagation
+                          ((known? (notv (equalv test nil)))
+                           form)
+                          ;; Unknown: defer
+                          (t (let ((z (make-variable)))
+                               (attach-noticer!
+                                #'(lambda ()
+                                    (when (bound? test)
+                                      (if (value-of test)
+                                          (assert!-equalv z form)
+                                          (assert!-equalv z
+                                            (condv-helper (cdr clauses))))))
+                                test)
+                               (attach-noticer! #'(lambda nil) z
+                                                :dependencies (list test))
+                               z)))))))
+         (condv-helper ,g-clauses)))))
 
 (defun formatv (destination control-string &rest args)
 "Redesigned from original Screamer-Plus."
  (applyv #'format (apply #'list destination control-string args)))
 
-(defun reifyv (x)
-"Redesigned from original Screamer-Plus."
-(let ((x (value-of x)))
- (cond ((known?-true x) 1)
-       ((known?-false x) 0)
-       (t (funcallv #'(lambda (v) (if (eq v t) 1 0)) x)))))
-
-(defun funcallinv (f inverse &rest el)
-"Redesigned from original Screamer-Plus.
-
-This function returns a variable Z such that (funcallv f EL) = Z and
-(funcallv inverse Z) = EL, if INVERSE is provided. 
-
-If INVERSE is nil, it behaves like funcallv.
-"
-  (let ((z (applyv f (value-of el))))
-   (when inverse (assert! (equalv (value-of el) (list (funcallv inverse z)))))
-    z))
-
-(defun constraint-fn (f)                      
-;; needs work: make CONSTRAINT-FN work at compile-time
-"Redesigned from original Screamer-Plus, by Simon White.
-This function takes a function which works only on bound arguments, and
-returns a similar function which works with either bound arguments or
-arguments which are constraint variables.
-If a function already exists with the same name as the supplied function
-appended with the suffix 'v', then this function is returned. Otherwise
-a lambda function is constructed and returned.
-"
- (let ((fn-name (third (multiple-value-list (function-lambda-expression f))))
-       (cfn-name nil))
-    (setf cfn-name (read-from-string (format nil "~av" fn-name) nil nil))
-    (if (and (screamer::valid-function-name? fn-name)
-             (fboundp cfn-name))
-         (symbol-function cfn-name)
-         (alexandria::curry (lambda (&rest args)
-                             (value-of (applyv (value-of f) args)))))))
+(defun reifyv (b)
+  "Convert boolean variable to integer: T->1, NIL->0."
+  (cond
+    ((known?-true b) 1)
+    ((known?-false b) 0)
+    (t (let ((z (an-integer-betweenv 0 1)))
+         (attach-noticer!
+          #'(lambda ()
+              (when (known?-true b) (assert!-equalv z 1))
+              (when (known?-false b) (assert!-equalv z 0)))
+          b)
+         z))))
 
 (defun sumv (listv)
  (let ((x (value-of listv)))
@@ -242,12 +162,103 @@ a lambda function is constructed and returned.
             (apply #'+v x)
             (apply #'+ x)))
  (screamer::variable (funcallv #'(lambda (lst) (apply #'+ lst)) listv))
- (otherwise (error "The argument for SUMV must be a list or a LISTV" x)))))
+ (otherwise (error "The argument for SUMV must be a list or a LISTV")))))
 
 ;; compatibility note
 ;; This section contains or functions from original Screamer-Plus or
 ;; adaptations of them, keeped here for backward compatibility.
 ;; Some of them are deprecated.
+
+(defun funcross-product (f x y)
+  "Compute cross-product: apply F to every pair from lists X and Y."
+  (cond
+    ((null x) nil)
+    (t (append (funcross-pair f (car x) y) (funcross-product f (cdr x) y)))))
+
+(defun funcross-pair (f x y)
+  "Apply F to X paired with each element of Y."
+  (mapcar #'(lambda (g) (funcall f (value-of x) g)) y))
+
+(defun constraint-fn (f)
+  "Takes a CL function and returns its constraint version (suffix 'v').
+If no such function exists, returns a lambda wrapping applyv."
+  (let ((fn-name (third (multiple-value-list (function-lambda-expression f))))
+        (cfn-name nil))
+    (setf cfn-name (read-from-string (format nil "~av" fn-name) nil nil))
+    (if (and (SCREAMER::valid-function-name? fn-name)
+             (fboundp cfn-name))
+        (symbol-function cfn-name)
+        (lambda (&rest args) (value-of (applyv (value-of f) args))))))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; Function: consv
+;;;
+;;; A function returning a variable constrained to be the cons of x and y 
+;;; Since this function is so important I've tried to maximise the propagation
+;;;
+;;; Suppose z is constrained to be the cons of x and y; i.e., z == (cons x y)
+;;; Then:
+;;; - if y is bound at the time of function invocation, then z is immediately
+;;;   bound to the cons of x and y (regardless of whether x is bound).
+;;;
+;;; - if z becomes bound, then the values of x and y are derived.
+;;;
+;;; - if x and y become bound, then z is derived
+;;;
+;;; - if z has an enumerated domain, then the appropriate enumerated domains
+;;;   are propagated to x and y.
+;;;
+;;; - if x becomes bound and y has an enumerated domain, then the possible
+;;;   values are propagated to z
+;;;
+;;; - if x has an enumerated domain and y has an enumerated domain, then
+;;;   possible values for z are computed, subject to the size of the 
+;;;   cross-product being less than *enumeration-limit*
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(defun consv (x y)
+  (if (and (bound? x) (bound? y))
+    (cons (value-of x) (value-of y))
+    (let ((z (make-variable)) mem)      
+      (screamer::attach-noticer!
+        #'(lambda()
+            (when (bound? z)
+              (assert! (equalv x (car (value-of z))))
+              (assert! (equalv y (cdr (value-of z)))))
+            (when (and (not (bound? z)) (enumerated-domain-p z))
+              (assert! (memberv x (mapcar #'car (variable-enumerated-domain z))))
+              (assert! (memberv y (mapcar #'cdr (variable-enumerated-domain z))))))
+        z)
+      (screamer::attach-noticer!
+        #'(lambda()
+            (when (and (bound? x) (not (bound? y)) (enumerated-domain-p y))
+              (setq mem (mapcar #'(lambda(g) (cons (value-of x) g))
+                          (variable-enumerated-domain y)))
+              (assert! (memberv z mem)))
+            (when (and (bound? x) (bound? y))
+              (assert! (equalv z (cons (value-of x) (value-of y))))))
+        x)     
+      (if (bound? y)
+        (assert! (equalv z (cons (value-of x) (value-of y))))
+  (screamer::attach-noticer!
+          #'(lambda()
+              (when (and (not (bound? y)) (enumerated-domain-p y))
+                (if (bound? x)
+                  (assert! (memberv z (mapcar #'(lambda(g) (cons (value-of x) g))
+                                        (variable-enumerated-domain y))))
+                  (when (and
+                          (enumerated-domain-p x)
+                          (< (* (domain-size x) (domain-size y))
+                            *enumeration-limit*))
+                    (assert! (memberv z (funcross-product #'cons (variable-enumerated-domain x)
+                                          (variable-enumerated-domain y)))))))
+              (when (and (not (bound? x)) (bound? y) (enumerated-domain-p x))
+                (assert! (memberv z (funcross-product #'cons (variable-enumerated-domain x)
+                                      (list (value-of y))))))
+              (when (and (bound? x) (bound? y))
+                (assert! (equalv z (cons (value-of x) (value-of y))))))
+          y))      
+      z)))
 
 (defmacro-compile-time make-equal (var value &optional (retval '(fail)))
 "Redesigned from original Screamer-Plus."
@@ -263,6 +274,11 @@ a lambda function is constructed and returned.
            (quote ,value) ,value)
            (values ,retval))))
 
+(defmacro-compile-time setq-domains (vars vals &aux (res nil))
+"Original from original Screamer-Plus."
+ (dolist (var vars) (setq res (nconc (list var vals) res)))
+ (cons 'setq res))
+
 (defun not-equalv (x y &key (full-propagation nil))
 "Redesigned from original Screamer-Plus.
 DEPRECATED. Use (notv (equalv ...)) instead."
@@ -270,15 +286,6 @@ DEPRECATED. Use (notv (equalv ...)) instead."
  (let ((z (a-booleanv)))  
   (assert! (equalv z (funcallv #'(lambda (a b) (not (equal a b))) x y)))
   z))
-
-(defun funcallgv (f &rest x)
-"DEPRECATED. Use funcallv instead."
- (apply #'funcallv (cons f x)))
-
-(defmacro-compile-time setq-domains (vars vals &aux (res nil))
-"Original from original Screamer-Plus."
- (dolist (var vars) (setq res (nconc (list var vals) res)))
- (cons 'setq res))
 
 ;; note: The following functions are nondeterministic generators
 ;; for subsets and partitions not included in the classic Screamer.

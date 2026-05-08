@@ -72,12 +72,12 @@ The constraint function f can be any LISP function (including
 those that normally are not supported by SCREAMER) and will be
 applied to bound values, not variables."
  (let ((b (a-booleanv))
- 	      valf valx)     
+          valf valx)     
   (screamer::attach-noticer!
     #'(lambda()
        (when (screamer::deep-bound? x)
         (setq valx (screamer::apply-substitution x))
-		(setq valf (apply f (screamer::value-of valx)))
+        (setq valf (apply f (screamer::value-of valx)))
         (assert! (eqv b valf))))
         x)
   b))
@@ -88,23 +88,23 @@ applied to bound values, not variables."
 instead of a boolean variable.
 The constraint f can be any LISP function."
  (let ((z (make-variable))
-        valf valx) 		       
+        valf valx)             
   (screamer::attach-noticer!
     #'(lambda()
        (when (screamer::deep-bound? x)
         (setq valx (screamer::apply-substitution x))
-	    (setq valf (apply f (screamer::value-of valx)))
+        (setq valf (apply f (screamer::value-of valx)))
         (assert! (equalv z valf))))
    x)
   z))
 
-(defun absv (x)
+#|(defun absv (x)
  (let ((z (funcallv #'abs x)))
   z))
 
 (defun modv (n d)
  (let ((z (funcallv #'mod n d)))
-  z))
+  z))|#
 
 (defun sortv (list &optional (pred #'<))
  (cond ((null list) nil)
@@ -164,15 +164,15 @@ The constraint f can be any LISP function."
 (defun dx->xv (i lst &optional (accumul '()))
   (if (null lst)
        (reverse accumul)
-  	 (if (null accumul)
-  	     (dx->xv i (cdr lst) (append (cons (+v i (first lst)) accumul) (list i))) 
-  		 (dx->xv i (cdr lst) (cons (+v (first lst) (first accumul)) accumul)))))
+     (if (null accumul)
+         (dx->xv i (cdr lst) (append (cons (+v i (first lst)) accumul) (list i))) 
+         (dx->xv i (cdr lst) (cons (+v (first lst) (first accumul)) accumul)))))
 
  (defun dx->xv-internal-listv (start list accumul)
-      (let ((sum (ifv-rec accumul
+      (let ((sum (screamer+::ifv accumul
                           (+v (firstv list) (firstv accumul))
                           (+v start (firstv list)))))
- (ifv-rec (cdrv list)
+ (screamer+::ifv (cdrv list)
           (dx->xv-internal-listv start (cdrv list) (consv sum accumul))
           (consv start (appendv (funcallv #'reverse accumul) (list sum))))))
 
@@ -244,8 +244,8 @@ The constraint f can be any LISP function."
 
 (defun a-midiv (approx)
  (let ((v (if (<= approx 2) 
-	          (an-integerv)
-			  (a-realv)))
+              (an-integerv)
+              (a-realv)))
         (a (/ 2 approx)))
  (assert! (<=v v *max-midi*))
  (assert! (>=v v *min-midi*))

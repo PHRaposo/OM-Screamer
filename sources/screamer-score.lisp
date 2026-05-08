@@ -33,6 +33,14 @@
      (progn (om-message-dialog "UNABLE TO FIND A SOLUTION." ) (om-beep) (om-abort))
   (make-instance 'poly :voices (mapcar #'update-pitches voices solution))))
 
+(defun fill-all-screamer-score-variables-hash (all-domains)
+ (let ((variables (remove-if #'(lambda (x) (or (null x) (screamer::bound? x))) (flat (chords (var-domain all-domains)))))
+       (count 0))
+ (clrhash s::*all-screamer-score-variables*)
+  (dolist (variable variables)
+   (setf (gethash variable s::*all-screamer-score-variables*) count)
+   (incf count))))
+
 (defmethod! screamer-score ((poly-object poly)(domains t)(score-constraints t)
                              &key (force-function '("reorder" "score-position" "(declare (ignore x))" "<" "linear-force")) (random? t) (m-approx 2))
   :initvals '(nil nil nil ("reorder" "score-position" "(declare (ignore x))" "<" "linear-force") t 2)
@@ -48,19 +56,20 @@
   :icon 486
 
  (setf *screamer-score-midi-approx* m-approx)
- (setf s::*all-screamer-score-variables* nil) 
+ ;(setf s::*all-screamer-score-variables* nil) 
  (setf s::*dependencies* nil)
  (setf *screamer-score-random?* random?)
 
 (let* ((all-domains (build-all-domains poly-object domains m-approx random?))
-	    scs-time)
-	   
+        scs-time)
+       
 (if *print-screamer-score-time?*
    (progn (setq scs-time (om-timing-start))
         (print "Timing evaluation of screamer-score..."))
    (setq scs-time nil))
-      
-(setf s::*all-screamer-score-variables* (remove-if #'(lambda (x) (or (null x) (screamer::bound? x))) (flat (chords (var-domain all-domains)))))
+
+(fill-all-screamer-score-variables-hash all-domains)
+;(setf s::*all-screamer-score-variables* (remove-if #'(lambda (x) (or (null x) (screamer::bound? x))) (flat (chords (var-domain all-domains)))))
 
 (setf  *screamer-score-notes* (pitch (var-domain all-domains)))
 
@@ -78,16 +87,18 @@
 (if *screamer-score-debug*
 (progn 
 (mapcar #'(lambda (x)
-	 (if (s::variable? x)
+     (if (s::variable? x)
      (s::attach-noticer!
       #'(lambda()
    (when (s::ground? x)
    (format *om-stream* "VARIABLE ~A, POSITION ~A~%"
-    x (position x s::*all-screamer-score-variables*))
+    (screamer::variable-name x)
+    (gethash x s::*all-screamer-score-variables*) ;(position x s::*all-screamer-score-variables* :test #'eq)
+    )
    
    ))
       x)
- )) s::*all-screamer-score-variables*)
+ )) (remove-if #'(lambda (x) (or (null x) (screamer::bound? x))) (flat (chords (var-domain all-domains)))));s::*all-screamer-score-variables*)
 (print "NOTICERS-ATTACHED!")))
 
 ; ====================================================== ;
@@ -103,18 +114,18 @@
 (if *screamer-score-debug*
     (print "FUNCTIONS APPLIED: OK!"))
 
- (setf s::*all-screamer-score-variables*
-  (loop for el in s::*all-screamer-score-variables*
-        collect (if (s::variable-dependencies el)
-                    (x-append (s::variable-dependencies el) el)
-                    el)))
+ ;(setf s::*all-screamer-score-variables*
+ ; (loop for el in s::*all-screamer-score-variables*
+ ;       collect (if (s::variable-dependencies el)
+ ;                   (x-append (s::variable-dependencies el) el)
+ ;                   el)))
                   
 ; ====================================================== ;
-			  
+              
  (let ((solution (screamer-score-solution all-domains force-function)))
 
-  
-  (setf s::*all-screamer-score-variables* nil)
+  (clrhash s::*all-screamer-score-variables*)
+  ;(setf s::*all-screamer-score-variables* nil)
   (setf s::*dependencies* nil)
   (setf  *screamer-score-notes* nil)
   (setf *screamer-score-chords* nil)
@@ -122,7 +133,7 @@
   (setf *screamer-score-midi-approx* nil)
   (setf *screamer-score-random?* nil)
   (if *print-screamer-score-time?* (om-timing-stop scs-time))
-  (test-solution solution (voices poly-object))	  
+  (test-solution solution (voices poly-object))   
  )))
 
 (defun screamer-score-solution (all-domains force)
@@ -157,38 +168,38 @@
                         ((equal (fifth force-function) "linear-force") #'s::linear-force)
                         ((equal (fifth force-function) "divide-and-conquer-force") #'s::divide-and-conquer-force)
                         ((equal (fifth force-function) "random-force") #'s::random-force)
-                        (t #'s::linear-force))))))))))) 	
-	       (block one-value
+                        (t #'s::linear-force)))))))))))     
+           (block one-value
                (screamer::for-effects
                 (return-from one-value
-	    (first
-	    (s::solution (list (pitch variables-domain)) ;(append (list (pitch variables-domain)) (list screamer::*dependencies*)) ;(list-all-slots variables-domain)
-	    (cond ((equal force-function "static-ordering linear-force") (s::static-ordering #'s::linear-force))
-	          ((equal force-function "static-ordering divide-and-conquer-force") (s::static-ordering #'s::divide-and-conquer-force))
-	          ((equal force-function "static-ordering random-force") (s::static-ordering #'s::random-force))
-	              (t (s::reorder
-	                  (cond ((null (second force-function)) #'s::domain-size)
-	                            ((functionp (second force-function)) (second force-function))
-	                            ((equal (second force-function) "domain-size") #'s::domain-size)
-	                            ((equal (second force-function) "range-size") #'s::range-size)
-	                            ((equal (second force-function) "score-position") #'s::score-position)
-	                            (t #'s::domain-size))
-	                 (cond ((null (third force-function)) #'(lambda (x) (declare (ignore x)) nil))
-	                           ((functionp (third force-function)) (third force-function))
-	                           ((equal (third force-function) "(< x 1e-6)") #'(lambda (x) (< x 1e-6)))
-	                           (t #'(lambda (x) (declare (ignore x)) nil)))
-	                (cond ((null (fourth force-function)) #'<)
-	                          ((functionp (fourth force-function)) (fourth force-function))
-	                          ((equal (fourth force-function) ">") #'>)
-	                          (t #'<))
-	               (cond ((null (fifth force-function)) #'s::linear-force)
-	                         ((equal (fifth force-function) "linear-force") #'s::linear-force)
-	                         ((equal (fifth force-function) "divide-and-conquer-force") #'s::divide-and-conquer-force)
-	                         ((equal (fifth force-function) "random-force") #'s::random-force)
-	                         (t #'s::linear-force))
-				))
-			)
-		   )    ;<== end solution
-	   )))) 
-	);<==end if
-	)) ;end-let-defun)
+        (first
+        (s::solution (list (pitch variables-domain)) ;(append (list (pitch variables-domain)) (list screamer::*dependencies*)) ;(list-all-slots variables-domain)
+        (cond ((equal force-function "static-ordering linear-force") (s::static-ordering #'s::linear-force))
+              ((equal force-function "static-ordering divide-and-conquer-force") (s::static-ordering #'s::divide-and-conquer-force))
+              ((equal force-function "static-ordering random-force") (s::static-ordering #'s::random-force))
+                  (t (s::reorder
+                      (cond ((null (second force-function)) #'s::domain-size)
+                                ((functionp (second force-function)) (second force-function))
+                                ((equal (second force-function) "domain-size") #'s::domain-size)
+                                ((equal (second force-function) "range-size") #'s::range-size)
+                                ((equal (second force-function) "score-position") #'s::score-position)
+                                (t #'s::domain-size))
+                     (cond ((null (third force-function)) #'(lambda (x) (declare (ignore x)) nil))
+                               ((functionp (third force-function)) (third force-function))
+                               ((equal (third force-function) "(< x 1e-6)") #'(lambda (x) (< x 1e-6)))
+                               (t #'(lambda (x) (declare (ignore x)) nil)))
+                    (cond ((null (fourth force-function)) #'<)
+                              ((functionp (fourth force-function)) (fourth force-function))
+                              ((equal (fourth force-function) ">") #'>)
+                              (t #'<))
+                   (cond ((null (fifth force-function)) #'s::linear-force)
+                             ((equal (fifth force-function) "linear-force") #'s::linear-force)
+                             ((equal (fifth force-function) "divide-and-conquer-force") #'s::divide-and-conquer-force)
+                             ((equal (fifth force-function) "random-force") #'s::random-force)
+                             (t #'s::linear-force))
+                ))
+            )
+           )    ;<== end solution
+       )))) 
+    );<==end if
+    )) ;end-let-defun)

@@ -52,19 +52,19 @@
 
 (defmethod set-cs ((constraint function) (self cs-one-voice) &optional cs-mode)
  (let ((compiled-constraint (fdefinition (if (string-equal "backtrack" cs-mode)
- 	                                           (compile-screamer-backtrack-constraint constraint)										 
+                                               (compile-screamer-backtrack-constraint constraint)                                        
                                              (compile-screamer-constraint constraint)))))
   (set-constraint compiled-constraint self)))
 
 (defmethod make-cs-one-voice ((cs function)(input string)(voices list)(domain string) (rests string)(percentage-mode string)(percentage t) (cs-mode string))
  (let ((instance (make-instance 'cs-one-voice 
-					:input input
-					:voices voices
-					:domain domain
-					:rests rests
-					:percentage-mode percentage-mode
-					:percentage percentage
-					:cs-mode cs-mode)))
+                    :input input
+                    :voices voices
+                    :domain domain
+                    :rests rests
+                    :percentage-mode percentage-mode
+                    :percentage percentage
+                    :cs-mode cs-mode)))
  (set-cs cs instance cs-mode)
  instance))
 
@@ -97,21 +97,21 @@
 
 (defmethod set-cs ((constraint function) (self cs-harmony) &optional cs-mode)
  (let ((compiled-constraint (fdefinition (if (string-equal "backtrack" cs-mode)
- 	                                         (compile-screamer-backtrack-constraint constraint)
+                                             (compile-screamer-backtrack-constraint constraint)
                        (compile-screamer-constraint constraint)))))
   (set-constraint compiled-constraint self)))
 
 (defmethod make-cs-harmony ((cs function)(input string)(voice-select string)(voices list)(domain string)(rests string)(beats string)(percentage-mode string)(percentage t) (cs-mode string))
   (let ((instance (make-instance 'cs-harmony
-	  	            :input input 
-					:voice-select voice-select
-					:voices voices
-					:domain domain
-					:rests rests
-					:beats beats
-					:percentage-mode percentage-mode
-					:percentage percentage
-					:cs-mode cs-mode)))				
+                    :input input 
+                    :voice-select voice-select
+                    :voices voices
+                    :domain domain
+                    :rests rests
+                    :beats beats
+                    :percentage-mode percentage-mode
+                    :percentage percentage
+                    :cs-mode cs-mode)))             
    (set-cs cs instance cs-mode)
   instance))
 
@@ -127,7 +127,7 @@
    :VOICES = list with voice numbers.
    :APPROX = number in midi cents.
    :RANGE = number or list of numbers (min max).
-   :SCALE-TIME? = t or nil. If nil, the durations are ignored.	   
+   :SCALE-TIME? = t or nil. If nil, the durations are ignored.     
    :CS-MODE = propagation or backtrack [string] (not implemented yet). This should be extended in the future to include heuristics or other search optimizations."))
 
 (defmethod cs-profile-p ((self cs-profile)) t)
@@ -187,10 +187,10 @@
  (make-instance 'cs-measures
     :constraint cs
     :measures measures
-	:cs-type cs-type
-	:voices voices
-	:domain domain
-	:rests rests))
+    :cs-type cs-type
+    :voices voices
+    :domain domain
+    :rests rests))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; DOMAINS
@@ -230,22 +230,22 @@ A description of each slot is presented below:
    ((pitch :initform nil :initarg :pitch :reader pitch :writer set-pitch :documentation "list of lists")
     (pitch-include :initform nil :initarg :pitch-include :reader pitch-include :writer set-pitch-include :documentation "list of lists")
     (chords :initform nil :initarg :chords :reader chords :writer set-chords :documentation "list of lists")
-    (chords-include :initform nil :initarg :chords-include :reader chords-include :writer set-chords-include :documentation "list of lists")	
-	(pitch-dur :initform nil :initarg :pitch-dur :reader pitch-dur :writer set-pitch-dur :documentation "list of lists")
-	(pitch-onset :initform nil :initarg :pitch-onset :reader pitch-onset :writer set-pitch-onset :documentation "list of lists")
-	(pitch-dur-onset :initform nil :initarg :pitch-dur-onset :reader pitch-dur-onset :writer set-pitch-dur-onset :documentation "list of lists")
-	(pitch-vars-all-onsets :initform nil :initarg :pitch-vars-all-onsets :reader pitch-vars-all-onsets :writer set-pitch-vars-all-onsets :documentation "list of lists")
-	(pitch-dur-include :initform nil :initarg :pitch-dur-include :reader pitch-dur-include :writer set-pitch-dur-include :documentation "list of lists")
-	(pitch-onset-include :initform nil :initarg :pitch-onset-include :reader pitch-onset-include :writer set-pitch-onset-include :documentation "list of lists")
-	(pitch-dur-onset-include :initform nil :initarg :pitch-dur-onset-include :reader pitch-dur-onset-include :writer set-pitch-dur-onset-include :documentation "list of lists")
+    (chords-include :initform nil :initarg :chords-include :reader chords-include :writer set-chords-include :documentation "list of lists")    
+    (pitch-dur :initform nil :initarg :pitch-dur :reader pitch-dur :writer set-pitch-dur :documentation "list of lists")
+    (pitch-onset :initform nil :initarg :pitch-onset :reader pitch-onset :writer set-pitch-onset :documentation "list of lists")
+    (pitch-dur-onset :initform nil :initarg :pitch-dur-onset :reader pitch-dur-onset :writer set-pitch-dur-onset :documentation "list of lists")
+    (pitch-vars-all-onsets :initform nil :initarg :pitch-vars-all-onsets :reader pitch-vars-all-onsets :writer set-pitch-vars-all-onsets :documentation "list of lists")
+    (pitch-dur-include :initform nil :initarg :pitch-dur-include :reader pitch-dur-include :writer set-pitch-dur-include :documentation "list of lists")
+    (pitch-onset-include :initform nil :initarg :pitch-onset-include :reader pitch-onset-include :writer set-pitch-onset-include :documentation "list of lists")
+    (pitch-dur-onset-include :initform nil :initarg :pitch-dur-onset-include :reader pitch-dur-onset-include :writer set-pitch-dur-onset-include :documentation "list of lists")
     (chords-on-beat :initform nil :initarg :chords-on-beat :reader chords-on-beat :writer set-chords-on-beat :documentation "list of lists")
     (chords-off-beat :initform nil :initarg :chords-off-beat :reader chords-off-beat :writer set-chords-off-beat :documentation "list of lists")
     (chords-1st-beat :initform nil :initarg :chords-1st-beat :reader chords-1st-beat :writer set-chords-1st-beat :documentation "list of lists")
     (chords-pitch-dur :initform nil :initarg :chords-pitch-dur :reader chords-pitch-dur :writer set-chords-pitch-dur :documentation "list of lists")
-    (chords-pitch-onset :initform nil :initarg :chords-pitch-onset :reader chords-pitch-onset :writer set-chords-pitch-onset :documentation "list of lists")	
+    (chords-pitch-onset :initform nil :initarg :chords-pitch-onset :reader chords-pitch-onset :writer set-chords-pitch-onset :documentation "list of lists")    
     (chords-pitch-dur-onset :initform nil :initarg :chords-pitch-dur-onset :reader chords-pitch-dur-onset :writer set-chords-pitch-dur-onset :documentation "list of lists")
-	(chords-pitch-dur-include :initform nil :initarg :chords-pitch-dur-include :reader chords-pitch-dur-include :writer set-chords-pitch-dur-include :documentation "list of lists")
-    (chords-pitch-onset-include :initform nil :initarg :chords-pitch-onset-include :reader chords-pitch-onset-include :writer set-chords-pitch-onset-include :documentation "list of lists")	
+    (chords-pitch-dur-include :initform nil :initarg :chords-pitch-dur-include :reader chords-pitch-dur-include :writer set-chords-pitch-dur-include :documentation "list of lists")
+    (chords-pitch-onset-include :initform nil :initarg :chords-pitch-onset-include :reader chords-pitch-onset-include :writer set-chords-pitch-onset-include :documentation "list of lists")    
     (chords-pitch-dur-onset-include :initform nil :initarg :chords-pitch-dur-onset-include :reader chords-pitch-dur-onset-include :writer set-chords-pitch-dur-onset-include :documentation "list of lists")
     (midics-domain :initform nil :initarg :midics-domain :reader midics-domain :writer set-midics-domain :documentation "list of lists"))  ;<== CHANGED TO MIDI!
    (:documentation "A simple container for screamer-variables-domain.
@@ -278,9 +278,9 @@ A description of each slot is presented below:
 
 (defmethod make-variables-domain ((pitch list) (pitch-include list) (chords list) (chords-include list) (pitch-durs list) (pitch-onset list) (pitch-dur-onset list) (pitch-vars-all-onsets list)
                                    (pitch-durs-include list) (pitch-onset-include  list) (pitch-dur-onset-include  list)(chords-on-beat list) (chords-off-beat list)
-								   (chords-1st-beat list) (pitch-dur-chords list) (pitch-onset-chords list)(pitch-dur-onset-chords list) (pitch-dur-chords-include list)
-								   (pitch-onset-chords-include list)(pitch-dur-onset-chords-include list)
-								   (midics-domain list))
+                                   (chords-1st-beat list) (pitch-dur-chords list) (pitch-onset-chords list)(pitch-dur-onset-chords list) (pitch-dur-chords-include list)
+                                   (pitch-onset-chords-include list)(pitch-dur-onset-chords-include list)
+                                   (midics-domain list))
  (make-instance 'screamer-variables-domain
   :pitch pitch
   :pitch-include pitch-include
@@ -324,22 +324,22 @@ A description of each slot is presented below:
    ((pitch :initform nil :initarg :pitch :reader pitch :writer set-pitch :documentation "list of lists")
     (pitch-include :initform nil :initarg :pitch-include :reader pitch-include :writer set-pitch-include :documentation "list of lists")
     (chords :initform nil :initarg :chords :reader chords :writer set-chords :documentation "list of lists")
-    (chords-include :initform nil :initarg :chords-include :reader chords-include :writer set-chords-include :documentation "list of lists")	
-	(pitch-dur :initform nil :initarg :pitch-dur :reader pitch-dur :writer set-pitch-dur :documentation "list of lists")
-	(pitch-onset :initform nil :initarg :pitch-onset :reader pitch-onset :writer set-pitch-onset :documentation "list of lists")
-	(pitch-dur-onset :initform nil :initarg :pitch-dur-onset :reader pitch-dur-onset :writer set-pitch-dur-onset :documentation "list of lists")
+    (chords-include :initform nil :initarg :chords-include :reader chords-include :writer set-chords-include :documentation "list of lists")    
+    (pitch-dur :initform nil :initarg :pitch-dur :reader pitch-dur :writer set-pitch-dur :documentation "list of lists")
+    (pitch-onset :initform nil :initarg :pitch-onset :reader pitch-onset :writer set-pitch-onset :documentation "list of lists")
+    (pitch-dur-onset :initform nil :initarg :pitch-dur-onset :reader pitch-dur-onset :writer set-pitch-dur-onset :documentation "list of lists")
     (pitch-dur-include :initform nil :initarg :pitch-dur-include :reader pitch-dur-include :writer set-pitch-dur-include :documentation "list of lists")
-	(pitch-onset-include :initform nil :initarg :pitch-onset-include :reader pitch-onset-include :writer set-pitch-onset-include :documentation "list of lists")
-	(pitch-dur-onset-include :initform nil :initarg :pitch-dur-onset-include :reader pitch-dur-onset-include :writer set-pitch-dur-onset-include :documentation "list of lists")
+    (pitch-onset-include :initform nil :initarg :pitch-onset-include :reader pitch-onset-include :writer set-pitch-onset-include :documentation "list of lists")
+    (pitch-dur-onset-include :initform nil :initarg :pitch-dur-onset-include :reader pitch-dur-onset-include :writer set-pitch-dur-onset-include :documentation "list of lists")
     (chords-on-beat :initform nil :initarg :chords-on-beat :reader chords-on-beat :writer set-chords-on-beat :documentation "list of lists")
     (chords-off-beat :initform nil :initarg :chords-off-beat :reader chords-off-beat :writer set-chords-off-beat :documentation "list of lists")
-	(chords-1st-beat :initform nil :initarg :chords-1st-beat :reader chords-1st-beat :writer set-chords-1st-beat :documentation "list of lists")
+    (chords-1st-beat :initform nil :initarg :chords-1st-beat :reader chords-1st-beat :writer set-chords-1st-beat :documentation "list of lists")
     (chords-pitch-dur :initform nil :initarg :chords-pitch-dur :reader chords-pitch-dur :writer set-chords-pitch-dur :documentation "list of lists")
-    (chords-pitch-onset :initform nil :initarg :chords-pitch-onset :reader chords-pitch-onset :writer set-chords-pitch-onset :documentation "list of lists")		
+    (chords-pitch-onset :initform nil :initarg :chords-pitch-onset :reader chords-pitch-onset :writer set-chords-pitch-onset :documentation "list of lists")        
     (chords-pitch-dur-onset :initform nil :initarg :chords-pitch-dur-onset :reader chords-pitch-dur-onset :writer set-chords-pitch-dur-onset :documentation "list of lists")
-	(chords-pitch-dur-include :initform nil :initarg :chords-pitch-dur-include :reader chords-pitch-dur-include :writer set-chords-pitch-dur-include :documentation "list of lists")
-    (chords-pitch-onset-include :initform nil :initarg :chords-pitch-onset-include :reader chords-pitch-onset-include :writer set-chords-pitch-onset-include :documentation "list of lists")	
-    (chords-pitch-dur-onset-include :initform nil :initarg :chords-pitch-dur-onset-include :reader chords-pitch-dur-onset-include :writer set-chords-pitch-dur-onset-include :documentation "list of lists")	
+    (chords-pitch-dur-include :initform nil :initarg :chords-pitch-dur-include :reader chords-pitch-dur-include :writer set-chords-pitch-dur-include :documentation "list of lists")
+    (chords-pitch-onset-include :initform nil :initarg :chords-pitch-onset-include :reader chords-pitch-onset-include :writer set-chords-pitch-onset-include :documentation "list of lists")    
+    (chords-pitch-dur-onset-include :initform nil :initarg :chords-pitch-dur-onset-include :reader chords-pitch-dur-onset-include :writer set-chords-pitch-dur-onset-include :documentation "list of lists")    
     (midics-domain :initform nil :initarg :midics-domain :reader midics-domain :writer set-midics-domain :documentation "list of lists"))
    (:documentation "A simple container for screamer-measures-domain.
  A description of each slot is presented below:
@@ -371,9 +371,9 @@ A description of each slot is presented below:
 
 ;; INCLUDE 
 (defmethod make-measures-domain ((pitch list) (pitch-include list) (chords list) (chords-include list)(pitch-durs list) (pitch-onset list)
-								 (pitch-dur-onset list) (pitch-durs-include list) (pitch-onset-include  list) (pitch-dur-onset-include  list) (chords-on-beat list) (chords-off-beat list) (chords-1st-beat list)
-								 (pitch-dur-chords list) (pitch-onset-chords list) (pitch-dur-onset-chords list) (pitch-dur-chords-include list)
-								   (pitch-onset-chords-include list)(pitch-dur-onset-chords-include list) (midics-domain list))
+                                 (pitch-dur-onset list) (pitch-durs-include list) (pitch-onset-include  list) (pitch-dur-onset-include  list) (chords-on-beat list) (chords-off-beat list) (chords-1st-beat list)
+                                 (pitch-dur-chords list) (pitch-onset-chords list) (pitch-dur-onset-chords list) (pitch-dur-chords-include list)
+                                   (pitch-onset-chords-include list)(pitch-dur-onset-chords-include list) (midics-domain list))
   (make-instance 'screamer-measures-domain
    :pitch pitch
    :pitch-include pitch-include
@@ -424,21 +424,21 @@ A description of each slot is presented below:
 
 (defmethod make-screamer-all-domains ((vars-domain screamer-variables-domain) (mes-domain list))
  (make-instance 'screamer-all-domains
-	   :var-domain vars-domain
-	   :mes-domain mes-domain))
+       :var-domain vars-domain
+       :mes-domain mes-domain))
 
 (defmethod get-one-voice-domain ((self cs-one-voice) (domain screamer-variables-domain))
  (let* ((rests (get-rests self))
-	    (fun (read-from-string (if (string-equal rests "include")
-		                           (concatenate 'string (get-domain self) "-" rests)
-								   (get-domain self)))))
+        (fun (read-from-string (if (string-equal rests "include")
+                                   (concatenate 'string (get-domain self) "-" rests)
+                                   (get-domain self)))))
   (funcall fun domain)))
 
 (defmethod get-one-voice-domain ((self cs-one-voice) (domain screamer-measures-domain))
  (let* ((rests (get-rests self))
-	    (fun (read-from-string (if (string-equal rests "include")
-		                           (concatenate 'string (get-domain self) "-" rests)
-								   (get-domain self)))))
+        (fun (read-from-string (if (string-equal rests "include")
+                                   (concatenate 'string (get-domain self) "-" rests)
+                                   (get-domain self)))))
   (funcall fun domain)))
 
 (defmethod get-one-voice-domain ((self cs-one-voice) (domain screamer-all-domains))
@@ -448,16 +448,16 @@ A description of each slot is presented below:
  (cond ((= 1 mes-length) domains)
         (t (let* ((doms domains)
                   (merge-once (apply #'x-append  (list (pop doms) (pop doms)))))
-	        (if (null doms)
-		         merge-once
-	            (rec-merge-domain (x-append (list merge-once) doms) (1- mes-length)))))))
-	
+            (if (null doms)
+                 merge-once
+                (rec-merge-domain (x-append (list merge-once) doms) (1- mes-length)))))))
+    
  (defmethod get-one-voice-domain ((self cs-one-voice) (domain list))
  "List of measures."
  (let ((measures (mat-trans (loop for mes in domain
-	                   collect (get-one-voice-domain self mes)))))
+                       collect (get-one-voice-domain self mes)))))
 (loop for voice in measures 
-      collect (rec-merge-domain voice (length voice)))))					   
+      collect (rec-merge-domain voice (length voice)))))                       
 
 (defmethod get-chord-beat ((self cs-harmony) (domain screamer-variables-domain))
  (let ((beats (read-from-string (concatenate 'string "chords-" (get-beats self)))))
@@ -469,12 +469,12 @@ A description of each slot is presented below:
  (let ((beats (read-from-string (concatenate 'string "chords-" (get-beats self)))))
   (if (equal 'chords-all beats)
       (chords domain)
-	  (funcall beats domain))))
+      (funcall beats domain))))
 
 (defmethod get-chord-beat ((self cs-harmony) (domain list))
  "List of measures."
 (let ((measures (mat-trans (loop for mes in domain
-	                   collect (get-chord-beat self mes)))))
+                       collect (get-chord-beat self mes)))))
 (loop for voice in measures 
       collect (rec-merge-domain voice (length voice)))))
 
@@ -483,16 +483,16 @@ A description of each slot is presented below:
 
 (defmethod get-chord-domain ((self cs-harmony) (domain screamer-variables-domain))
   (let* ((rests (get-rests self))
-	    (fun (read-from-string (if (string-equal rests "include")
-		                           (concatenate 'string (get-domain self) "-" rests)
-								   (get-domain self)))))
+        (fun (read-from-string (if (string-equal rests "include")
+                                   (concatenate 'string (get-domain self) "-" rests)
+                                   (get-domain self)))))
   (funcall fun domain)))
   
 (defmethod get-chord-domain ((self cs-harmony) (domain screamer-measures-domain))
   (let* ((rests (get-rests self))
-	    (fun (read-from-string (if (string-equal rests "include")
-		                           (concatenate 'string (get-domain self) "-" rests)
-								   (get-domain self)))))
+        (fun (read-from-string (if (string-equal rests "include")
+                                   (concatenate 'string (get-domain self) "-" rests)
+                                   (get-domain self)))))
   (funcall fun domain)))
    
 (defmethod get-chord-domain ((self cs-harmony) (domain screamer-all-domains))
@@ -501,7 +501,6 @@ A description of each slot is presented below:
  (defmethod get-chord-domain ((self cs-harmony) (domain list))
   "List of measures."
  (let ((measures (mat-trans (loop for mes in domain
-	                   collect (get-chord-domain self mes)))))
+                       collect (get-chord-domain self mes)))))
 (loop for voice in measures 
       collect (rec-merge-domain voice (length voice)))))
-

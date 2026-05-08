@@ -1,25 +1,7 @@
 ;;;; -*- mode: common-lisp;   common-lisp-style: modern;    coding: utf-8; -*-
 ;;;;
-;;;; Screamer-Plus: A modernized constraint logic programming library for Common Lisp
 ;;;;
-;;;; Screamer-Plus is an extension of constraint propagation in Screamer,
-;;;; built upon a fundamental redesign of the core functions `funcallv` and `applyv`
-;;;; introduced in version 4.0.1 of Screamer.
-;;;;
-;;;; This new foundation enables automatic constraint propagation, eliminating the
-;;;; need for manual noticers and simplifying function/macro definitions.
-;;;; As a result, many of the macros and functions originally found in Screamer-Plus
-;;;; (by Simon White) — such as `CARV`, `CDRV`, `IFV`, and others — have been
-;;;; entirely rewritten or reimagined with cleaner semantics and greater efficiency.
-;;;;
-;;;; Some function names and general ideas are inspired by the original Screamer-Plus
-;;;; by Simon White, but all code in this package is original unless otherwise noted.”
-;;;;
-;;;; Contributions, feedback, and extensions are welcome.
-;;;;
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;;;
-;;;; Copyright (c) 2025 Paulo Henrique Raposo
+;;;; Copyright (c) 2026 Paulo Henrique Raposo
 ;;;;
 ;;;; Permission is hereby granted, free of charge, to any person obtaining a copy of
 ;;;; this software and associated documentation files (the "Software"), to deal in
@@ -42,98 +24,283 @@
 
 (in-package :screamer+)
 
-(defun mapv (result-type function sequence &rest more-sequences)
-(let ((sequence (value-of sequence))
-      (more-sequences (mapcar #'value-of more-sequences)))
-(when (variable? result-type)
-    (error "The current implementation does not allow the first argument~%~
-    of MAPV to be an unbound variable."))
-(when (variable? function)
-    (error "The current implementation does not allow the second argument~%~
-    of MAPV to be an unbound variable."))
- (if (and (deep-bound? sequence)
-          (deep-bound? more-sequences))
-     (apply #'map (list* result-type function sequence more-sequences))
-     (let ((z (applyv #'map (list* result-type function sequence more-sequences))))
-      z))))
+;;; ============================================================================
+;;; COUNTING CONSTRAINTS
+;;; ============================================================================
+;;; Simon White's incremental counting with LOCAL for backtrackable state.
+;;; More efficient than the declarative sumv+reifyv approach for large inputs.
 
-(defun at-mostv (n fn sequence &rest more-sequences)
-  (let* ((sequence (value-of sequence))
-        (more-sequences (mapcar #'value-of more-sequences))
-        (z (a-booleanv)) 
-        (count-trues (sumv (mapcarv #'reifyv (apply #'mapv (list* 'list fn sequence more-sequences))))))
-    (assert! (impliesv z (<=v count-trues n)))
-    (assert! (impliesv (notv z) (>=v count-trues n)))
-    (assert!-true z)    
+(defmacro-compile-time at-leastv (n f &rest x)
+  `(at-leastv-internal ,n ,f ,@x))
+
+(defun at-leastv-internal (n f &rest x)
+  (declare (integer n))
+  (let* ((z (a-booleanv))
+         (countup 0)
+         (noes 0)
+         (shortest (apply #'min (mapcar #'length x)))
+         (known-list (make-list shortest :initial-element nil)))
+    (declare (integer countup noes shortest))
+    (do* ((cdrs x (mapcar #'cdr cdrs))
+          (cars (mapcar #'car cdrs) (mapcar #'car cdrs))
+          (c 0 (1+ c)))
+         ((some #'null cdrs) t)
+      (let ((cars cars) (c c) temp)
+        (attach-noticer!
+         #'(lambda ()
+             (when (every #'bound? cars)
+               (setq temp (apply f cars))
+               (when (bound? temp)
+                 (when (null (nth c known-list))
+                   (local (setf (nth c known-list) t)))
+                 (if (equal (value-of temp) t)
+                     (progn
+                       (local (incf countup))
+                       (when (>= countup n)
+                         (assert!-true z)))
+                     (local (incf noes)))
+                 ;; Not enough unknowns left
+                 (when (and (< (- shortest noes) n)
+                            (not (known?-false z)))
+                   (assert!-false z))
+                 ;; Short cut: exactly enough unknowns remain
+                 (when (and (= (- shortest noes) n)
+                            (known?-true z))
+                   (do* ((cdrs2 x (mapcar #'cdr cdrs2))
+                         (cars2 (mapcar #'car cdrs2) (mapcar #'car cdrs2))
+                         (q 0 (1+ q)))
+                        ((some #'null cdrs2) t)
+                     (when (null (nth q known-list))
+                       (assert! (apply f cars2))))))))
+         cars)))
+    ;; z noticer: when z becomes true and remaining unknowns = n
+    (attach-noticer!
+     #'(lambda ()
+         (when (and (= (- shortest noes) n)
+                    (known?-true z))
+           (do* ((cdrs x (mapcar #'cdr cdrs))
+                 (cars (mapcar #'car cdrs) (mapcar #'car cdrs))
+                 (q 0 (1+ q)))
+                ((some #'null cdrs) t)
+             (when (null (nth q known-list))
+               (assert! (apply f cars))))))
+     z)
     z))
 
-(defun at-leastv (n fn sequence &rest more-sequences)
-  (let* ((sequence (value-of sequence))
-        (more-sequences (mapcar #'value-of more-sequences))
-        (z (a-booleanv)) 
-        (count-trues (sumv (mapcarv #'reifyv (apply #'mapv (list* 'list fn sequence more-sequences))))))
-    (assert! (impliesv z (>=v count-trues n)))
-    (assert! (impliesv (notv z) (<=v count-trues n)))
-    (assert!-true z)
+(defmacro-compile-time at-mostv (n f &rest x)
+  `(at-mostv-internal ,n ,f ,@x))
+
+(defun at-mostv-internal (n f &rest x)
+  (declare (integer n))
+  (let* ((z (a-booleanv))
+         (countup 0)
+         (noes 0)
+         (shortest (apply #'min (mapcar #'length x)))
+         (known-list (make-list shortest :initial-element nil)))
+    (declare (integer countup noes shortest))
+    (do* ((cdrs x (mapcar #'cdr cdrs))
+          (cars (mapcar #'car cdrs) (mapcar #'car cdrs))
+          (c 0 (1+ c)))
+         ((some #'null cdrs) t)
+      (let ((cars cars) (c c) temp)
+        (attach-noticer!
+         #'(lambda ()
+             (when (every #'bound? cars)
+               (setq temp (apply f cars))
+               (when (bound? temp)
+                 (when (null (nth c known-list))
+                   (local (setf (nth c known-list) t)))
+                 (if (equal (value-of temp) t)
+                     (progn
+                       (local (setq countup (1+ countup)))
+                       (when (> countup n)
+                         (assert! (notv z))))
+                     (local (setq noes (1+ noes))))
+                 ;; Enough noes: at-most is guaranteed
+                 (when (and (<= (- shortest noes) n)
+                            (not (known?-true z)))
+                   (assert! z))
+                 ;; Short cut: reached n, force remaining false
+                 (when (and (= countup n)
+                            (known?-true z))
+                   (do* ((cdrs2 x (mapcar #'cdr cdrs2))
+                         (cars2 (mapcar #'car cdrs2) (mapcar #'car cdrs2))
+                         (q 0 (1+ q)))
+                        ((some #'null cdrs2) t)
+                     (when (null (nth q known-list))
+                       (assert! (notv (apply f cars2)))))))))
+         cars)))
+    (attach-noticer!
+     #'(lambda ()
+         (when (bound? z)
+           (when (and (= countup n)
+                      (known?-true z))
+             (do* ((cdrs x (mapcar #'cdr cdrs))
+                   (cars (mapcar #'car cdrs) (mapcar #'car cdrs))
+                   (q 0 (1+ q)))
+                  ((some #'null cdrs) t)
+               (when (null (nth q known-list))
+                 (assert! (notv (apply f cars))))))))
+     z)
     z))
 
-(defun exactlyv (n fn sequence &rest more-sequences)
-  (let* ((sequence (value-of sequence))
-        (more-sequences (mapcar #'value-of more-sequences))
-        (z (a-booleanv)) 
-        (count-trues (sumv (mapcarv #'reifyv (apply #'mapv (list* 'list fn sequence more-sequences))))))
-    (assert! (impliesv z (=v count-trues n)))
-    (assert! (impliesv (notv z) (/=v count-trues n)))
-    (assert!-true z)
+(defmacro-compile-time exactlyv (n f &rest x)
+  `(exactlyv-internal ,n ,f ,@x))
+
+(defun exactlyv-internal (n f &rest x)
+  (declare (integer n))
+  (let* ((z (a-booleanv))
+         (countup 0)
+         (noes 0)
+         (shortest (apply #'min (mapcar #'length x)))
+         (known-list (make-list shortest :initial-element nil)))
+    (do* ((cdrs x (mapcar #'cdr cdrs))
+          (cars (mapcar #'car cdrs) (mapcar #'car cdrs))
+          (c 0 (1+ c)))
+         ((some #'null cdrs) t)
+      (let ((cars cars) (c c) temp)
+        (attach-noticer!
+         #'(lambda ()
+             (when (every #'bound? cars)
+               (setq temp (apply f cars))
+               (when (bound? temp)
+                 (when (null (nth c known-list))
+                   (local (setf (nth c known-list) t)))
+                 (if (equal (value-of temp) t)
+                     (progn
+                       (local (setq countup (1+ countup)))
+                       ;; Reached n: assert true
+                       (when (>= countup n) (assert!-true z))
+                       ;; Exceeded n: assert false
+                       (when (> countup n) (assert!-false z)))
+                     (local (setq noes (1+ noes))))
+                 ;; Not enough unknowns for at-least
+                 (when (and (< (- shortest noes) n)
+                            (not (known?-false z)))
+                   (assert!-false z))
+                 ;; Enough noes: at-most guaranteed
+                 (when (and (<= (- shortest noes) n)
+                            (not (known?-true z)))
+                   (assert!-true z))
+                 ;; Short cut: exactly enough unknowns, force true
+                 (when (and (= (- shortest noes) n)
+                            (known?-true z))
+                   (do* ((cdrs2 x (mapcar #'cdr cdrs2))
+                         (cars2 (mapcar #'car cdrs2) (mapcar #'car cdrs2))
+                         (q 0 (1+ q)))
+                        ((some #'null cdrs2) t)
+                     (when (null (nth q known-list))
+                       (assert! (apply f cars2)))))
+                 ;; Short cut: reached n, force remaining false
+                 (when (and (>= countup n)
+                            (known?-true z))
+                   (do* ((cdrs2 x (mapcar #'cdr cdrs2))
+                         (cars2 (mapcar #'car cdrs2) (mapcar #'car cdrs2))
+                         (q 0 (1+ q)))
+                        ((some #'null cdrs2) t)
+                     (when (null (nth q known-list))
+                       (assert! (notv (apply f cars2)))))))))
+         cars)))
+    (attach-noticer!
+     #'(lambda ()
+         (when (bound? z)
+           (when (and (= countup n)
+                      (known?-true z))
+             (do* ((cdrs x (mapcar #'cdr cdrs))
+                   (cars (mapcar #'car cdrs) (mapcar #'car cdrs))
+                   (q 0 (1+ q)))
+                  ((some #'null cdrs) t)
+               (when (null (nth q known-list))
+                 (assert! (notv (apply f cars))))))))
+     z)
     z))
 
-(defun everyv (predicate sequence &rest more-sequences)
-(let ((sequence (value-of sequence))
-      (more-sequences (mapcar #'value-of more-sequences)))
-(when (variable? predicate)
-    (error "The current implementation does not allow the first argument~%~
-    of EVERYV to be an unbound variable."))
- (if (and (deep-bound? sequence)
-          (deep-bound? more-sequences))
-    (apply #'every (list* predicate sequence more-sequences))
-    (let ((z (applyv #'(lambda (seq) (every predicate seq)) (list* sequence more-sequences))))
-     z))))
+;;; ============================================================================
+;;; QUANTIFIERS
+;;; ============================================================================
+;;; Based on Simon White's originals with named rules and cleaner formatting.
+;;; These use attach-noticer! with bidirectional propagation:
+;;; forward (list -> z) and backward (z -> list elements).
 
-(defun somev (predicate sequence &rest more-sequences)
-(let ((sequence (value-of sequence))
-      (more-sequences (mapcar #'value-of more-sequences)))
-(when (variable? predicate)
-    (error "The current implementation does not allow the first argument~%~
-    of SOMEV to be an unbound variable."))
- (if (and (deep-bound? sequence)
-          (deep-bound? more-sequences))
-    (apply #'some (list* predicate sequence more-sequences))
-    (let ((z (applyv #'(lambda (seq) (some predicate seq)) (list* sequence more-sequences))))
-     z))))
+(defun everyv (f v)
+  "Boolean variable: T iff F applied to every element of V is true."
+  (let ((z (a-booleanv))
+        (v (value-of v)))
+    (attach-noticer!
+     #'(lambda ()
+         (when (bound? v)
+           (let ((val nil))
+             (dolist (x (value-of v))
+               (push (funcall f x) val))
+             (assert!-equalv z (apply #'andv val)))))
+     v)
+    (attach-noticer!
+     #'(lambda ()
+         (when (and (known?-true z) (bound? v))
+           (dolist (x (value-of v))
+             (assert! (funcall f x)))))
+     z)
+    z))
 
-(defun notanyv (predicate sequence &rest more-sequences)
-(let ((sequence (value-of sequence))
-      (more-sequences (mapcar #'value-of more-sequences)))
-(when (variable? predicate)
-    (error "The current implementation does not allow the first argument~%~
-    of NOTANYV to be an unbound variable."))
- (if (and (deep-bound? sequence)
-          (deep-bound? more-sequences))
-    (apply #'notany (list* predicate sequence more-sequences))
-    (let ((z (applyv #'(lambda (seq) (notany predicate seq)) (list* sequence more-sequences))))
-     z))))
+(defun somev (f v)
+  "Boolean variable: T iff F applied to some element of V is true."
+  (let ((z (a-booleanv))
+        (v (value-of v)))
+    (attach-noticer!
+     #'(lambda ()
+         (when (bound? v)
+           (let ((disj nil))
+             (dolist (x (value-of v))
+               (push (funcall f x) disj))
+             (assert! (equalv z (apply #'orv disj))))))
+     v)
+    (attach-noticer!
+     #'(lambda ()
+         (when (and (known?-false z) (bound? v))
+           (dolist (x (value-of v))
+             (assert! (notv (funcall f x))))))
+     z)
+    z))
 
-(defun noteveryv (predicate sequence &rest more-sequences)
-(let ((sequence (value-of sequence))
-      (more-sequences (mapcar #'value-of more-sequences)))
-(when (variable? predicate)
-    (error "The current implementation does not allow the first argument~%~
-    of NOTEVERYV to be an unbound variable."))
- (if (and (deep-bound? sequence)
-          (deep-bound? more-sequences))
-    (apply #'notevery (list* predicate sequence more-sequences))
-    (let ((z (applyv #'(lambda (seq) (notevery predicate seq)) (list* sequence more-sequences))))
-      z))))
+(defun noteveryv (f v)
+  "Boolean variable: T iff F applied to some element of V is false."
+  (let ((z (a-booleanv))
+        (v (value-of v)))
+    (attach-noticer!
+     #'(lambda ()
+         (when (bound? v)
+           (let ((conj nil))
+             (dolist (x (value-of v))
+               (push (funcall f x) conj))
+             (assert! (equalv (notv z) (apply #'andv conj))))))
+     v)
+    (attach-noticer!
+     #'(lambda ()
+         (when (and (known?-false z) (bound? v))
+           (dolist (x (value-of v))
+             (assert! (funcall f x)))))
+     z)
+    z))
+
+(defun notanyv (f v)
+  "Boolean variable: T iff F applied to every element of V is false."
+  (let ((z (a-booleanv))
+        (v (value-of v)))
+    (attach-noticer!
+     #'(lambda ()
+         (when (bound? v)
+           (let ((val nil))
+             (dolist (x (value-of v))
+               (push (notv (funcall f x)) val))
+             (assert! (equalv z (apply #'andv val))))))
+     v)
+    (attach-noticer!
+     #'(lambda ()
+         (when (and (known?-true z) (bound? v))
+           (dolist (x (value-of v))
+             (assert! (notv (funcall f x))))))
+     z)
+    z))
 
 (defun subseqv (sequence start &optional end)
 (let ((sequence (value-of sequence))
@@ -183,8 +350,3 @@
                (t (map nil (lambda (el) (assert! (memberv el z))) sequence)))
          (value-of z)))))
 
-;; compat
-
-(defun members-ofv (x)
-"DEPRECATED. Use remove-duplicatesv instead."
- (remove-duplicatesv x :test #'equal))
