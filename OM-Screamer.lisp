@@ -27,11 +27,24 @@
 (require-library "OM-Backtrack")
 
 ;--------------------------------------------------
+; Library root / icon folder (captured at load time)
+; Portable Win/Mac/Linux via *load-pathname*
+;--------------------------------------------------
+
+(defvar *om-screamer-icon-folder* nil)
+(setf *om-screamer-icon-folder*
+      (make-pathname :host (pathname-host *load-pathname*)
+                     :device (pathname-device *load-pathname*)
+                     :directory (append (pathname-directory *load-pathname*)
+                                        '("resources" "icon"))))
+
+;--------------------------------------------------
 ;Variable definiton with files to load
 ;--------------------------------------------------
 
 (defvar *om-screamer-files* nil)
 (setf  *om-screamer-files* (list
+             (om::om-relative-path '("sources") "constraint-patch")
              (om::om-relative-path '("sources") "fun-button")
              (om::om-relative-path '("sources") "om-backtrack-additions")
              ;(om::om-relative-path '("sources" "screamer-plus") "screamer-patch")
@@ -40,6 +53,7 @@
              (om::om-relative-path '("sources" "screamer-plus") "lists")
              (om::om-relative-path '("sources" "screamer-plus") "sequences")
              (om::om-relative-path '("sources" "screamer-plus") "sets")
+             (om::om-relative-path '("sources" "screamer-plus") "numbers")
             ; (om::om-relative-path '("sources" "screamer-plus") "arrays")
              ;(om::om-relative-path '("sources" "screamer-plus") "objects")
              (om::om-relative-path '("sources") "screamer-additions")
@@ -54,6 +68,14 @@
              (om::om-relative-path '("sources") "screamer-score-domains")
              (om::om-relative-path '("sources") "screamer-score-constraints")
              (om::om-relative-path '("sources") "screamer-score")
+             (om::om-relative-path '("sources" "screamer-score-2") "new-screamer-additions")
+             (om::om-relative-path '("sources" "screamer-score-2") "package")
+             (om::om-relative-path '("sources" "screamer-score-2") "screamer-bpf")
+             (om::om-relative-path '("sources" "screamer-score-2") "screamer-score-2-classes")
+             (om::om-relative-path '("sources" "screamer-score-2") "score-solution")
+             (om::om-relative-path '("sources" "screamer-score-2") "screamer-score-2")
+             (om::om-relative-path '("sources" "screamer-score-2") "main-interface")
+             (om::om-relative-path '("sources" "screamer-score-2") "screamer-score-2-interface")
               ))
 
 ;--------------------------------------------------
@@ -91,7 +113,9 @@
                    ("Screamer-Score-2"
                     (("main"        nil nil (screamer-score-2) nil)
                      ("domains"     nil nil (mk-voice-domain mk-metric-domain mk-rhythm-domain mk-pitch-domain mk-dyn-domain) nil)
-                     ("constraints" nil nil (mk-one-voice-constraint mk-harmony-constraint mk-metric-constraint) nil)
+                     ("constraints" nil nil (mk-one-voice-constraint mk-measures-constraint mk-metric-constraint
+                                             ;mk-harmony-constraint
+                                            ) nil)
                      ) Nil Nil Nil)
 
                ("Screamer"
@@ -105,26 +129,30 @@
                     ("expression" nil nil (s::equalv) nil)
                     ("functions" nil nil (s::funcallv s::applyv) nil) ) Nil Nil Nil)
 
-                   #|("Screamer-Plus"
-                       (("primitives" nil nil (screamer+::a-subset-of screamer+::a-partition-of screamer+::members-ofv screamer+::not-equalv) nil)
-                        ("variables" nil nil (screamer+::a-listv screamer+::a-consv screamer+::a-symbolv screamer+::a-stringv
-                                              ) nil)
-                        ("type-restrictions" nil nil (screamer+::listpv screamer+::conspv screamer+::symbolpv screamer+::stringpv) nil)
+                   ("Screamer-Plus"
+                       (
+                        ;("primitives" nil nil (screamer+::a-subset-of screamer+::a-partition-of screamer+::members-ofv screamer+::not-equalv) nil)
+                        ;("variables" nil nil (screamer+::a-listv screamer+::a-consv screamer+::a-symbolv screamer+::a-stringv) nil)
+                        ;("type-restrictions" nil nil (screamer+::listpv screamer+::conspv screamer+::symbolpv screamer+::stringpv) nil)
                         ("boolean" nil nil (screamer+::impliesv) nil)
-                        ("expression" nil nil (screamer+::ifv-rec screamer+::make-equal) nil)
-                        ("lists" nil nil (screamer+::carv screamer+::cdrv screamer+::consv screamer+::firstv screamer+::secondv screamer+::thirdv
-                                            screamer+::fourthv screamer+::nthv screamer+::subseqv screamer+::lengthv screamer+::appendv
-                                            screamer+::make-listv screamer+::all-differentv) nil)
-                        ("sets-and-bags" nil nil (screamer+::set-equalv screamer+::subsetpv screamer+::intersectionv screamer+::unionv screamer+::bag-equalv) nil)
-                        ("arrays" nil nil (screamer+::make-arrayv screamer+::arefv) nil)
+                        ;("expression" nil nil (screamer+::ifv screamer+::make-equal) nil)
+                        ("lists" nil nil (screamer+::carv screamer+::cdrv screamer+::consv screamer+::nthv screamer+::firstv screamer+::secondv screamer+::thirdv
+                                          screamer+::fourthv screamer+::fifthv screamer+::sixthv screamer+::seventhv screamer+::eighthv screamer+::ninthv
+                                          screamer+::tenthv screamer+::lengthv screamer+::appendv
+                                          ;screamer+::subseqv screamer+::make-listv screamer+::all-differentv
+                                          ) nil)
+                        ("sets" nil nil (screamer+::set-equalv screamer+::subsetpv screamer+::intersectionv screamer+::unionv
+                                         ;screamer+::bag-equalv
+                                         ) nil)
+                        ;("arrays" nil nil (screamer+::make-arrayv screamer+::arefv) nil)
                         ;("objects" nil nil (screamer+::make-instancev screamer+::classpv screamer+::slot-valuev screamer+::class-ofv screamer+::class-namev
                             ;screamer+::slot-exists-pv screamer+::reconcile) nil)
-                        ("high-order-fns" nil nil (screamer+::funcallinv screamer+::mapcarv screamer+::maplistv screamer+::everyv screamer+::somev
-                                                                                         screamer+::noteveryv screamer+::notanyv screamer+::at-leastv screamer+::at-mostv screamer+::exactlyv 
-                                                                                         screamer+::constraint-fn) nil)
+                        ;("high-order-fns" nil nil (screamer+::funcallinv screamer+::mapcarv screamer+::maplistv screamer+::everyv screamer+::somev
+                        ;                                                                 screamer+::noteveryv screamer+::notanyv screamer+::at-leastv screamer+::at-mostv screamer+::exactlyv 
+                        ;                                                                 screamer+::constraint-fn) nil)
                         ;("stream-output" nil nil (screamer+::formatv) nil)
-                        ("functions" nil nil (screamer+::funcallgv) nil)
-                        ) Nil Nil Nil)|#
+                        ;("functions" nil nil (screamer+::funcallgv) nil)
+                        ) Nil Nil Nil)
 
                 ;("FOLDER" Nil Nil (package::FUNCTION) Nil)
 

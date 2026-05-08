@@ -1,0 +1,51 @@
+OM-SCREAMER
+
+LIBRARY STRUCTURE
+
+2026-05-06
+
+| sources |
+
+***********   TOP LEVEL   ***********
+
+|    -    | constraint-patch.lisp
+|    -    | fun-button.lisp
+|    -    | om-backtrack-additions.lisp
+|    -    | om-interface.lisp
+|    -    | om-screamerfuns.lisp
+|    -    | package.lisp
+|    -    | screamer-additions.lisp
+|    -    | screamer-score-classes.lisp
+|    -    | screamer-score-constraints.lisp
+|    -    | screamer-score-domains.lisp
+|    -    | screamer-score.lisp
+|    -    | screamer-solver.lisp
+
+***********   PC-SET-THEORY   ***********
+
+|    -    | pc-set-theory | SCs-data.lisp
+|    -    | pc-set-theory | all-SCs.lisp
+|    -    | pc-set-theory | normal-order-data.lisp
+|    -    | pc-set-theory | normal-order.lisp
+|    -    | pc-set-theory | pc-set-theory.lisp
+
+***********   SCREAMER-PLUS   ***********
+
+|    -    | screamer-plus | lists.lisp
+|    -    | screamer-plus | numbers.lisp
+|    -    | screamer-plus | package.lisp
+|    -    | screamer-plus | screamer-plus.lisp
+|    -    | screamer-plus | sequences.lisp
+|    -    | screamer-plus | sets.lisp
+
+***********   SCREAMER-SCORE-2   ***********
+
+|    -    | screamer-score-2 | main-interface.lisp
+|    -    | screamer-score-2 | new-screamer-additions.lisp
+|    -    | screamer-score-2 | package.lisp
+|    -    | screamer-score-2 | score-solution.lisp
+|    -    | screamer-score-2 | screamer-bpf.lisp
+|    -    | screamer-score-2 | screamer-score-2-classes.lisp
+|    -    | screamer-score-2 | screamer-score-2-interface.lisp
+|    -    | screamer-score-2 | screamer-score-2.lisp
+
