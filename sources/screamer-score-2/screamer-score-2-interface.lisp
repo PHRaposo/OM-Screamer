@@ -52,31 +52,6 @@ Returns a METRIC-DOMAIN-SPEC object. Pass to SCREAMER-SCORE-2 as METRIC-DOM."
   (apply #'screamer-score::make-metric-domain specs))
 
 
-(defmethod! mk-rhythm-domain ((n-notes integer) (domain list))
-  :initvals '(8 '(1/4 1/8 -1/8))
-  :indoc    '("number of rhythm slots (notes + rests) - integer"
-              "list of rational durations - positive=note, negative=rest")
-  :doc      "Create a rhythm domain for one voice in SCREAMER-SCORE-2.
-N-NOTES: total number of slots (notes + rests) for this voice.
-DOMAIN:  list of rational durations (positive=note, negative=rest).
-
-Returns an SS2-DOMAIN object."
-  :icon     486
-  (screamer-score::make-rhythm-domain n-notes domain))
-
-
-(defmethod! mk-pitch-domain ((domain list))
-  :initvals '('(60 62 64 67))
-  :indoc    '("list of MIDI note numbers - e.g. '(60 62 64 67) for C4 D4 E4 G4")
-  :doc      "Create a pitch domain for one voice in SCREAMER-SCORE-2.
-DOMAIN: list of MIDI note numbers (integers 0-127).
-        Do NOT include -1 - rest slots receive -1 automatically.
-
-Returns an SS2-DOMAIN object."
-  :icon     486
-  (screamer-score::make-pitch-domain domain))
-
-
 (defmethod! mk-chord-domain ((domain list) (notes-per-chord t))
   :initvals '('(60 62 64 65 67 69 71) 4)
   :indoc    '("list of MIDI note numbers used as the chord pool"
@@ -103,17 +78,6 @@ Returns a CHORD-DOMAIN object."
   (make-instance 'screamer-score::chord-domain
     :domain          domain
     :notes-per-chord notes-per-chord))
-
-
-(defmethod! mk-vel-domain ((domain list))
-  :initvals '('(mp mf f))
-  :indoc    '("list of velocity values - symbols (ppp pp p mp mf f ff fff) or integers 0-127")
-  :doc      "Create a velocity domain for one voice in SCREAMER-SCORE-2.
-DOMAIN: list of velocity symbols or MIDI velocity integers (0-127).
-
-Returns an SS2-DOMAIN object."
-  :icon     486
-  (screamer-score::make-vel-domain domain))
 
 
 ;;;; ===========================================================================

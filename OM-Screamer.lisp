@@ -112,8 +112,8 @@
 
                    ("Screamer-Score-2"
                     (("main"        nil nil (screamer-score-2) nil)
-                     ("domains"     nil nil (mk-voice-domain mk-metric-domain mk-rhythm-domain mk-pitch-domain mk-dyn-domain) nil)
-                     ("constraints" nil nil (mk-one-voice-constraint mk-measures-constraint mk-metric-constraint
+                     ("domains"     nil nil (mk-voice-domain mk-screamer-voice mk-metric-domain mk-chord-domain) nil)
+                     ("constraints" nil nil (mk-one-voice-constraint mk-measures-constraint mk-metric-constraint mk-constraint-profile
                                              ;mk-harmony-constraint
                                             ) nil)
                      ) Nil Nil Nil)
