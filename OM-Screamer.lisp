@@ -158,6 +158,10 @@
 
                  ))
 
+(unless (fboundp 'om::set-lib-release) (defmethod om::set-lib-release (version &optional lib) nil))
+
+(set-lib-release "2.0.0") 
+
 (print (format nil "
 OM-SCREAMER LIBRARY
 Includes:
@@ -168,6 +172,8 @@ Includes:
 
 * SCREAMER-CONSTRAINT-SOLVER and SCREAMER-SCORE
   Copyright 2024 Paulo Henrique Raposo
+
+* SCREAMER-SCORE-2 (in progress)
 
   LISP LIBRARIES:
 
