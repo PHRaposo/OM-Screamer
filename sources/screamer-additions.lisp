@@ -1,16 +1,16 @@
 (in-package :screamer)
 
-(defvar *all-screamer-score-variables*  nil
+(defvar *all-screamer-score-variables*  (make-hash-table :test #'eq)
  "A global variable storing the order which variables (and non-variables) will appear in the musical score representation 
 of screamer-score (Openmusic). This is used for score-position (new cost-function).")
 
 (defvar-compile-time *dependencies* nil
  "A global variable storing the dependencies.")
- 	   		  			   	
+ 
 (cl:defun score-position (x) 
   "This function can replace domain-size or range-size as a new cost-function for music constraints.
   Returns the position of X in the musical score representation of screamer-score (Openmusic)."
-  (position x *all-screamer-score-variables* :test #'eq)) 
+  (gethash x *all-screamer-score-variables*))
 
 (defmacro-compile-time count-scs-failures (&body body)
 "Failure count for screamer-solver (OpenMusic). Prints a message for each 1,000,000 failures."

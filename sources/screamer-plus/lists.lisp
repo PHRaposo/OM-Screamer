@@ -1,25 +1,6 @@
 ;;;; -*- mode: common-lisp;   common-lisp-style: modern;    coding: utf-8; -*-
 ;;;;
-;;;; Screamer-Plus: A modernized constraint logic programming library for Common Lisp
-;;;;
-;;;; Screamer-Plus is an extension of constraint propagation in Screamer,
-;;;; built upon a fundamental redesign of the core functions `funcallv` and `applyv`
-;;;; introduced in version 4.0.1 of Screamer.
-;;;;
-;;;; This new foundation enables automatic constraint propagation, eliminating the
-;;;; need for manual noticers and simplifying function/macro definitions.
-;;;; As a result, many of the macros and functions originally found in Screamer-Plus
-;;;; (by Simon White) — such as `CARV`, `CDRV`, `IFV`, and others — have been
-;;;; entirely rewritten or reimagined with cleaner semantics and greater efficiency.
-;;;;
-;;;; Some function names and general ideas are inspired by the original Screamer-Plus
-;;;; by Simon White, but all code in this package is original unless otherwise noted.”
-;;;;
-;;;; Contributions, feedback, and extensions are welcome.
-;;;;
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;;;
-;;;; Copyright (c) 2025 Paulo Henrique Raposo
+;;;; Copyright (c) 2026 Paulo Henrique Raposo
 ;;;;
 ;;;; Permission is hereby granted, free of charge, to any person obtaining a copy of
 ;;;; this software and associated documentation files (the "Software"), to deal in
@@ -43,6 +24,9 @@
 (in-package :screamer+)
 
 (defun car-rule-up (x z)
+ (when (and (or (listp (value-of x)) (consp (value-of x)))
+            (not (deep-bound? x)))
+   (assert!-equalv z (car (value-of x))))
  (when (and (variable? (deep-value-of x))
             (not (eq (variable-enumerated-domain x) t))
             (variable? (deep-value-of z)))        
@@ -80,6 +64,9 @@
       (otherwise (error "Cannot take CARV of ~A~%" x)))))
 
 (defun cdr-rule-up (x z)
+  (when (and (or (listp (value-of x)) (consp (value-of x)))
+             (not (deep-bound? x)))
+    (assert!-equalv z (cdr (value-of x))))
   (when (and (variable? (deep-value-of x))
              (not (eq (variable-enumerated-domain x) t))
              (variable? (deep-value-of z)))
@@ -186,8 +173,8 @@
        (t (consv2 (consv (car x) (cdr x))
                   (consv (car y) (cdr y))))))
 
-(defun consv (x y)
- (consv-internal (value-of x) (value-of y)))
+;(defun consv (x y)
+; (consv-internal (value-of x) (value-of y)))
 
 (defun listv-internal (x)
   (cond
@@ -199,6 +186,9 @@
  (listv-internal args))
 
 (defun length-rule-up (x z)
+  (when (and (listp (value-of x))
+             (not (deep-bound? x)))
+    (assert!-equalv z (length (value-of x))))
   (when (and (variable? (deep-value-of x))
              (not (eq (variable-enumerated-domain x) t))
              (variable? (deep-value-of z)))
@@ -236,7 +226,26 @@
       (otherwise (error "Cannot take LENGTHV of ~A~%" x)))))
 
 (defun nth-rule-up (n x z)
-  (when (and (domain-size (list n x))
+  ;; X is BOUND to a list and n is bounded to an integer: assert z = (nth n x).
+  (when (and (or (listp (value-of x)) (consp (value-of x)))
+             (integerp (value-of n))
+             (not (deep-bound? x)))
+    (assert!-equalv z (nth (value-of n) (value-of x))))
+  ;; X is a list and N is still a variable:
+  ;; restrict n's index domain to [0, length(x)-1].
+  (when (and (or (listp (value-of x)) (consp (value-of x)))
+             (variable? (value-of n)))
+    (let* ((x-len (length (value-of x)))
+           (valid (all-values (an-integer-between 0 (1- x-len)))))
+      (if (not (eq (variable-enumerated-domain n) t))
+          (let ((new-n (remove-if-not #'(lambda (i) (member i valid :test #'equal))
+                                      (variable-enumerated-domain n))))
+            (when (set-enumerated-domain! n new-n)
+              (run-noticers n)))
+          (restrict-enumerated-domain! n valid))))
+  (when (and (not (eq (variable-enumerated-domain n) t))
+             (not (eq (variable-enumerated-domain x) t))
+             (domain-size (list n x))
              (<= (domain-size (list n x)) *maximum-discretization-range*)
              (or (variable? (deep-value-of n))
                  (variable? (deep-value-of x)))
@@ -259,8 +268,26 @@
 (defun nth-rule-down (z n x)
   (when (and (or (variable? (value-of n))
                  (variable? (deep-value-of x)))
-             (not (eq (variable-enumerated-domain z) t)))             
+             (not (eq (variable-enumerated-domain z) t)))
   (let* ((z-domain (variable-enumerated-domain z)))
+   (when (and (variable? (value-of n))
+              (or (listp (value-of x)) (consp (value-of x))))
+     (let* ((x-val  (value-of x))
+            (x-len  (length x-val))
+            (valid  (all-values (an-integer-between 0 (1- x-len)))))
+       (if (not (eq (variable-enumerated-domain n) t))
+           (let ((new-n (remove-if-not #'(lambda (i)
+                                           (member (nth i x-val) z-domain
+                                                   :test #'generic-equal))
+                                       (variable-enumerated-domain n))))
+             (when (set-enumerated-domain! n new-n)
+               (run-noticers n)))
+           (let ((new-n (remove-if #'(lambda (i)
+                                       (not (member (nth i x-val) z-domain
+                                                    :test #'generic-equal)))
+                                   valid)))
+             (when new-n
+               (restrict-enumerated-domain! n new-n))))))
    (when (and (variable? (value-of n))
               (not (eq (variable-enumerated-domain x) t)))
     (if (not (eq (variable-enumerated-domain n) t))
@@ -303,7 +330,7 @@
       (let* ((n (variablize n))
              (x (typecase x
                  (screamer::variable x)
-                 (list (apply #'listv x))
+                 (list (variablize x)) ;(apply #'listv x))
                  (t (error "Cannot take NTHV ~A of ~A.~%" n x))))
              (z (funcallv #'nth n x)))
        (unless (bound? n)
@@ -335,7 +362,12 @@
 (defun tenthv (x) (nthv 9 x))
 
 (defun nthcdr-rule-up (n x z)
-  (when (and (domain-size (list n x))
+  (when (and (or (listp (value-of x)) (consp (value-of x)))
+             (integerp (value-of n)))
+    (assert!-equalv z (nthcdr (value-of n) (value-of x))))
+  (when (and (not (eq (variable-enumerated-domain n) t))
+             (not (eq (variable-enumerated-domain x) t))
+             (domain-size (list n x))
              (<= (domain-size (list n x)) *maximum-discretization-range*)
              (or (variable? (deep-value-of n))
                  (variable? (deep-value-of x)))
@@ -372,13 +404,7 @@
                               (variable-enumerated-domain x)))
                       (variable-enumerated-domain n))))
               (when (set-enumerated-domain! n new-n-domain)
-                (run-noticers n)))
-            (restrict-enumerated-domain!
-             n (mapcar #'(lambda (x-element)
-                          (remove-if-not #'(lambda (n-element)
-                                            (member (nthcdr n-element x-element) z-domain :test #'generic-equal))
-                                         (variable-enumerated-domain n)))
-                       (variable-enumerated-domain x)))))
+                (run-noticers n)))))
       (when (and (variable? (deep-value-of x))
                  (not (eq (variable-enumerated-domain n) t)))
         (if (not (eq (variable-enumerated-domain x) t))
@@ -389,13 +415,7 @@
                                             (variable-enumerated-domain n)))
                                    (variable-enumerated-domain x))))
               (when (set-enumerated-domain! x new-x-domain)
-                (run-noticers x)))
-            (restrict-enumerated-domain!
-             x (mapcar #'(lambda (n-element)
-                          (remove-if-not #'(lambda (x-element)
-                                            (member (nthcdr n-element x-element) z-domain :test #'generic-equal))
-                                         (variable-enumerated-domain x)))
-                      (variable-enumerated-domain n))))))))
+                (run-noticers x))))))))
 
 (defun nthcdrv (n x)
  (let ((x (value-of x))
@@ -406,7 +426,7 @@
       (let* ((n (variablize n))
              (x (typecase x
                   (screamer::variable x)
-                  (list (apply #'listv x))
+                  (list (variablize x)) ;(apply #'listv x))
                   (t (error "Cannot take NTHCDRV ~A of ~A.~%" n x))))
              (z (funcallv #'nthcdr n x)))
         (unless (bound? n)
@@ -453,7 +473,6 @@ if and only if all corresponding elements are equal. Returns the boolean variabl
              (len-y (lengthv y))
              (z (a-booleanv))
              (all-equalv '()))
-         (assert! (listpv y))
          (assert! (=v len-x len-y))
          (attach-noticer! #'(lambda nil) z :dependencies (list x y))
          (dotimes (i len-x)
@@ -467,7 +486,6 @@ if and only if all corresponding elements are equal. Returns the boolean variabl
              (len-y (length y))
              (z (a-booleanv))
              (all-equalv '()))
-         (assert! (listpv x))
          (assert! (=v len-x len-y))
          (attach-noticer! #'(lambda nil) z :dependencies (list x y))
          (dotimes (i len-y)
@@ -481,8 +499,6 @@ if and only if all corresponding elements are equal. Returns the boolean variabl
              (y-len (lengthv y))
              (z (a-booleanv))
              (all-equalv '()))
-         (assert! (listpv x))
-         (assert! (listpv y))
          (assert! (=v x-len y-len))
          (attach-noticer! #'(lambda nil) z :dependencies (list x y))
          (cond ((or (bound? x-len) (bound? y-len))
@@ -520,32 +536,234 @@ if and only if all corresponding elements are equal. Returns the boolean variabl
         (setq listv (nconc listv (list (eval initial-element)))))
       listv)))
 
-(defun mapcarv (function list &rest more-lists)
-  (when (variable? function)
-    (error "The current implementation does not allow the first argument~%~
-    of MAPCARV to be an unbound variable."))
-  (let* ((list (value-of list))
-         (more-lists (mapcar #'value-of more-lists))
-         (arguments (cons function (cons list more-lists)))
-         (z (if (deep-bound? arguments)
-                (apply #'mapcar arguments)
-                (applyv #'mapcar arguments))))
-    z))
+(defun mapcarv (f &rest el)
+  (if (and (bound? f) (every #'bound? el))
+      (apply #'mapcar (cons (value-of f) (mapcar #'value-of el)))
+    (let (
+    (z (make-variable))
+    )
+      
+      (dolist (d el)
+  ;; Perhaps I should just assert the lengths to be equal, rather than
+  ;; creating a new list of constraint variables just for this purpose?
+        (when (and (bound? d) (not (bound? z)))
+    (assert! (equalv z (make-listv (lengthv d))))
+    )
+        (screamer::attach-noticer!
+         #'(lambda()
+             ;; check that it is a list 
+             (when (and (every #'bound? el) (bound? f)) 
+         (assert! (equalv z (apply #'mapcar 
+           (cons (value-of f) (mapcar #'value-of el)))))
+         )
+             )
+         d)
+        )
+      z) ; the variable z is returned
+    )
+  )
 
-(defun maplistv (function list &rest more-lists)
-(when (variable? function)
-    (error "The current implementation does not allow the first argument~%~
-    of MAPLISTV to be an unbound variable."))
-  (let* ((list (value-of list))
-         (more-lists (mapcar #'value-of more-lists))
-         (arguments (cons function (cons list more-lists)))
-         (z (if (deep-bound? arguments)
-                (apply #'maplist arguments)
-                (applyv #'maplist arguments))))
-    z))
 
-(defun appendv (&rest lists)
-  (let* ((z (if (deep-bound? lists)
-                (apply #'append lists)
-                (applyv #'append lists))))
-   z))
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; Function: maplistv
+;;;
+;;; Suppose z == (maplist f x1 ... xn)
+;;; Then...
+;;; - If f and x1...xn  are bound at function invocation time, the
+;;;   value of z is computed and returned.
+;;;
+;;; - When the lists x1...xn become bound, z becomes bound to the mapcar
+;;;   of f applied to those agruments. Note that the elements of x1...xn
+;;;   do not have to become bound, only the lists themselves. Since f is
+;;;   a constraint function, rather than a Common LISP function it deals
+;;;   with the case when the elements are unbound.
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(defun maplistv (f &rest el)
+  (if (and (bound? f) (every #'bound? el))
+      (apply #'maplist (cons (value-of f) (mapcar #'value-of el)))
+    (let (
+    (z (make-variable))
+    )
+      
+      (dolist (d el)
+        (when (and (bound? d) (not (bound? z)))
+    (assert! (equalv z (make-listv (lengthv d))))
+    )
+        (screamer::attach-noticer!
+         #'(lambda()
+             ;; check that it is a list 
+             (when (and (every #'bound? el) (bound? f)) 
+         (assert! (equalv z (apply #'maplist 
+           (cons (value-of f) (mapcar #'value-of el)))))
+         )
+             )
+         d)
+        )
+      z) ; the variable z is returned
+    )
+  )
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; Function: appendv
+;;;
+;;; Creates a list constrained to be the append of two other lists
+;;; Suppose z is constrained to be the append of x and y; 
+;;; i.e., z == (append x y)
+;;; Then...
+;;; - If x and y become bound, z becomes bound.
+;;;
+;;; - If x and z become bound, y becomes bound.
+;;;
+;;; - If y and z become bound, x becomes bound.
+;;;
+;;; - If x and y have enumerated domains and the product of their domain sizes
+;;;   is less than *enumeration-limit*, then the possible values are 
+;;;   propagated to z.
+;;;
+;;; - If x has an enumerated domain and y is bound, then the possible values
+;;;   are propagated to z.
+;;;
+;;; - If y has an enumerated domain and x is bound, then the possible values
+;;;   are propagated to z.
+;;;
+;;; - If z is bound and x and y are unbound, then the possible domain values
+;;;   for x and y are computed.
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(defun appendv (x y &rest r)
+  (if (and (bound? x) (bound? y) (every #'bound? r))
+      (apply #'append (cons (append (value-of x) (value-of y)) r))
+    (let (
+    (z (make-variable))
+    noticer
+    )
+      
+      (setq noticer
+      #'(lambda()
+    (cond
+     ;; x and y are both bound
+     ((and (bound? x) (bound? y))
+      (assert! (equalv z (append (value-of x) (value-of y))))
+      )
+     ;; x and z are both bound
+     ((and (bound? x) (not (bound? y)) (bound? z))
+      (assert! (equalv y (nthcdr (length (value-of x)) (value-of z))))
+      )
+     ;; y and z are both bound
+     ((and (not (bound? x)) (bound? y) (bound? z))
+      (assert! (equalv x (butlast (value-of z) (length (value-of y)))))
+      )
+     ;; Both x and y have enumerated domains
+     ((and (not (bound? x)) (enumerated-domain-p x)
+           (not (bound? y)) (enumerated-domain-p y)
+           (< (* (domain-size x) (domain-size y)) *enumeration-limit*)
+           )
+      (assert! (memberv z (funcross-product #'append 
+              (variable-enumerated-domain x) 
+              (variable-enumerated-domain y))
+            )
+         )
+      )
+     ;; x has an enumerated domain and y is bound
+     ((and (not (bound? x)) (enumerated-domain-p x) (bound? y))
+      (assert! (memberv z (funcross-product #'append
+              (variable-enumerated-domain x)
+              (list (value-of y)))
+            )
+         )
+      )
+     ;; x is bound and y has an enumerated domain
+     ((and (bound? x) (not (bound? y)) (enumerated-domain-p y))
+      (assert! (memberv z (funcross-product #'append
+              (list (value-of x))
+              (variable-enumerated-domain y))
+            )
+         )
+      )
+     
+     
+     ) ; cond
+    ) ; lambda
+      )
+      (screamer::attach-noticer! noticer x)
+      (screamer::attach-noticer! noticer y)      
+      (screamer::attach-noticer!
+       #'(lambda()
+     (cond
+      ((and (bound? x) (not (bound? y)) (bound? z))
+       (assert! (equalv y (nthcdr (length (value-of x)) (value-of z))))
+       )
+      ((and (not (bound? x)) (bound? y) (bound? z))
+       (assert! (equalv x (butlast (value-of z) (length (value-of y)))))
+       )
+      ;; Both x and y have enumerated domains
+      ((and (not (bound? x)) (enumerated-domain-p x)
+      (not (bound? y)) (enumerated-domain-p y)
+      (< (* (domain-size x) (domain-size y)) *enumeration-limit*)
+      )
+       (assert! (memberv z 
+             (funcross-product #'append 
+             (variable-enumerated-domain x) 
+             (variable-enumerated-domain y)
+             )
+             )
+          )
+       )
+      ;; x has an enumerated domain and y is bound
+      ((and (not (bound? x)) (enumerated-domain-p x) (bound? y))
+       (assert! (memberv z
+             (funcross-product #'append
+             (variable-enumerated-domain x)
+             (list (value-of y))
+             )
+             )
+          )
+       )
+      ;; x is bound and y has an enumerated domain
+      ((and (bound? x)
+      (not (bound? y)) (enumerated-domain-p y)
+      )
+       (assert! (memberv z
+             (funcross-product #'append
+             (list (value-of x))
+             (variable-enumerated-domain y)
+             )
+             )
+          )
+       )
+      ) ; cond
+     
+     (when (and (not (bound? x)) (not (bound? y)) (bound? z)
+          (not r) ; there are only two arguments
+          (< (length (value-of z)) (1- *enumeration-limit*))
+          )
+       (do* (
+       (val (value-of z))
+       (n (length val) (1- n))
+       (fronts nil)
+       (backs nil)
+       )
+     
+     ((< n 0) 
+      (assert! (memberv x fronts))
+      (assert! (memberv y backs))
+      )
+         
+         (push (subseq val 0 n) fronts)
+         (push (subseq val n) backs)
+         )
+       )
+     )
+       z)
+      
+      (if r 
+    ;; recursively apply the binary version so that any number of arguments
+    ;; can be supplied
+    (apply #'appendv (cons z r)) 
+  z ; must return the new variable
+  )
+      )
+    )
+  )

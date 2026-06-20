@@ -19,9 +19,9 @@
 ;; SOFTWARE.
 
 (IN-PACKAGE :CL-USER)
-(SCREAMER+:DEFINE-SCREAMER-PLUS-PACKAGE :om-screamer
+(SCREAMER:DEFINE-SCREAMER-PACKAGE :om-screamer
  (:nicknames :om?)
- (:use :cl)
+ (:use :cl :screamer+)
  )
 (IN-PACKAGE :om-screamer)
 

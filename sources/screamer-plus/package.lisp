@@ -1,25 +1,6 @@
 ;;;; -*- mode: common-lisp;   common-lisp-style: modern;    coding: utf-8; -*-
 ;;;;
-;;;; Screamer-Plus: A modernized constraint logic programming library for Common Lisp
-;;;;
-;;;; Screamer-Plus is an extension of constraint propagation in Screamer,
-;;;; built upon a fundamental redesign of the core functions `funcallv` and `applyv`
-;;;; introduced in version 4.0.1 of Screamer.
-;;;;
-;;;; This new foundation enables automatic constraint propagation, eliminating the
-;;;; need for manual noticers and simplifying function/macro definitions.
-;;;; As a result, many of the macros and functions originally found in Screamer-Plus
-;;;; (by Simon White) — such as `CARV`, `CDRV`, `IFV`, and others — have been
-;;;; entirely rewritten or reimagined with cleaner semantics and greater efficiency.
-;;;;
-;;;; Some function names and general ideas are inspired by the original Screamer-Plus
-;;;; by Simon White, but all code in this package is original unless otherwise noted.”
-;;;;
-;;;; Contributions, feedback, and extensions are welcome.
-;;;;
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;;;
-;;;; Copyright (c) 2025 Paulo Henrique Raposo
+;;;; Copyright (c) 2026 Paulo Henrique Raposo
 ;;;;
 ;;;; Permission is hereby granted, free of charge, to any person obtaining a copy of
 ;;;; this software and associated documentation files (the "Software"), to deal in
@@ -55,6 +36,7 @@
     :known?-false
     :variable-enumerated-domain
     :variable-enumerated-antidomain
+    :enumerated-domain-p
     :variable?
     :value-of
     :deep-bound?
@@ -64,13 +46,12 @@
     :variable?
     :set-enumerated-domain!
     :restrict-enumerated-domain!
+    :restrict-enumerated-antidomain!
+    :restrict-value!
     :run-noticers
     :variablize)
  (:export
-    :define-screamer-plus-package
     :impliesv
-    :not-equalv
-    :??
     :ifv
     :condv
     :make-equal
@@ -90,31 +71,16 @@
     :tenthv
     :nthv
     :nthcdrv
-    :subseqv
     :lengthv
     :appendv
     :make-listv
-    :set-equalv
     :a-subset-of
-    :subsetpv
-    :a-subset-ofv
+    :a-partition-of
     :intersectionv
     :unionv
-    :bag-equalv
-    :make-arrayv
-    :arefv
-    :make-instancev
-    :classpv
-    :slot-valuev
-    :class-ofv
-    :class-namev
-    :slot-exists-pv
-    :reconcile
-    :funcallinv
     :listv
     :mapcarv
     :maplistv
-    :mapv
     :everyv
     :somev
     :noteveryv
@@ -124,13 +90,15 @@
     :at-leastv
     :at-mostv
     :exactlyv
-    :constraint-fn
     :formatv
     :carefully
-    :slot-names-of
-    :objectp
     :eqv
-    :funcallgv
     :setq-domains
+    :not-equalv
     :listv-equalv
-    :*maximum-domain-size*))
+    :*enumeration-limit*
+    :absv
+    :modv
+    :constraint-fn
+    :set-equalv
+    :subsetpv))

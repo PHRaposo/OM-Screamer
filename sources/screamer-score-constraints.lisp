@@ -442,60 +442,60 @@ measure 2 and voice 2. Each input will return all events in those measures, incl
                               (mapcar #'(lambda (n)
                                           (nth n domains))
                                       list-inputs)))))
-				   
+                   
 (defmethod apply-percentage-constraint ((score-constraint cs-one-voice) (voices-domain list))
 (let ((cs-input-type (get-input score-constraint)))
  (cond ((string-equal "n-inputs" cs-input-type)
         (percentage-constraint-n-inputs score-constraint voices-domain))
        
-	   ((string-equal "growing" cs-input-type)
-	    (percentage-constraint-growing score-constraint voices-domain))
-		
+       ((string-equal "growing" cs-input-type)
+        (percentage-constraint-growing score-constraint voices-domain))
+        
      (t (om-message-dialog "The percentage constraint ONLY works with <N-INPUTS> and <GROWING> input modes.")
-	    (om-abort)))))
-	 
+        (om-abort)))))
+     
 (defmethod apply-percentage-constraint ((score-constraint cs-harmony) (chords-domain list))
  (let ((cs-input-type (get-input score-constraint)))
  (if (or (string-equal "list" cs-input-type)
          (string-equal "car-cdr" cs-input-type))
      (progn (om-message-dialog "The percentage constraint ONLY works with <N-INPUTS> and <GROWING> input modes.") (om-abort))
-	 (let ((voice-select (get-v-sel score-constraint))
-		   (cs-domain-type (get-domain score-constraint)))
- 	  (cond ((equal voice-select "all-voices")
-	         (if (string-equal "n-inputs" cs-input-type)	
- 	             (percentage-constraint-n-inputs score-constraint chords-domain)
-				 (percentage-constraint-growing score-constraint chords-domain)))
- 	        (t (let* ((voice-numbers (get-voices score-constraint))
-				 	  (voices (if (and (atom (car voice-numbers));<== ONLY ONE-VOICE (IN CASE OF DOMAIN-TYPE = "CHORDS")
-						               (= 1 (length voice-numbers)))
-						          (car voice-numbers);<== TO AVOID A LIST WITH A SINGLE POSITION
-								  voice-numbers)))
- 			  (if (list-of-listp voices);<== LIST OF LISTS OF VOICE NUMBERS
- 		          (let ((voices-chords
-							    (fix-chords-domain-type cs-domain-type
+     (let ((voice-select (get-v-sel score-constraint))
+           (cs-domain-type (get-domain score-constraint)))
+      (cond ((equal voice-select "all-voices")
+             (if (string-equal "n-inputs" cs-input-type)    
+                 (percentage-constraint-n-inputs score-constraint chords-domain)
+                 (percentage-constraint-growing score-constraint chords-domain)))
+            (t (let* ((voice-numbers (get-voices score-constraint))
+                      (voices (if (and (atom (car voice-numbers));<== ONLY ONE-VOICE (IN CASE OF DOMAIN-TYPE = "CHORDS")
+                                       (= 1 (length voice-numbers)))
+                                  (car voice-numbers);<== TO AVOID A LIST WITH A SINGLE POSITION
+                                  voice-numbers)))
+              (if (list-of-listp voices);<== LIST OF LISTS OF VOICE NUMBERS
+                  (let ((voices-chords
+                                (fix-chords-domain-type cs-domain-type
                                  (loop for positions in voices
-				                       collect (mapcar #'(lambda (chord-domain)
-													      (if (string-equal "pitch" cs-domain-type) ;<== PITCH
-						 								      (posn-match chord-domain positions)
-															  (x-append (list (posn-match (car chord-domain) positions));<== PITCH-DUR/PITCH-ONSET/PITCH-DUR-ONSET
-																		      (cdr chord-domain)))) 
-						 						 chords-domain)))))
- 		           (mapcar #'(lambda (vars)
-				   (if (string-equal "n-inputs" cs-input-type)
- 		               (percentage-constraint-n-inputs score-constraint vars)
-					   (percentage-constraint-growing score-constraint vars)))
- 		            voices-chords))
-					(let ((voice-chords
-						   (fix-chords-domain-type cs-domain-type
+                                       collect (mapcar #'(lambda (chord-domain)
+                                                          (if (string-equal "pitch" cs-domain-type) ;<== PITCH
+                                                              (posn-match chord-domain positions)
+                                                              (x-append (list (posn-match (car chord-domain) positions));<== PITCH-DUR/PITCH-ONSET/PITCH-DUR-ONSET
+                                                                              (cdr chord-domain)))) 
+                                                 chords-domain)))))
+                   (mapcar #'(lambda (vars)
+                   (if (string-equal "n-inputs" cs-input-type)
+                       (percentage-constraint-n-inputs score-constraint vars)
+                       (percentage-constraint-growing score-constraint vars)))
+                    voices-chords))
+                    (let ((voice-chords
+                           (fix-chords-domain-type cs-domain-type
                             (mapcar #'(lambda (chord-domain);<== LIST OF VOICES
-							           (if (string-equal "pitch" cs-domain-type) ;<== PITCH
-										   (posn-match chord-domain voices)
-										   (x-append (list (posn-match (car chord-domain) voices));<== PITCH-DUR/PITCH-ONSET/PITCH-DUR-ONSET
-													       (cdr chord-domain)))) 
-							 chords-domain))))
-				   (if (string-equal "n-inputs" cs-input-type)		 
- 		           (percentage-constraint-n-inputs score-constraint voice-chords)
-					     (percentage-constraint-growing score-constraint voice-chords)))))))))))
+                                       (if (string-equal "pitch" cs-domain-type) ;<== PITCH
+                                           (posn-match chord-domain voices)
+                                           (x-append (list (posn-match (car chord-domain) voices));<== PITCH-DUR/PITCH-ONSET/PITCH-DUR-ONSET
+                                                           (cdr chord-domain)))) 
+                             chords-domain))))
+                   (if (string-equal "n-inputs" cs-input-type)       
+                   (percentage-constraint-n-inputs score-constraint voice-chords)
+                         (percentage-constraint-growing score-constraint voice-chords)))))))))))
 
 (defmethod percentage-constraint-n-inputs ((score-constraint cs-harmony) (chords-domain list))
  (let* ((voice-length (length chords-domain))
@@ -514,7 +514,7 @@ measure 2 and voice 2. Each input will return all events in those measures, incl
 (defmethod percentage-constraint-n-inputs ((score-constraint cs-one-voice) (voice-domain list))
  (let* ((chords? (list-of-listp voice-domain))
         (voice-length (length voice-domain))
- 		    (cs-fn (constraint score-constraint))
+            (cs-fn (constraint score-constraint))
         (fn-inputs-length (length (function-lambda-list cs-fn)))
         (splitted-list (if (and (= 1 fn-inputs-length) (not chords?))
                                 (flat voice-domain)
@@ -528,7 +528,7 @@ measure 2 and voice 2. Each input will return all events in those measures, incl
  (let* ((chords? (list-of-listp voice-domain))
         (splitted-list (mk-growing voice-domain))
         (voice-length (length voice-domain))
- 		    (cs-fn (constraint score-constraint))
+            (cs-fn (constraint score-constraint))
         (fn-inputs-length (length (function-lambda-list cs-fn)))
         (test (if (and (= 1 fn-inputs-length) (not chords?))
                   (mapcar #'(lambda (x) (apply cs-fn (list x))) splitted-list)

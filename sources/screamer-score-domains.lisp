@@ -56,7 +56,7 @@
  (loop for voice in voices
        for x from 0
           if (locked-voice? voice)
-          collect  (let* ((ratios (tree2ratio (tree voice)))
+          collect  (let* ((ratios (tree2ratio (reduce-rt (tree voice))))
                                (all-rests? (null (chords-with-grace voice))) ;; ==> CHANGED TO CHORDS-WITH-GRACE
                                (chords (if all-rests?   
                                                 (repeat-n nil (length (remove-if #'(lambda (x) (minusp x)) ratios)))
@@ -71,7 +71,7 @@
                                                           ((= (length notes) 1) (x-append (s::variablize (car notes)) ratio))
                                                           (t (list (mapcar #'s::variablize notes) ratio)))))))
          else 
-         collect (let* ((ratios (tree2ratio (tree voice)))
+         collect (let* ((ratios (tree2ratio (reduce-rt (tree voice))))
                            (domain (let ((dom (pop domains))) 
                                           (if (null dom)
                                               (progn (om-message-dialog (format nil "A DOMAIN IS MISSING FOR VOICE NUMBER ~A." x))
@@ -86,10 +86,10 @@
                                                      (list (om?::a-random-member-ofv voice-domain) ratio)
                                                      (list (s::a-member-ofv  voice-domain) ratio))))
                      (let* ((n-notes (let ((nums (n-notes domain)))
-					                  (if (null nums)
+                                      (if (null nums)
                                            (progn (om-message-dialog "THE THIRD (OPTIONAL) ARGUMENT FOR SCREAMER-SCORE-DOMAIN SHOULD BE A NUMBER OR A LIST OF NUMBERS.")
                                              (om-abort))
-									   nums)))
+                                       nums)))
                              (n-chords (length (remove-if #'(lambda (x) (< x 0)) ratios)))
                              (chords-correct-length (if (listp n-notes) 
                                                                      (flat (group-list (n-notes domain) (list n-chords) 'circular))
@@ -198,22 +198,22 @@ If offsets/pitches run out before times, push NIL for that voice."
 (defun get-max-length-time-sig (voices)  ;<== NEW (05/09/2024
  (let* ((time-sigs (mapcar #'get-time-sig voices))
         (time-sig-lengths (mapcar #'length time-sigs))
-		(max-posn (position (list-max time-sig-lengths) time-sig-lengths)))
+        (max-posn (position (list-max time-sig-lengths) time-sig-lengths)))
   (nth max-posn time-sigs)))
   
 (defun get-beats-offbeats (voices all-onsets pitch-variables-all-onsets)
  (let* ((time-sig (get-max-length-time-sig voices))  ;<== NEW (05/09/2024) ;(get-time-sig (first voices)))
           (beats (mapcar #'get-beats-from-time-sig time-sig))
           (beats-length (mapcar #'length beats))
-	  (first-beats-posn-posn (dx->x 0 (butlast beats-length)))
+      (first-beats-posn-posn (dx->x 0 (butlast beats-length)))
           (beats-onsets (butlast (dx->x 0 (flat beats))))
           (beats-posn (mapcar #'(lambda (x) (position x all-onsets)) beats-onsets))
-	  (chords (mat-trans pitch-variables-all-onsets))
+      (chords (mat-trans pitch-variables-all-onsets))
           (offbeats (remove-nth chords beats-posn))
-	 (first-beats-posn (posn-match beats-posn first-beats-posn-posn)))
+     (first-beats-posn (posn-match beats-posn first-beats-posn-posn)))
 (list (posn-match chords beats-posn)
        offbeats
-	  (posn-match chords first-beats-posn))))
+      (posn-match chords first-beats-posn))))
 
 (defun ratios-with-graces (ratios)
 (if (some #'zerop ratios)
@@ -249,29 +249,29 @@ If offsets/pitches run out before times, push NIL for that voice."
                          (apply #'+ (om-abs (flat x))))
                          ;(apply #'+ (om-abs (ratios-with-graces (flat x)))))
                       ratios))
-		    (max-sum (list-max (flat sums))))
+            (max-sum (list-max (flat sums))))
   (loop for voice-ratios in ratios
-	    for voice-sum in sums
-	    collect (if (< voice-sum max-sum)
-			        (x-append voice-ratios (- voice-sum max-sum))
-					 voice-ratios)))))		
+        for voice-sum in sums
+        collect (if (< voice-sum max-sum)
+                    (x-append voice-ratios (- voice-sum max-sum))
+                     voice-ratios)))))      
  
 (defun build-midics-domain (voices pitch-durs-domain domains mcs-approx)
  (let ((voice-domains (mapcar #'domain domains)))
   (loop for voice in voices 
-		for pitch-dur-dom in pitch-durs-domain
-		if (locked-voice? voice)
-		collect (mapcar #'first pitch-dur-dom)
-		else 
-		collect (if (= 2 mcs-approx)
-					(mapcar #'round (pop voice-domains))
-					(mapcar #'float (pop voice-domains))))))
+        for pitch-dur-dom in pitch-durs-domain
+        if (locked-voice? voice)
+        collect (mapcar #'first pitch-dur-dom)
+        else 
+        collect (if (= 2 mcs-approx)
+                    (mapcar #'round (pop voice-domains))
+                    (mapcar #'float (pop voice-domains))))))
 
 (defun chords-length-by-measure (voices) ;<== GRACE-NOTES 27/09/2025
  (let* ((v-mes (loop for voice in voices collect (get-measures voice)))
        (mes-ratios  (mat-trans (loop for vm in v-mes
                          collect (loop for mes in vm
-                                             collect (tree2ratio (list '? (list (tree mes))))))))
+                                             collect (tree2ratio (reduce-rt (list '? (list (tree mes)))))))))
        (mes-all-onsets (loop for measure in mes-ratios 
                              collect (let* ((onsets (loop for vr in measure
                                                           when vr collect (ratios2onsets vr))))
@@ -284,15 +284,15 @@ If offsets/pitches run out before times, push NIL for that voice."
 (defun correct-pitch-dur-onset-domains (voices-list)
  "FOR PITCH-DUR, PITCH-ONSET AND PITCH-DUR-ONSET WITHOUT RESTS."
  (loop for voice in voices-list
-	   collect (loop for el in voice ;do (print (car el))	
-					 when (not (or (null (first el))
-						      (and (listp (car el))
-								    (null (car (car el))))))
-					 collect el)))
+       collect (loop for el in voice ;do (print (car el))   
+                     when (not (or (null (first el))
+                              (and (listp (car el))
+                                    (null (car (car el))))))
+                     collect el)))
 
 ;; NEEDS WORK: GRACE-BEATS
 ;; INCLUDE/EXCLUDE GRACE-NOTES
-;; NEW DOMAIN SLOTS (GRACE-BEATS, ETC...)								   
+;; NEW DOMAIN SLOTS (GRACE-BEATS, ETC...)                                  
 (defun build-variables-domain (voices domains mcs-approx random?)
    (handler-bind ((error #'(lambda (c)
                              (when *msg-error-label-on*
@@ -301,8 +301,8 @@ If offsets/pitches run out before times, push NIL for that voice."
                                                   :size (om-make-point 300 200))
                                (om-abort)))))
  (let* ((pitch-durs-domain (new-domain-pitch-dur voices (list! domains) mcs-approx random?));<== NEW 12/09/2024 ;==> list-of-lists of pitch-variables/durations(ratio)
-        (midics-domain (build-midics-domain voices pitch-durs-domain (list! domains) mcs-approx));<== NEW 12/09/2024		 
-		    (ratios-domain (build-ratios-domain pitch-durs-domain));==> list-of-lists of ratios  
+        (midics-domain (build-midics-domain voices pitch-durs-domain (list! domains) mcs-approx));<== NEW 12/09/2024         
+            (ratios-domain (build-ratios-domain pitch-durs-domain));==> list-of-lists of ratios  
         (pitch-variables (mapcar #'(lambda (x) (mapcar #'first x)) pitch-durs-domain)) ;==> list-of-lists of pitches [midics for locked-voices, nil for rests and screamer (a-member-ofv domain) for open-voices]
         (pitch-durs-domain (loop for ratios in ratios-domain  
                                  for pitches in pitch-variables
@@ -326,29 +326,29 @@ If offsets/pitches run out before times, push NIL for that voice."
                            (remove-if #'(lambda (x) (or (not (some #'s::variable? (flat x)))
                                                         (some #'null (remove nil (flat x)))))
                           (second beats-and-offbeats))))                                                                           
-		    (chords-first-beats (mapcar #'flat ;==> list of chords first beats
+            (chords-first-beats (mapcar #'flat ;==> list of chords first beats
                              (remove-if #'(lambda (x) (or (not (some #'s::variable? (flat x)))
                                                           (some #'null (remove nil (flat x)))))
                               (third beats-and-offbeats))))
         (rest-positions (loop for ratios in ratios-domain
-				              collect (loop for ratio in ratios
-								  	        for x from 0
-											when (minusp ratio)
-											collect x))) ;; <== NEW (07/09/2024)
+                              collect (loop for ratio in ratios
+                                            for x from 0
+                                            when (minusp ratio)
+                                            collect x))) ;; <== NEW (07/09/2024)
         (pitch-positions-without-rests (mapcar #'remove-rest-posn rest-positions notes-positions)) ;==> only notes positions
         (pitch-variables-without-rests (mapcar #'posn-match pitch-variables pitch-positions-without-rests)) ;==> only pitch/var without rests
         (all-chords (mat-trans pitch-variables-all-onsets)) ;<== INCLUDE RESTS
-	      (all-chords-without-rests ;==> list-of-lists of chords for all voices (nil for rests and lists for domains in "chords" mode)
+          (all-chords-without-rests ;==> list-of-lists of chords for all voices (nil for rests and lists for domains in "chords" mode)
           (remove-if #'(lambda (x) (or (not (some #'s::variable? (flat x)))
                                        (some #'null (remove nil (flat x)))))
             all-chords)) ;<== NO RESTS
         (chords-ratios (get-chords-ratios-grace all-onsets offsets-domain)) ;==> NEW - GRACE NOTES 27/09/2025 <==
         (pitch-dur-chords (mapcar #'list all-chords chords-ratios)) ;; <== NEW (04/09/2024) ==========================|
-        (pitch-dur-chords-without-rests (mapcar #'list all-chords-without-rests chords-ratios))	
+        (pitch-dur-chords-without-rests (mapcar #'list all-chords-without-rests chords-ratios)) 
         (pitch-onset-chords (mapcar #'list (mat-trans pitch-variables-all-onsets) all-onsets))  
-	      (pitch-onset-chords-without-rests (remove-if #'(lambda (x) (or (not (some #'s::variable? (flat (first x))))  
+          (pitch-onset-chords-without-rests (remove-if #'(lambda (x) (or (not (some #'s::variable? (flat (first x))))  
                                                           (some #'null (remove nil (flat (first x))))))
-						               pitch-onset-chords))            
+                                       pitch-onset-chords))            
         (pitch-dur-onset-chords (loop for pitch-durs in pitch-dur-chords   
                                   for pitch-onset in pitch-onset-chords       
                                   collect (list (first pitch-onset) (second pitch-durs) (second pitch-onset)))) ;<====|
@@ -360,29 +360,29 @@ If offsets/pitches run out before times, push NIL for that voice."
         (pitch-dur-without-rests (correct-pitch-dur-onset-domains pitch-durs-domain))
         (pitch-onset-without-rests (correct-pitch-dur-onset-domains pitch-onset-domain))
         (pitch-dur-onset-without-rests (correct-pitch-dur-onset-domains pitch-dur-onset-domain))
-		    )
+            )
  (make-variables-domain
-	   pitch-variables-without-rests
-	   pitch-variables
-	   all-chords-without-rests	   
-	   all-chords
-	   pitch-dur-without-rests
-	   pitch-onset-without-rests
-	   pitch-dur-onset-without-rests
-	   pitch-variables-all-onsets
-	   pitch-durs-domain
-	   pitch-onset-domain
-	   pitch-dur-onset-domain	    
-	   chords-on-beats
-	   chords-off-beats
-	   chords-first-beats
-	   pitch-dur-chords-without-rests
-	   pitch-onset-chords-without-rests  
-	   pitch-dur-onset-chords-without-rests
-	   pitch-dur-chords
-	   pitch-onset-chords   
-	   pitch-dur-onset-chords	   
-	   midics-domain))))
+       pitch-variables-without-rests
+       pitch-variables
+       all-chords-without-rests    
+       all-chords
+       pitch-dur-without-rests
+       pitch-onset-without-rests
+       pitch-dur-onset-without-rests
+       pitch-variables-all-onsets
+       pitch-durs-domain
+       pitch-onset-domain
+       pitch-dur-onset-domain       
+       chords-on-beats
+       chords-off-beats
+       chords-first-beats
+       pitch-dur-chords-without-rests
+       pitch-onset-chords-without-rests  
+       pitch-dur-onset-chords-without-rests
+       pitch-dur-chords
+       pitch-onset-chords   
+       pitch-dur-onset-chords      
+       midics-domain))))
 
 (defmethod build-measures-domain ((voices list) (vars-domain screamer-variables-domain))
    (handler-bind ((error #'(lambda (c)
@@ -392,105 +392,105 @@ If offsets/pitches run out before times, push NIL for that voice."
                                                   :size (om-make-point 300 200))
                                (om-abort)))))
 (let* ((measures (mapcar #'get-measures voices))
-	     (measures-matrix (if (list-of-listp measures) (mat-trans measures) (mapcar #'list measures)))
-	     (notes-length-by-measure (mat-trans
+         (measures-matrix (if (list-of-listp measures) (mat-trans measures) (mapcar #'list measures)))
+         (notes-length-by-measure (mat-trans
                                  (mapcar #'(lambda (m-mat)
-	                                                 ;(if (list-of-listp measures)
-													                 (mapcar #'(lambda (x)
-														                          (if (null x);==> included for different number of measures between voices
-														                               0
-													                               (length (flat (mapcar #'lmidic (chords-with-grace x))))))
-															                     m-mat))
-														                      ; (length (lmidic (chords m-mat)))))
-	                                      measures-matrix)))
+                                                     ;(if (list-of-listp measures)
+                                                                     (mapcar #'(lambda (x)
+                                                                                  (if (null x);==> included for different number of measures between voices
+                                                                                       0
+                                                                                   (length (flat (mapcar #'lmidic (chords-with-grace x))))))
+                                                                                 m-mat))
+                                                                              ; (length (lmidic (chords m-mat)))))
+                                          measures-matrix)))
              (notes-rests-length-by-measure (mat-trans
                                              (mapcar #'(lambda (m-mat)
                                               (mapcar #'(lambda (x)
                                                         (if (null x);==> included for different number of measures between voices
                                                               0
                                                             (length (flat (remove-if #'cont-chord-p (get-all-chords-with-grace x))))))      
-															                        m-mat))
-	                                                   measures-matrix)))
-	     (pitch-domains (mapcar #'(lambda (notes-domain notes-length) (group-list notes-domain notes-length 'linear))  (pitch vars-domain) notes-length-by-measure))
-		   (pitch-include (mapcar #'(lambda (notes-domain notes-length) (group-list notes-domain notes-length 'linear))  (pitch-include vars-domain) notes-rests-length-by-measure))
-		   (pitch-dur-domains (mapcar #'(lambda (notes-domain notes-length) (group-list notes-domain notes-length 'linear))  (pitch-dur vars-domain) notes-length-by-measure))
-	     (pitch-onset-domains (mapcar #'(lambda (notes-domain notes-length) (group-list notes-domain notes-length 'linear))  (pitch-onset vars-domain) notes-length-by-measure))
-	     (pitch-dur-onset-domains (mapcar #'(lambda (notes-domain notes-length) (group-list notes-domain notes-length 'linear))  (pitch-dur-onset vars-domain) notes-length-by-measure))
-	     (pitch-dur-include (mapcar #'(lambda (notes-domain notes-length) (group-list notes-domain notes-length 'linear))  (pitch-dur-include vars-domain) notes-rests-length-by-measure))
-	     (pitch-onset-include (mapcar #'(lambda (notes-domain notes-length) (group-list notes-domain notes-length 'linear))  (pitch-onset-include vars-domain) notes-rests-length-by-measure))
-	     (pitch-dur-onset-include (mapcar #'(lambda (notes-domain notes-length) (group-list notes-domain notes-length 'linear))  (pitch-dur-onset-include vars-domain) notes-rests-length-by-measure))
-	     (chords-length-by-measure (chords-length-by-measure voices));<== 10/10/2024
-	     (chords-all-onsets (group-list (mat-trans (pitch-vars-all-onsets vars-domain)) chords-length-by-measure 'linear)) ;<==WITH RESTS
-	   ;===============================================================================================================================
-	     (chords-domains (loop for measure in chords-all-onsets
-	                         collect (loop for chord in measure
+                                                                                    m-mat))
+                                                       measures-matrix)))
+         (pitch-domains (mapcar #'(lambda (notes-domain notes-length) (group-list notes-domain notes-length 'linear))  (pitch vars-domain) notes-length-by-measure))
+           (pitch-include (mapcar #'(lambda (notes-domain notes-length) (group-list notes-domain notes-length 'linear))  (pitch-include vars-domain) notes-rests-length-by-measure))
+           (pitch-dur-domains (mapcar #'(lambda (notes-domain notes-length) (group-list notes-domain notes-length 'linear))  (pitch-dur vars-domain) notes-length-by-measure))
+         (pitch-onset-domains (mapcar #'(lambda (notes-domain notes-length) (group-list notes-domain notes-length 'linear))  (pitch-onset vars-domain) notes-length-by-measure))
+         (pitch-dur-onset-domains (mapcar #'(lambda (notes-domain notes-length) (group-list notes-domain notes-length 'linear))  (pitch-dur-onset vars-domain) notes-length-by-measure))
+         (pitch-dur-include (mapcar #'(lambda (notes-domain notes-length) (group-list notes-domain notes-length 'linear))  (pitch-dur-include vars-domain) notes-rests-length-by-measure))
+         (pitch-onset-include (mapcar #'(lambda (notes-domain notes-length) (group-list notes-domain notes-length 'linear))  (pitch-onset-include vars-domain) notes-rests-length-by-measure))
+         (pitch-dur-onset-include (mapcar #'(lambda (notes-domain notes-length) (group-list notes-domain notes-length 'linear))  (pitch-dur-onset-include vars-domain) notes-rests-length-by-measure))
+         (chords-length-by-measure (chords-length-by-measure voices));<== 10/10/2024
+         (chords-all-onsets (group-list (mat-trans (pitch-vars-all-onsets vars-domain)) chords-length-by-measure 'linear)) ;<==WITH RESTS
+       ;===============================================================================================================================
+         (chords-domains (loop for measure in chords-all-onsets
+                             collect (loop for chord in measure
                                                  when (not (null (remove nil (flat chord))))
                                                  collect chord))) ;<== 10/10/2024 ==> NO-RESTS
-	   ;===============================================================================================================================
-  	   (pitch-dur-onset-chords (group-list (chords-pitch-dur-onset vars-domain) (mapcar #'length chords-domains)  'linear)); <== FIX (24/11/2024) || chords-length-by-measure 'linear)) 
-	     (pitch-dur-chords (group-list (chords-pitch-dur vars-domain) (mapcar #'length chords-domains) 'linear)) ; <== (24/11/2024) || chords-length-by-measure 'linear)) 
-	     (pitch-onset-chords (group-list (chords-pitch-onset vars-domain) (mapcar #'length chords-domains)  'linear)) ; <== (24/11/2024) || chords-length-by-measure 'linear))
-	     (pitch-dur-onset-chords-include (group-list (chords-pitch-dur-onset-include vars-domain) chords-length-by-measure 'linear)) 
-	     (pitch-dur-chords-include (group-list (chords-pitch-dur-include vars-domain)  chords-length-by-measure 'linear)) 
-	     (pitch-onset-chords-include (group-list (chords-pitch-onset-include vars-domain) chords-length-by-measure 'linear))
-	     (chords-on-beat (let ((on-beat-chords (chords-on-beat vars-domain))) ; <== 10/10/2024
-	                      (loop for mes in chords-domains
+       ;===============================================================================================================================
+       (pitch-dur-onset-chords (group-list (chords-pitch-dur-onset vars-domain) (mapcar #'length chords-domains)  'linear)); <== FIX (24/11/2024) || chords-length-by-measure 'linear)) 
+         (pitch-dur-chords (group-list (chords-pitch-dur vars-domain) (mapcar #'length chords-domains) 'linear)) ; <== (24/11/2024) || chords-length-by-measure 'linear)) 
+         (pitch-onset-chords (group-list (chords-pitch-onset vars-domain) (mapcar #'length chords-domains)  'linear)) ; <== (24/11/2024) || chords-length-by-measure 'linear))
+         (pitch-dur-onset-chords-include (group-list (chords-pitch-dur-onset-include vars-domain) chords-length-by-measure 'linear)) 
+         (pitch-dur-chords-include (group-list (chords-pitch-dur-include vars-domain)  chords-length-by-measure 'linear)) 
+         (pitch-onset-chords-include (group-list (chords-pitch-onset-include vars-domain) chords-length-by-measure 'linear))
+         (chords-on-beat (let ((on-beat-chords (chords-on-beat vars-domain))) ; <== 10/10/2024
+                          (loop for mes in chords-domains
                               collect (loop for chord in mes
                                             when (member chord on-beat-chords :test #'equal)
                                             collect chord))))
- 	    (chords-off-beat (let ((off-beat-chords (chords-off-beat vars-domain))) ; <== 10/10/2024
- 	                      (loop for mes in chords-domains
- 							                collect (loop for chord in mes
- 								                            when (member chord off-beat-chords :test #'equal)
- 											                      collect chord))))										
-	   (chords-1st-beat (loop for mes in chords-domains ; <== 10/10/2024
-		   	                    collect (list (car mes))))															   						   
-	   (midics-domain (midics-domain vars-domain)))
+        (chords-off-beat (let ((off-beat-chords (chords-off-beat vars-domain))) ; <== 10/10/2024
+                          (loop for mes in chords-domains
+                                            collect (loop for chord in mes
+                                                            when (member chord off-beat-chords :test #'equal)
+                                                                  collect chord))))                                     
+       (chords-1st-beat (loop for mes in chords-domains ; <== 10/10/2024
+                                collect (list (car mes))))                                                                                     
+       (midics-domain (midics-domain vars-domain)))
 
 (loop for pitch in (mat-trans pitch-domains)
       for pitch-i in (mat-trans pitch-include) 
       for chords in chords-domains
-	  for chords-i in chords-all-onsets
-	  for chords-pitch-dur in pitch-dur-chords
-	  for chords-pitch-onset in pitch-onset-chords
-	  for chords-pitch-dur-onset in pitch-dur-onset-chords
-	  for chords-pitch-dur-i in pitch-dur-chords-include
-	  for chords-pitch-onset-i in pitch-onset-chords-include
-	  for chords-pitch-dur-onset-i in pitch-dur-onset-chords-include
-	  for pitch-dur in (mat-trans pitch-dur-domains)
-	  for pitch-onset in (mat-trans pitch-onset-domains)
-	  for pitch-dur-onset in (mat-trans pitch-dur-onset-domains)
-	  for pitch-dur-i in (mat-trans pitch-dur-include)
-	  for pitch-onset-i in (mat-trans pitch-onset-include)
-	  for pitch-dur-onset-i in (mat-trans pitch-dur-onset-include)
-	  for on-beat-chords in chords-on-beat
-	  for off-beat-chords in chords-off-beat
-	  for 1st-beat-chords in chords-1st-beat
+      for chords-i in chords-all-onsets
+      for chords-pitch-dur in pitch-dur-chords
+      for chords-pitch-onset in pitch-onset-chords
+      for chords-pitch-dur-onset in pitch-dur-onset-chords
+      for chords-pitch-dur-i in pitch-dur-chords-include
+      for chords-pitch-onset-i in pitch-onset-chords-include
+      for chords-pitch-dur-onset-i in pitch-dur-onset-chords-include
+      for pitch-dur in (mat-trans pitch-dur-domains)
+      for pitch-onset in (mat-trans pitch-onset-domains)
+      for pitch-dur-onset in (mat-trans pitch-dur-onset-domains)
+      for pitch-dur-i in (mat-trans pitch-dur-include)
+      for pitch-onset-i in (mat-trans pitch-onset-include)
+      for pitch-dur-onset-i in (mat-trans pitch-dur-onset-include)
+      for on-beat-chords in chords-on-beat
+      for off-beat-chords in chords-off-beat
+      for 1st-beat-chords in chords-1st-beat
       collect
-	 (make-measures-domain pitch
-						   pitch-i
-						   chords
-						   chords-i
-						   pitch-dur
-						   pitch-onset
-						   pitch-dur-onset
-						   pitch-dur-i
-						   pitch-onset-i
-						   pitch-dur-onset-i
-						   on-beat-chords
-						   off-beat-chords
-						   1st-beat-chords						   
-						   chords-pitch-dur
-						   chords-pitch-onset
-						   chords-pitch-dur-onset
-						   chords-pitch-dur-i
-						   chords-pitch-onset-i
-						   chords-pitch-dur-onset-i
-						   midics-domain)))))
+     (make-measures-domain pitch
+                           pitch-i
+                           chords
+                           chords-i
+                           pitch-dur
+                           pitch-onset
+                           pitch-dur-onset
+                           pitch-dur-i
+                           pitch-onset-i
+                           pitch-dur-onset-i
+                           on-beat-chords
+                           off-beat-chords
+                           1st-beat-chords                         
+                           chords-pitch-dur
+                           chords-pitch-onset
+                           chords-pitch-dur-onset
+                           chords-pitch-dur-i
+                           chords-pitch-onset-i
+                           chords-pitch-dur-onset-i
+                           midics-domain)))))
 
 (defun build-all-domains (poly domains mcs-approx random?)
 (let* ((voices (voices poly))
-	   (variables-domain (build-variables-domain voices domains mcs-approx random?))
+       (variables-domain (build-variables-domain voices domains mcs-approx random?))
        (measures-domain (build-measures-domain voices variables-domain)))
  (make-screamer-all-domains variables-domain measures-domain)))
 
