@@ -18,7 +18,7 @@
 ;;; * SCREAMER-PLUS 0.1 by Simon White
 ;;;  Copyright 1998-2000 University of Aberdeen
 ;;;
-;;; * Code excerpts by Killian Sprotte
+;;; * Code excerpts by Kilian Sprotte
 ;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -44,7 +44,6 @@
 
 (defvar *om-screamer-files* nil)
 (setf  *om-screamer-files* (list
-             (om::om-relative-path '("sources") "constraint-patch")
              (om::om-relative-path '("sources") "fun-button")
              (om::om-relative-path '("sources") "om-backtrack-additions")
              ;(om::om-relative-path '("sources" "screamer-plus") "screamer-patch")
@@ -68,14 +67,6 @@
              (om::om-relative-path '("sources") "screamer-score-domains")
              (om::om-relative-path '("sources") "screamer-score-constraints")
              (om::om-relative-path '("sources") "screamer-score")
-             (om::om-relative-path '("sources" "screamer-score-2") "new-screamer-additions")
-             (om::om-relative-path '("sources" "screamer-score-2") "package")
-             (om::om-relative-path '("sources" "screamer-score-2") "screamer-bpf")
-             (om::om-relative-path '("sources" "screamer-score-2") "screamer-score-2-classes")
-             (om::om-relative-path '("sources" "screamer-score-2") "score-solution")
-             (om::om-relative-path '("sources" "screamer-score-2") "screamer-score-2")
-             (om::om-relative-path '("sources" "screamer-score-2") "main-interface")
-             (om::om-relative-path '("sources" "screamer-score-2") "screamer-score-2-interface")
               ))
 
 ;--------------------------------------------------
@@ -177,5 +168,5 @@ Includes:
 Based on the original version by Simon White
 Current version by Paulo Henrique Raposo (2025)
 
-* Code excerpts by Killian Sprotte"
+* Code excerpts by Kilian Sprotte"
  ?::*screamer+-version*))

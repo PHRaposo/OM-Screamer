@@ -122,10 +122,15 @@
                         (if (null patchbox);<== function in lambda mode
                             (symbol-name (second (cadr (third expr))))
                             (name (reference patchbox))))));<== patch in lambda mode
+    #+lispworks
     (if (compiled-function-p fun)
         fun
         (compile (eval `(defun ,(gensym (if (null patch-name) "anon-fun-" (concatenate 'string patch-name "-"))) ,(function-lambda-list fun)
-                             (apply ,fun (list ,.(function-lambda-list fun))))))))))
+                             (apply ,fun (list ,.(function-lambda-list fun)))))))
+    #+sbcl
+    (compile (eval `(defun ,(gensym (if (null patch-name) "anon-fun-" (concatenate 'string patch-name "-"))) ,(function-lambda-list fun)
+                             (apply ,fun (list ,.(function-lambda-list fun))))))
+      )))
 
 ;; BACKTRACK CONSTRAINTS (OLD)
 (defun compile-screamer-backtrack-constraint (fun)
@@ -160,6 +165,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;TIME
 
+#+lispworks
 (defun om-timing-start ()
   "Capture timing and resource stats at the start."
   (sys::start-gc-timing)
@@ -169,6 +175,7 @@
         (sys::get-gc-timing)
         (sys::get-universal-time)))
 
+#+lispworks
 (defun om-timing-stop (start-data)
   "Collect and print timing/resource stats since START-DATA."
   (let* ((end-run (get-internal-run-time))
@@ -185,6 +192,77 @@
          (elapsed-time (/ (- end-real start-real) internal-time-units-per-second))
          (allocation (- end-alloc start-alloc))
          (gc-time (- (getf end-gc :total 0.0) (getf start-gc :total 0.0)))
+         (wall-time (- end-time start-clock)))
+    (format *om-stream* "~%-------------------------------------~%")
+    (format *om-stream* "   User time      = ~,3f s~%" user-time)
+    (format *om-stream* "   Elapsed time   = ~,3f s~%" elapsed-time)
+    (format *om-stream* "   Real Time      = ~A s~%" wall-time)
+    (format *om-stream* "   Allocation     = ~:d bytes~%" allocation)
+    (format *om-stream* "   GC time        = ~,3f s~%" gc-time)
+    (format *om-stream* "-------------------------------------~%")))
+
+#+sbcl
+(defvar *om-timing-gc-baseline* 0
+  "Value of SB-EXT:*GC-RUN-TIME* captured by OM-TIMING-START.")
+
+#+sbcl
+(defun om-timing-start ()
+  "Capture timing and resource stats at the start."
+  ;; Emulate LispWorks SYS::START-GC-TIMING with initialization.
+  (setf *om-timing-gc-baseline* sb-ext:*gc-run-time*)
+
+  (let* ((run-time (get-internal-run-time))
+         (real-time (get-internal-real-time))
+         (allocation (sb-ext:get-bytes-consed))
+         (gc-total
+           (/ (float (- sb-ext:*gc-run-time*
+                        *om-timing-gc-baseline*)
+                     1.0d0)
+              internal-time-units-per-second))
+         ;; Preserve the LispWorks GET-GC-TIMING plist format.
+         (gc-timing
+           (list :total gc-total
+                 :user gc-total
+                 :system 0.0d0))
+         (universal-time (get-universal-time)))
+    (list run-time
+          real-time
+          allocation
+          gc-timing
+          universal-time)))
+
+#+sbcl
+(defun om-timing-stop (start-data)
+  "Collect and print timing/resource stats since START-DATA."
+  (let* ((end-run (get-internal-run-time))
+         (end-real (get-internal-real-time))
+         (end-alloc (sb-ext:get-bytes-consed))
+         (end-gc-total
+           (/ (float (- sb-ext:*gc-run-time*
+                        *om-timing-gc-baseline*)
+                     1.0d0)
+              internal-time-units-per-second))
+         ;; Preserve the LispWorks GET-GC-TIMING plist format.
+         (end-gc
+           (list :total end-gc-total
+                 :user end-gc-total
+                 :system 0.0d0))
+         (end-time (get-universal-time))
+         (start-run (first start-data))
+         (start-real (second start-data))
+         (start-alloc (third start-data))
+         (start-gc (fourth start-data))
+         (start-clock (fifth start-data))
+         (user-time
+           (/ (- end-run start-run)
+              internal-time-units-per-second))
+         (elapsed-time
+           (/ (- end-real start-real)
+              internal-time-units-per-second))
+         (allocation (- end-alloc start-alloc))
+         (gc-time
+           (- (getf end-gc :total 0.0d0)
+              (getf start-gc :total 0.0d0)))
          (wall-time (- end-time start-clock)))
     (format *om-stream* "~%-------------------------------------~%")
     (format *om-stream* "   User time      = ~,3f s~%" user-time)

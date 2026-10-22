@@ -19,7 +19,7 @@ Includes:
   Copyright Paulo Henrique Raposo (2025)
 
 
-* Code excerpts by Killian Sprotte
+* Code excerpts by Kilian Sprotte
 
 
 #### OM-Screamer is an adaptation of the propagation part of SCREAMER to the paradigm of visual programming language of Openmusic.
@@ -35,14 +35,19 @@ logic programming languages such as CHiP and CLP(R). Furthermore, Screamer is
  fully integrated with Common Lisp. Screamer programs can coexist and
  interoperate with other extensions to as CLIM and Iterate.
 
-
-### This library requires OM-Backtrack 2.
-
-
-## [Download OM-Backtrack 2.1.0](https://github.com/PHRaposo/OM-Backtrack-2/archive/refs/heads/main.zip)
+##### Changes in Pc-Set-Theory: (in-progress)
 
 
+##### Changes in Screamer: (in-progress)
 
-## [Download OM-Screamer](https://github.com/PHRaposo/OM-Screamer/archive/refs/heads/main.zip)
+
+### This library requires OM-Backtrack.
+
+
+# [Download OM-Backtrack 2.0](https://github.com/PHRaposo/OM-Backtrack/archive/refs/heads/V2.0.zip)
+
+
+
+# [Download OM-Screamer](https://github.com/PHRaposo/OM-Screamer/archive/refs/heads/main.zip)
 
 
